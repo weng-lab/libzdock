@@ -29,31 +29,23 @@ SYNOPSIS
 
 \#include \<pdb++.h\>
 
+
+```C++
 ....
 
-PDB
+PDB record;
 
-record;
-
-while (cin \>\> record) {
-
-switch (record.type()) {
-
-case PDB::ATOM:
-
-cout \<\< record.atom.xyz[0] \<\< ’ ’ \<\< record.atom.xyz[0]
-
-\<\< ’ ’ \<\< record.atom.xyz[0] \<\< endl;
-
-....
-
-break;
-
+while (cin >> record) {
+  switch (record.type()) {
+    case PDB::ATOM:
+      cout << record.atom.xyz[0] << ' ' << record.atom.xyz[0]
+            << ' ' << record.atom.xyz[0] << endl;
+      ....
+      break;
+  }
 }
-
-}
-
 ....
+```
 
 DESCRIPTION
 -----------
