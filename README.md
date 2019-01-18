@@ -245,7 +245,9 @@ BUGS
 ----
 
 Routines are needed to convert to and from PDB typesetting conventions
-in **COMPND**, **SOURCE**, **AUTHOR**, and **JRNL** records.
+in **COMPND**, **SOURCE**, **AUTHOR**, and **JRNL** records. Also, some
+new record types have appeared since 1994, that currently show up as
+**UNKNOWN**, such as **TITLE**.
 
 COPYRIGHT
 ---------
