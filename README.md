@@ -27,10 +27,9 @@ pdb++ − A C++ class for manipulating Brookhaven Protein DataBank records
 SYNOPSIS
 --------
 
-\#include \<pdb++.h\>
-
-
 ```C++
+#include <pdb++.h>
+
 ....
 
 PDB record;
