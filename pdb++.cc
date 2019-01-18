@@ -23,28 +23,24 @@ extern "C" {
 #include <string.h>
 }
 
-void
-PDB::type(RecordType t)
-{
-	if (t == UNKNOWN) {
-		// optimize default case (skip memset())
-		rType = t;
-		unknown.junk[0] = '\0';
-		return;
-	}
-	memset(this, 0, sizeof *this);
-	rType = t;
-	switch (t) {
-	default:
-		break;
-	case ATOM:
-		atom.occupancy = 1.0;
-		break;
-	}
+void PDB::type(RecordType t) {
+  if (t == UNKNOWN) {
+    // optimize default case (skip memset())
+    rType = t;
+    unknown.junk[0] = '\0';
+    return;
+  }
+  memset(this, 0, sizeof *this);
+  rType = t;
+  switch (t) {
+  default:
+    break;
+  case ATOM:
+    atom.occupancy = 1.0;
+    break;
+  }
 }
 
-int
-PDB::byteCmp(const PDB &l, const PDB &r)
-{
-	return memcmp(&l, &r, sizeof (PDB));
+int PDB::byteCmp(const PDB &l, const PDB &r) {
+  return memcmp(&l, &r, sizeof(PDB));
 }

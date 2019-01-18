@@ -19,13 +19,11 @@
 
 #include "pdb++.h"
 
-std::istream &
-operator>>(std::istream &s, PDB &p)
-{
-	char	buf[4 * PDB::BufLen];
+std::istream &operator>>(std::istream &s, PDB &p) {
+  char buf[4 * PDB::BufLen];
 
-	s.getline(buf, 4 * PDB::BufLen);
-	if (s)
-		p = PDB(buf);
-	return s;
+  s.getline(buf, 4 * PDB::BufLen);
+  if (s)
+    p = PDB(buf);
+  return s;
 }

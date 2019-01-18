@@ -6,8 +6,9 @@
 SHELL		= /bin/sh
 RANLIB		= :
 
-CXX		= gcc -felide-constructors
+#CXX		= gcc -felide-constructors
 #CXX		= CC
+CXX = clang++
 
 .SUFFIXES:	.cc
 
