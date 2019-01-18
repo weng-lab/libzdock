@@ -29,9 +29,9 @@
 class PDB {
 public:
 #ifdef PDB_WORKAROUND
-  enum { BufLen = 73, PDBRUNVersion = 6 };
+  enum { BufLen = 81, PDBRUNVersion = 6 };
 #else
-  static const int BufLen = 73;       // PDB record length (72 + '\0')
+  static const int BufLen = 81;       // PDB record length (80 + '\0')
   static const int PDBRUNVersion = 6; // Best version generated
 #endif
   typedef char Date[10];
