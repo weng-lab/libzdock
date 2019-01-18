@@ -39,7 +39,7 @@
 //			a null character appended.  Default:  space(s).
 //
 
-#define MAXFIELDSIZE 64
+#define MAXFIELDSIZE 80
 
 int PDB::sscanf(const char *buffer, const char *fmt, ...) {
   va_list ap;
