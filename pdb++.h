@@ -38,6 +38,8 @@ public:
   typedef char AName[5]; // atom name - NO2*
   typedef char RName[5]; // residue name - ALA
   typedef char PName[5]; // pdb name - 9lyz
+  typedef char Element[3]; // atom 'element' (LSTRING(2)
+  typedef char Charge[3]; // atom 'charge' (LSTRING(2)
   typedef char Id[4];    // generic short id field
   typedef double Real;   // size of floating point
 
@@ -71,6 +73,10 @@ public:
   struct Unknown {
     char junk[BufLen];
   };
+  struct Title {
+    int continuation;
+    char text[71];
+  };
   struct Aggrgt {
     int serialNum;
     int numComponents;
@@ -78,7 +84,7 @@ public:
   };
   struct Agrdes {
     int num;
-    char text[60];
+    char text[69];
   };
   struct Anisou {
     int serialNum;
@@ -94,7 +100,8 @@ public:
     Residue residue;
     Real xyz[3];
     Real occupancy, tempFactor;
-    int ftnoteNum;
+    Element element;
+    Charge charge;
   };
   struct Author {
     char data[61];
@@ -382,6 +389,7 @@ public:
     SPRSDE,
     SSBOND,
     TER,
+    TITLE,
     TURN,
     TVECT,
     USER,
@@ -481,6 +489,7 @@ public:
     Symdes symdes;
     Symop symop;
     Ter ter;
+    Title title;
     Trnsfm trnsfm;
     Turn turn;
     Tvect tvect;

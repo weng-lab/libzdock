@@ -530,6 +530,10 @@ PDB::RecordType PDB::getType(const char *buf) {
       if (rt[2] == 'R' && rt[3] == ' ')
         return TER;
       break;
+    case 'I':
+      if (rt[2] == 'T' && rt[3] == 'L')
+        return TITLE;
+      break;
     case 'R':
       if (rt[2] == 'N' && rt[3] == 'S')
         return TRNSFM;
