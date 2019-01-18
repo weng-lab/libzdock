@@ -15,7 +15,7 @@ CXX = clang++
 .cc.o:
 	$(CXX) $(CCFLAGS) -c $< -o $@
 
-OPT		= -O
+OPT		= -O3
 DEBUG		=
 CCFLAGS		= $(OPT) $(DEBUG)
 LIBRARY		= pdb++
