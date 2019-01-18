@@ -112,7 +112,7 @@ PDB::PDB(const char *buf) {
                    atom.residue.name, &atom.residue.chainId,
                    &atom.residue.seqNum, &atom.residue.insertCode, &atom.xyz[0],
                    &atom.xyz[1], &atom.xyz[2], &atom.occupancy,
-                   &atom.tempFactor, &atom.ftnoteNum))
+                   &atom.tempFactor, &atom.element, &atom.charge))
       goto unknown;
     break;
 
@@ -296,6 +296,11 @@ PDB::PDB(const char *buf) {
     if (0 > sscanf(buf, fmt, &ter.serialNum, ter.residue.name,
                    &ter.residue.chainId, &ter.residue.seqNum,
                    &ter.residue.insertCode))
+      goto unknown;
+    break;
+
+  case TITLE:
+    if (0 > sscanf(buf, fmt, &title.continuation, &title.text))
       goto unknown;
     break;
 

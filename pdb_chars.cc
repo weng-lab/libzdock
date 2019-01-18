@@ -94,7 +94,7 @@ const char *PDB::chars(void) const {
         sprintf(buf, fmt, atom.serialNum, atom.name, atom.altLoc,
                 atom.residue.name, atom.residue.chainId, atom.residue.seqNum,
                 atom.residue.insertCode, atom.xyz[0], atom.xyz[1], atom.xyz[2],
-                atom.occupancy, atom.tempFactor, atom.ftnoteNum);
+                atom.occupancy, atom.tempFactor, atom.element, atom.charge);
     break;
 
   case AUTHOR:
@@ -254,6 +254,10 @@ const char *PDB::chars(void) const {
     count =
         sprintf(buf, fmt, ter.serialNum, ter.residue.name, ter.residue.chainId,
                 ter.residue.seqNum, ter.residue.insertCode);
+    break;
+
+  case TITLE:
+    count = sprintf(buf, fmt, title.continuation, title.text);
     break;
 
   case TRNSFM:
