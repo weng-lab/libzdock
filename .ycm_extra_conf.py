@@ -36,6 +36,7 @@ flags = [
   # generic
   '-isystem', '/usr/local/include',
   '-isystem', '/usr/include',
+  '-isystem', '/opt/local/include/eigen3',
 ]
 
 def parsepaths(flags):
