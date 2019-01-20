@@ -8,29 +8,30 @@
 #include <Eigen/Dense>
 
 namespace eg = ::Eigen;
+namespace p = ::libpdb;
 
 int main() {
   eg::Matrix<double, 3, eg::Dynamic> m;
-  PDB record;
+  p::PDB record;
   int model = 0;
   int count = 0;
   std::string title;
   std::vector<size_t> atoms; // record indexes for atoms
-  std::vector<PDB> records;
+  std::vector<p::PDB> records;
   // read pdb lines
   while (std::cin >> record && model < 2) { // read first model only
     switch (record.type()) {
-    case PDB::MODEL:
+    case p::PDB::MODEL:
       if (record.model.num < 2) { // read first model (clear upon 'model entry')
         model = record.model.num;
         atoms.clear();
       }
       break;
-    case PDB::ATOM:
-    case PDB::HETATM:
+    case p::PDB::ATOM:
+    case p::PDB::HETATM:
       atoms.push_back(count);
       break;
-    case PDB::TITLE:
+    case p::PDB::TITLE:
       if (record.title.continuation) {
         title += std::string(record.title.text).substr(1);
       } else {
@@ -40,7 +41,7 @@ int main() {
     default:
       break;
     }
-    if (PDB::UNKNOWN != record.type()) {
+    if (p::PDB::UNKNOWN != record.type()) {
       records.push_back(record);
       count++;
     }

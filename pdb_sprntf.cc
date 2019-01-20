@@ -22,6 +22,8 @@
 #include <stdarg.h>
 #include <string.h>
 
+namespace libpdb {
+
 // scratch must be big enough to hold the largest number
 static char scratch[256];
 
@@ -416,3 +418,5 @@ static char *outexp(double value, int width, int nplace, char fill_char,
       *p++ = fill_char;
   return p;
 }
+
+} // namespace libpdb

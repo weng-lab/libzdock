@@ -41,6 +41,8 @@
 
 #define MAXFIELDSIZE 80
 
+namespace libpdb {
+
 int PDB::sscanf(const char *buffer, const char *fmt, ...) {
   va_list ap;
   int i, field_width;
@@ -172,3 +174,5 @@ int PDB::sscanf(const char *buffer, const char *fmt, ...) {
   va_end(ap);
   return nmatch;
 }
+
+} // namespace libpdb

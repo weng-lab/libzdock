@@ -23,6 +23,9 @@
 extern "C" {
 #include <ctype.h>
 }
+
+namespace libpdb {
+
 extern "C" int sprintf(char *, const char *, ...);
 
 static char const *const pdbRecordFormat[PDB::NUM_TYPES] = {
@@ -507,3 +510,5 @@ const char *PDB::chars(void) const {
   buf[count] = '\0';
   return buf;
 }
+
+} // namespace libpdb

@@ -26,6 +26,8 @@
 
 #include <iostream>
 
+namespace libpdb {
+
 class PDB {
 public:
 #ifdef PDB_WORKAROUND
@@ -35,13 +37,13 @@ public:
   static const int PDBRUNVersion = 6; // Best version generated
 #endif
   typedef char Date[10];
-  typedef char AName[5]; // atom name - NO2*
-  typedef char RName[5]; // residue name - ALA
-  typedef char PName[5]; // pdb name - 9lyz
+  typedef char AName[5];   // atom name - NO2*
+  typedef char RName[5];   // residue name - ALA
+  typedef char PName[5];   // pdb name - 9lyz
   typedef char Element[3]; // atom 'element' (LSTRING(2)
-  typedef char Charge[3]; // atom 'charge' (LSTRING(2)
-  typedef char Id[4];    // generic short id field
-  typedef double Real;   // size of floating point
+  typedef char Charge[3];  // atom 'charge' (LSTRING(2)
+  typedef char Id[4];      // generic short id field
+  typedef double Real;     // size of floating point
 
   struct Residue { // residue info
     RName name;
@@ -563,5 +565,7 @@ inline std::ostream &operator<<(std::ostream &s, const PDB &p) {
   s << p.chars();
   return s;
 }
+
+} // namespace libpdb
 
 #endif // PDB_H
