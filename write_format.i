@@ -27,7 +27,7 @@
 "FORMUL  %2D  %-4s%2D%c%-51s",
 "FTNOTE %3D %-68s",					/* REMARK */
 "HEADER    %-40s%-11s%c%-4s",
-"HELIX  %3D %3s %-4s%c %4d%c %-4s%c %4d%c%2D%-30s",
+"HELIX  %3D %3s %-4s%c %4d%c %-4s%c %4d%c%2D%-30s %5D",
 "HET    %-4s %c%4d%c  %5d     %-40s",
 "HETATM%5d %-4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s",
 "JRNL     %c%-60s",					/* AUTHOR */
@@ -45,7 +45,7 @@
 "SITE   %3d %3s %2d %-4s%c%4D%c %-4s%c%4D%c %-4s%c%4D%c %-4s%c%4D%c",
 "SOURCE   %c%-60s",					/* AUTHOR */
 "SPRSDE  %2D %-9s %-10s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-4s",
-"SSBOND %3D %-4s%c %4d%c   %-4s%c %4D%c    %-30s",
+"SSBOND %3D %-4s%c %4d%c   %-4s%c %4D%c                       %6D %6D %5.2f",
 "TER   %5d      %-4s%c%4d%c",
 "TITLE   %2D%-70s",
 "TURN   %3D %3s %-4s%c%4d%c %-4s%c%4d%c    %-30s",

@@ -150,6 +150,7 @@ public:
     Residue residues[2];
     int type;
     char comment[31];
+    int length;
   };
   struct Het {
     Residue hetGrp;
@@ -240,7 +241,9 @@ public:
   struct Ssbond {
     int seqNum;
     Residue residues[2];
-    char comment[31];
+    int sym1;
+    int sym2;
+    Real length;
   };
   typedef Agrdes Symdes;
   struct Symop {
