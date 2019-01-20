@@ -171,7 +171,8 @@ PDB::PDB(const char *buf) {
                    &helix.residues[0].chainId, &helix.residues[0].seqNum,
                    &helix.residues[0].insertCode, helix.residues[1].name,
                    &helix.residues[1].chainId, &helix.residues[1].seqNum,
-                   &helix.residues[1].insertCode, &helix.type, helix.comment))
+                   &helix.residues[1].insertCode, &helix.type, helix.comment,
+                   &helix.length))
       goto unknown;
     break;
 
@@ -282,7 +283,8 @@ PDB::PDB(const char *buf) {
                    &ssbond.residues[0].chainId, &ssbond.residues[0].seqNum,
                    &ssbond.residues[0].insertCode, ssbond.residues[1].name,
                    &ssbond.residues[1].chainId, &ssbond.residues[1].seqNum,
-                   &ssbond.residues[1].insertCode, ssbond.comment))
+                   &ssbond.residues[1].insertCode, &ssbond.sym1, &ssbond.sym2,
+                   &ssbond.length))
       goto unknown;
     break;
 

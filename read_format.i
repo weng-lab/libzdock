@@ -27,7 +27,7 @@
 /* FORMUL */	"%8 %2d  %4s%2d%c%51s",
 /* FTNOTE */	"%7 %3d %68s",	/*  REMARK, SYMDES, MTXDES, CMPDES, AGRDES */
 /* HEADER */	"%10 %40s%9s  %c%4s",
-/* HELIX */	"%7 %3d %3s %4s%c %4d%c %4s%c %4d%c%2d%30s",
+/* HELIX */	"%7 %3d %3s %4s%c %4d%c %4s%c %4d%c%2d%30s %5d",
 /* HET */	"%7 %4s %c%4d%c  %5d%5 %40s",
 /* HETATM */	"%6 %5d %4s%c%4s%c%4d%c   %8f%8f%8f%6f%6f          %2s%2s",	/* ATOM */
 /* JRNL */	"%9 %c%60s",			/* AUTHOR */
@@ -45,7 +45,7 @@
 /* SITE */	"%7 %3d %3s %2d %4s%c%4d%c %4s%c%4d%c %4s%c%4d%c %4s%c%4d%c",
 /* SOURCE */	"%9 %c%60s",			/* AUTHOR */
 /* SPRSDE */	"%8 %2d %9s %4s%6 %4s %4s %4s %4s %4s %4s %4s %4s",
-/* SSBOND */	"%7 %3d %4s%c %4d%c   %4s%c %4d%c%4 %30s",
+/* SSBOND */	"%7 %3d %4s%c %4d%c   %4s%c %4d%c%23 %6d %6d %5f",
 /* TER */	"%6 %5d%6 %4s%c%4d%c",
 /* TITLE */	"%8 %2d%70s",
 /* TURN */	"%7 %3d %3s %4s%c%4d%c %4s%c%4d%c%4 %30s",
