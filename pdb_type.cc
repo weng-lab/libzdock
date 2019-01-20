@@ -33,6 +33,8 @@ extern "C" int strncasecmp (const char *s1, const char *s2, size_t n);
 #define _toupper toupper
 #endif
 
+namespace libpdb {
+
 int PDB::pdbrunInputVersion = PDB::PDBRUNVersion;  // just in case
 int PDB::pdbrunOutputVersion = PDB::PDBRUNVersion; // just in case
 
@@ -569,3 +571,4 @@ PDB::RecordType PDB::getType(const char *buf) {
   }
   return UNKNOWN;
 }
+} // namespace libpdb

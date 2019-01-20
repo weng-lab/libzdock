@@ -19,6 +19,7 @@
 
 #include "pdb++.h"
 
+namespace libpdb {
 std::istream &operator>>(std::istream &s, PDB &p) {
   char buf[4 * PDB::BufLen];
 
@@ -27,3 +28,5 @@ std::istream &operator>>(std::istream &s, PDB &p) {
     p = PDB(buf);
   return s;
 }
+
+} // namespace libpdb

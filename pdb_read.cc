@@ -26,6 +26,8 @@
 #define NULL 0
 #endif
 
+namespace libpdb {
+
 extern "C" int sscanf(const char *, const char *, ...);
 
 //
@@ -556,3 +558,5 @@ PDB::PDB(const char *buf) {
     break;
   }
 }
+
+} // namespace libpdb

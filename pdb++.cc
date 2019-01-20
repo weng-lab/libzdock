@@ -23,6 +23,8 @@ extern "C" {
 #include <string.h>
 }
 
+namespace libpdb {
+
 void PDB::type(RecordType t) {
   if (t == UNKNOWN) {
     // optimize default case (skip memset())
@@ -44,3 +46,5 @@ void PDB::type(RecordType t) {
 int PDB::byteCmp(const PDB &l, const PDB &r) {
   return memcmp(&l, &r, sizeof(PDB));
 }
+
+} // namespace libpdb
