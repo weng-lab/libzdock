@@ -1,4 +1,5 @@
 #include "PDB.hpp"
+#include "Exception.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -7,7 +8,7 @@ namespace e = ::Eigen;
 
 namespace zlab {
 
-PDB::PDB(const std::string &fn) : fn_(fn) { read_(); }
+PDB::PDB(const std::string &fn) { read_(fn); }
 
 const e::Matrix<double, 3, e::Dynamic> &PDB::matrix() { return m_; }
 
@@ -29,12 +30,12 @@ PDB::transform(Eigen::Transform<double, 3, Eigen::Affine> t) {
   return m_;
 }
 
-void PDB::read_() {
+void PDB::read_(const std::string &fn) {
   p::PDB record;
   int model = 0;
   size_t count = 0;
   std::string title;
-  std::ifstream infile(fn_);
+  std::ifstream infile(fn);
   if (infile.is_open()) {
     // read pdb lines
     atoms_.clear();
@@ -76,6 +77,8 @@ void PDB::read_() {
       m_.col(col) = e::Vector3d(records_[x].atom.xyz);
       col++;
     }
+  } else {
+    throw PDBOpenException(fn);
   }
 }
 

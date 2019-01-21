@@ -21,6 +21,8 @@
 //	C structure declarations
 //
 
+#pragma once
+
 #ifndef PDB_H
 #define PDB_H
 
