@@ -1,82 +1,23 @@
-#include "pdb++.h"
-#include <iostream>
-#include <string>
-#include <vector>
-
-#define EIGEN_USE_LAPACKE
-
-#include <Eigen/Dense>
+#include "PDB.hpp"
 
 namespace eg = ::Eigen;
 namespace p = ::libpdb;
 
 int main() {
-  eg::Matrix<double, 3, eg::Dynamic> m;
-  p::PDB record;
-  int model = 0;
-  int count = 0;
-  std::string title;
-  std::vector<size_t> atoms; // record indexes for atoms
-  std::vector<p::PDB> records;
-  // read pdb lines
-  while (std::cin >> record && model < 2) { // read first model only
-    switch (record.type()) {
-    case p::PDB::MODEL:
-      if (record.model.num < 2) { // read first model (clear upon 'model entry')
-        model = record.model.num;
-        atoms.clear();
-      }
-      break;
-    case p::PDB::ATOM:
-    case p::PDB::HETATM:
-      atoms.push_back(count);
-      break;
-    case p::PDB::TITLE:
-      if (record.title.continuation) {
-        title += std::string(record.title.text).substr(1);
-      } else {
-        title = record.title.text;
-      }
-      break;
-    default:
-      break;
-    }
-    if (p::PDB::UNKNOWN != record.type()) {
-      records.push_back(record);
-      count++;
-    }
-  }
+  zlab::PDB pdb("1f6g.pdb");
 
-  // turn atoms into matrix
-  m.resize(3, atoms.size());
-  size_t col = 0;
-  for (const auto x : atoms) {
-    m.col(col) = eg::Vector3d(records[x].atom.xyz);
-    col++;
-  }
-
-  // perform a translation
-  eg::Vector3d x = -m.rowwise().mean();
+  // perform a translation (i.e. rotate around center of mass)
+  eg::Vector3d x = -pdb.matrix().rowwise().mean();
   eg::Transform<double, 3, eg::Affine> t =
       eg::Translation3d(-x) *
       (eg::AngleAxisd(0.0 * M_PI, eg::Vector3d::UnitX()) *
        eg::AngleAxisd(0.25 * M_PI, eg::Vector3d::UnitY()) *
        eg::AngleAxisd(0.25 * M_PI, eg::Vector3d::UnitZ())) *
       eg::Translation3d(x);
-  m = t * m;
+  pdb.transform(t);
 
-  // reconstitute atom records from matrix
-  count = 0;
-  for (auto i : atoms) {
-    records[i].atom.xyz[0] = m(0, count);
-    records[i].atom.xyz[1] = m(1, count);
-    records[i].atom.xyz[2] = m(2, count);
-    count++;
-  }
-
-  // output pdb
-  for (const auto &r : records) {
-    std::cout << r << std::endl;
+  for (const auto &x : pdb.records()) {
+    std::cout << x << std::endl;
   }
 }
 
