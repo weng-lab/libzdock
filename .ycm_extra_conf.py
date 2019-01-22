@@ -19,8 +19,9 @@ flags = [
   '-isystem', '/usr/include/c++/7',
   '-isystem', '/usr/include/x86_64-linux-gnu/c++/7',
   '-isystem', '/usr/include/c++/7/backward',
-  '-isystem', '/usr/lib/gcc/x86_64-linux-gnu/7/include',
-  '-isystem', '/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed',
+#  '-isystem', '/usr/lib/gcc/x86_64-linux-gnu/7/include',
+  '-isystem', '/usr/local/include',
+#  '-isystem', '/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed',
   '-isystem', '/usr/include/x86_64-linux-gnu',
   '-isystem', '/usr/include',
 
@@ -33,16 +34,14 @@ flags = [
   '-isystem', '/opt/local/libexec/llvm-7.0/lib/clang/7.0.1/include',
   '-isystem', '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include',
 
-  # generic
-  '-isystem', '/usr/local/include',
-  '-isystem', '/usr/include',
+  # specific
   '-isystem', '/opt/local/include/eigen3',
+  '-isystem', '/home/vanderva/local/eigen3',
 ]
 
 def parsepaths(flags):
   stash = []
   for x in flags:
-    print(stash, x)
     if x not in ['-I', '-isystem']:
       if stash:
         if os.path.isdir(abspath(x)):
