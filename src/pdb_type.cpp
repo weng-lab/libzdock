@@ -508,6 +508,8 @@ PDB::RecordType PDB::getType(const char *buf) {
       break;
 
     case 'P':
+      if (rt[2] == 'L' && rt[3] == 'I')
+        return SPLIT;
       if (rt[2] == 'R' && rt[3] == 'S')
         return SPRSDE;
       break;
