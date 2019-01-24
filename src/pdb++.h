@@ -136,7 +136,10 @@ public:
   };
   // no structure for END
   // no structure for ENDMDL
-  typedef Author Expdta;
+  struct Expdta {
+    int continuation;
+    char technique[70];
+  };
   struct Formul {
     int component;
     RName hetId;

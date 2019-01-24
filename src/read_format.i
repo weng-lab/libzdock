@@ -19,7 +19,7 @@
 /* UNKNOWN */	NULL,
 /* ANISOU */	"%6 %5d %4s%c%4s%c%4d%c %7d%7d%7d%7d%7d%7d",	/* SIGUIJ */
 /* ATOM */	"%6 %5d %4s%c%4s%c%4d%c   %8f%8f%8f%6f%6f          %2s%2s",	/* HETATM, SIGATM */
-/* AUTHOR */	"%9 %c%60s",		/* COMPND, EXPDTA, JRNL, SOURCE */
+/* AUTHOR */	"%9 %c%60s",		/* JRNL */
 /* CAVEAT */ "%8 %2d %4s    %60s",
 /* COMPND */	"%7 %3d%70s",
 /* CONECT */	"%6 %5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
@@ -56,7 +56,7 @@
 /* USER */	"%4 %2s%66s",
 /* MODEL */	"%9 %5d",
 /* ENDMDL */	NULL,
-/* EXPDTA */	"%9 %c%60s",			/* AUTHOR */
+/* EXPDTA */	"%8 %2d%69s",
 /* SYMDES */	"%7 %3d %68s",			/* FTNOTE */
 /* SYMOP */	"%5 %d %3d%10f%10f%10f%5 %10f",
 /* MTXDES */	"%7 %3d %68s",			/* FTNOTE */
