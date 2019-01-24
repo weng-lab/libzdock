@@ -127,6 +127,11 @@ PDB::PDB(const char *buf) {
       goto unknown;
     break;
 
+  case CAVEAT:
+    if (0 > sscanf(buf, fmt, &caveat.continuation, caveat.id, caveat.text))
+      goto unknown;
+    break;
+
   case SPLIT:
     if (0 > sscanf(buf, fmt, &split.continuation, split.idMap[0],
                    split.idMap[1], split.idMap[2], split.idMap[3],
