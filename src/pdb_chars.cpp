@@ -225,9 +225,10 @@ const char *PDB::chars(void) const {
     break;
 
   case REVDAT:
-    count = sprintf(buf, fmt, revdat.modification, revdat.continuation,
-                    revdat.timestamp, revdat.id, revdat.modType,
-                    revdat.corrections);
+    count =
+        sprintf(buf, fmt, revdat.modification, revdat.continuation,
+                revdat.timestamp, revdat.id, revdat.modType, revdat.record[0],
+                revdat.record[1], revdat.record[2], revdat.record[3]);
     break;
 
   case SCALE:

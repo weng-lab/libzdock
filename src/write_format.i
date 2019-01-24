@@ -40,7 +40,7 @@
 "OBSLTE  %2D %-9s %-10s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-4s",
 "ORIGX%1d    %10.6f%10.6f%10.6f     %10.5f",		/* SCALE */
 "REMARK %3D %-68s",
-"REVDAT %3D%2D %-9s %-7s %c       %-31s",
+"REVDAT %3D%2D %-9s %4s    %1d       %-7s%-7s%-7s%-6s",
 "SCALE%1d    %10.6f%10.6f%10.6f     %10.5f",		/* ORIGX */
 "SEQRES%4d %c %4d  %-4s%-4s%-4s%-4s%-4s%-4s%-4s%-4s%-4s%-4s%-4s%-4s%-4s",
 "SHEET %4D %3s%2d %-4s%c%4d%c %-4s%c%4d%c%2d %-4s%-4s%c%4D%c %-4s%-4s%c%4D%c",

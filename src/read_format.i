@@ -40,7 +40,7 @@
 /* OBSLTE */	"%8 %2d %9s %4s%6 %4s %4s %4s %4s %4s %4s %4s %4s %4s",
 /* ORIGX */	"%5 %d%4 %10f%10f%10f%5 %10f",	/* SCALE */
 /* REMARK */	"%7 %3d %68s",			/* FTNOTE */
-/* REVDAT */	"%7 %3d%2d %9s %7s %c%7 %31s",
+/* REVDAT */	"%7 %3d%2d %9s %4s    %1d       %6s %6s %6s %6s",
 /* SCALE */	"%5 %d%4 %10f%10f%10f%5 %10f",
 /* SEQRES */	"%6 %4d %c %4d  %4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s",
 /* SHEET */	"%6 %4d %3s%2d %4s%c%4d%c %4s%c%4d%c%2d %4s%4s%c%4d%c %4s%4s%c%4d%c",

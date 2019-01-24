@@ -269,7 +269,8 @@ PDB::PDB(const char *buf) {
   case REVDAT:
     if (0 > sscanf(buf, fmt, &revdat.modification, &revdat.continuation,
                    revdat.timestamp, revdat.id, &revdat.modType,
-                   revdat.corrections))
+                   revdat.record[0], revdat.record[1], revdat.record[2],
+                   revdat.record[3]))
       goto unknown;
     break;
 

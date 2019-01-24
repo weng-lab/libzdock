@@ -229,9 +229,9 @@ public:
     int modification;
     int continuation;
     Date timestamp;
-    char id[8];
-    char modType;
-    char corrections[31];
+    PName id;
+    int modType;
+    char record[4][7];
   };
   struct Scale {
     int rowNum;
