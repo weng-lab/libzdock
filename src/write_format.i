@@ -34,6 +34,7 @@
 "JRNL     %c%-60s",					/* AUTHOR */
 "KEYWDS  %2D%-69s",
 "MASTER    %5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
+"MDLTYP  %2D%-70s",
 "MTRIX%1d %3d%10.6f%10.6f%10.6f     %10.5f   %2D",
 "NUMMDL    %-4d",
 "OBSLTE  %2D %-9s %-10s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-4s",

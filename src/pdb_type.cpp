@@ -449,6 +449,10 @@ PDB::RecordType PDB::getType(const char *buf) {
       if (rt[2] == 'S' && rt[3] == 'T')
         return MASTER;
       break;
+    case 'D':
+      if (rt[2] == 'L' && rt[3] == 'T')
+        return MDLTYP;
+      break;
     case 'O':
       if (rt[2] == 'D' && rt[3] == 'E')
         return MODEL;

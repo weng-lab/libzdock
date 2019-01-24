@@ -190,6 +190,10 @@ public:
   struct Nummdl {
     int number;
   };
+  struct Mdltyp {
+    int continuation;
+    char comment[71];
+  };
   struct Model {
     int num;
   };
@@ -407,6 +411,7 @@ public:
     JRNL,
     KEYWDS,
     MASTER,
+    MDLTYP,
     MTRIX,
     NUMMDL,
     OBSLTE,
@@ -511,6 +516,7 @@ public:
     Mtrix mtrix;
     Mtxdes mtxdes;
     Nummdl nummdl;
+    Mdltyp mdltyp;
     Obslte obslte;
     Origx origx;
     Remark remark;
