@@ -21,7 +21,7 @@
 /* ATOM */	"%6 %5d %4s%c%4s%c%4d%c   %8f%8f%8f%6f%6f          %2s%2s",	/* HETATM, SIGATM */
 /* AUTHOR */	"%9 %c%60s",		/* COMPND, EXPDTA, JRNL, SOURCE */
 /* CAVEAT */ "%8 %2d %4s    %60s",
-/* COMPND */	"%9 %c%60s",			/* AUTHOR */
+/* COMPND */	"%7 %3d%70s",
 /* CONECT */	"%6 %5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
 /* CRYST1 */	"%6 %9f%9f%9f%7f%7f%7f %11s%4d",
 /* END */	NULL,
