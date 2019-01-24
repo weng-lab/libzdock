@@ -102,9 +102,12 @@ const char *PDB::chars(void) const {
 
   case AUTHOR:
   case JRNL:
-  case SOURCE:
   case EXPDTA:
     count = sprintf(buf, fmt, author.continuation, author.data);
+    break;
+
+  case SOURCE:
+    count = sprintf(buf, fmt, source.continuation, source.name);
     break;
 
   case CAVEAT:

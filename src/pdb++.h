@@ -246,7 +246,10 @@ public:
     int count;
     Residue residues[4];
   };
-  typedef Author Source;
+  struct Source {
+    int continuation;
+    char name[70];
+  };
   struct Sprsde {
     int continuation;
     Date timestamp;
