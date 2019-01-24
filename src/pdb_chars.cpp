@@ -109,11 +109,11 @@ const char *PDB::chars(void) const {
     break;
 
   case SPLIT:
-    count = sprintf(buf, fmt, split.continuation, split.idMap[0], split.idMap[1],
-                    split.idMap[2], split.idMap[3], split.idMap[4], split.idMap[5],
-                    split.idMap[6], split.idMap[7], split.idMap[8], split.idMap[9],
-                    split.idMap[10], split.idMap[11], split.idMap[12],
-                    split.idMap[13]);
+    count = sprintf(
+        buf, fmt, split.continuation, split.idMap[0], split.idMap[1],
+        split.idMap[2], split.idMap[3], split.idMap[4], split.idMap[5],
+        split.idMap[6], split.idMap[7], split.idMap[8], split.idMap[9],
+        split.idMap[10], split.idMap[11], split.idMap[12], split.idMap[13]);
     break;
 
   case CONECT:
@@ -148,8 +148,8 @@ const char *PDB::chars(void) const {
     break;
 
   case HEADER:
-    count = sprintf(buf, fmt, header.classification, header.timestamp,
-                    header.id);
+    count =
+        sprintf(buf, fmt, header.classification, header.timestamp, header.id);
     break;
 
   case HELIX:
@@ -184,11 +184,11 @@ const char *PDB::chars(void) const {
     break;
 
   case OBSLTE:
-    count = sprintf(buf, fmt, obslte.continuation, obslte.timestamp,
-                    obslte.oldId, obslte.idMap[0], obslte.idMap[1],
-                    obslte.idMap[2], obslte.idMap[3], obslte.idMap[4],
-                    obslte.idMap[5], obslte.idMap[6], obslte.idMap[7],
-                    obslte.idMap[8]);
+    count =
+        sprintf(buf, fmt, obslte.continuation, obslte.timestamp, obslte.oldId,
+                obslte.idMap[0], obslte.idMap[1], obslte.idMap[2],
+                obslte.idMap[3], obslte.idMap[4], obslte.idMap[5],
+                obslte.idMap[6], obslte.idMap[7], obslte.idMap[8]);
     break;
 
   case ORIGX:
