@@ -118,13 +118,11 @@ const char *PDB::chars(void) const {
     break;
 
   case CAVEAT:
-    count = sprintf(
-        buf, fmt, caveat.continuation, caveat.id, caveat.text);
+    count = sprintf(buf, fmt, caveat.continuation, caveat.id, caveat.text);
     break;
 
   case COMPND:
-    count = sprintf(
-        buf, fmt, compnd.continuation, compnd.compound);
+    count = sprintf(buf, fmt, compnd.continuation, compnd.compound);
     break;
 
   case SPLIT:
