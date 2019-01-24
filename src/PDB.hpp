@@ -3,9 +3,6 @@
 #include "pdb++.h"
 #include <iostream>
 #include <vector>
-
-#define EIGEN_USE_LAPACKE
-
 #include <Eigen/Dense>
 
 namespace zlab {

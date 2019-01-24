@@ -164,7 +164,7 @@ PDB::PDB(const char *buf) {
 
   case HEADER:
     if (0 > sscanf(buf, fmt, header.classification, header.timestamp,
-                   &header.type, header.id))
+                   header.id))
       goto unknown;
     break;
 

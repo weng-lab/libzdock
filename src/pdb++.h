@@ -146,7 +146,6 @@ public:
     char classification[41];
     Date timestamp;
     PName id;
-    char type;
   };
   struct Helix {
     int serialNum;
