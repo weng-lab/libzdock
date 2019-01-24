@@ -19,7 +19,7 @@
 "UNKNOWN:  ??%-6.6s??",
 "ANISOU%5d %-4s%c%-4s%c%4d%c %7d%7d%7d%7d%7d%7d",	/* SIGUIJ */
 "ATOM  %5d %-4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s", /* HETATM, SIGATM */
-"AUTHOR   %c%-60s",			/* COMPND, EXPDTA, JRNL, SOURCE */
+"AUTHOR   %c%-60s",			/* JRNL */
 "CAVEAT  %2D %4s    %-60s",
 "COMPND %3D%-70s",
 "CONECT%5d%5D%5D%5D%5D%5D%5D%5D%5D%5D%5D",
@@ -56,7 +56,7 @@
 "USER%-2s%-66s",
 "MODEL    %5d",
 "ENDMDL",
-"EXPDTA   %c%-60s",					/* AUTHOR */
+"EXPDTA  %2D%-69s",
 "SYMDES %3d %68s",					/* FTNOTE */
 "SYMOP%1d %3d%10.6f%10.6f%10.6f     %10.5f",
 "MTXDES %3d %68s",					/* FTNOTE */
