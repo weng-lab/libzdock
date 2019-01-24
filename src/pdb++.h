@@ -192,6 +192,10 @@ public:
     PName oldId;
     PName idMap[9];
   };
+  struct Split {
+    int continuation;
+    PName idMap[14];
+  };
   struct Origx {
     int rowNum;
     Real o1, o2, o3, t;
@@ -392,6 +396,7 @@ public:
     SIGUIJ,
     SITE,
     SOURCE,
+    SPLIT,
     SPRSDE,
     SSBOND,
     TER,
@@ -490,6 +495,7 @@ public:
     Siguij siguij;
     Site site;
     Source source;
+    Split split;
     Sprsde sprsde;
     Ssbond ssbond;
     Symdes symdes;

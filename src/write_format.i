@@ -44,6 +44,7 @@
 "SIGUIJ%5d %-4s%c%-4s%c%4d%c %7D%7D%7D%7D%7D%7D",	/* ANISOU */
 "SITE   %3d %3s %2d %-4s%c%4D%c %-4s%c%4D%c %-4s%c%4D%c %-4s%c%4D%c",
 "SOURCE   %c%-60s",					/* AUTHOR */
+"SPLIT   %2D %-5s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-4s",
 "SPRSDE  %2D %-9s %-10s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-4s",
 "SSBOND %3D %-4s%c %4d%c   %-4s%c %4D%c                       %6D %6D %5.2f",
 "TER   %5d      %-4s%c%4d%c",

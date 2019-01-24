@@ -108,6 +108,14 @@ const char *PDB::chars(void) const {
     count = sprintf(buf, fmt, author.continuation, author.data);
     break;
 
+  case SPLIT:
+    count = sprintf(buf, fmt, split.continuation, split.idMap[0], split.idMap[1],
+                    split.idMap[2], split.idMap[3], split.idMap[4], split.idMap[5],
+                    split.idMap[6], split.idMap[7], split.idMap[8], split.idMap[9],
+                    split.idMap[10], split.idMap[11], split.idMap[12],
+                    split.idMap[13]);
+    break;
+
   case CONECT:
     count = sprintf(buf, fmt, conect.serialNum, conect.covalent[0],
                     conect.covalent[1], conect.covalent[2], conect.covalent[3],

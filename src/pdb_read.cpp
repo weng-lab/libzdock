@@ -127,6 +127,15 @@ PDB::PDB(const char *buf) {
       goto unknown;
     break;
 
+  case SPLIT:
+    if (0 > sscanf(buf, fmt, &split.continuation, split.idMap[0], split.idMap[1],
+                   split.idMap[2], split.idMap[3], split.idMap[4], split.idMap[5],
+                   split.idMap[6], split.idMap[7], split.idMap[8], split.idMap[9],
+                   split.idMap[10], split.idMap[11], split.idMap[12],
+                   split.idMap[13]))
+      goto unknown;
+    break;
+
   case CONECT:
     if (0 > sscanf(buf, fmt, &conect.serialNum, &conect.covalent[0],
                    &conect.covalent[1], &conect.covalent[2],
