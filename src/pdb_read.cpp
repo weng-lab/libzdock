@@ -119,7 +119,6 @@ PDB::PDB(const char *buf) {
     break;
 
   case AUTHOR:
-  case COMPND:
   case EXPDTA:
   case JRNL:
   case SOURCE:
@@ -129,6 +128,11 @@ PDB::PDB(const char *buf) {
 
   case CAVEAT:
     if (0 > sscanf(buf, fmt, &caveat.continuation, caveat.id, caveat.text))
+      goto unknown;
+    break;
+
+  case COMPND:
+    if (0 > sscanf(buf, fmt, &compnd.continuation, compnd.specification))
       goto unknown;
     break;
 

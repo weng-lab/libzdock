@@ -116,7 +116,10 @@ public:
     int seqNum;
     Residue residues[2];
   };
-  typedef Author Compnd;
+  struct Compnd {
+    int continuation;
+    char specification[71];
+  };
   struct Conect {
     int serialNum;
     int covalent[4];

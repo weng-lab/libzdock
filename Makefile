@@ -15,7 +15,7 @@ BIN_SOURCES = src/test.cpp
 LIB_SOURCES = src/PDB.cpp src/pdb++.cpp src/pdb_chars.cpp src/pdb_read.cpp src/pdb_sprntf.cpp src/pdb_sscanf.cpp src/pdb_type.cpp src/pdbinput.cpp
 
 rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
-HEADERS = $(call rwildcard, src/, *.h) $(call rwildcard, src/, *.hpp)
+HEADERS = $(call rwildcard, src/, *.h) $(call rwildcard, src/, *.hpp) $(call rwildcard, src/, *.i)
 OBJ := $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(call rwildcard, src/, *.cpp)))
 BINOBJ = $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(BIN_SOURCES)))
 LIBOBJ = $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(LIB_SOURCES)))
