@@ -49,7 +49,7 @@
 /* SITE */	"%7 %3d %3s %2d %4s%c%4d%c %4s%c%4d%c %4s%c%4d%c %4s%c%4d%c",
 /* SOURCE */	"%7 %3d%69s",
 /* SPLIT */	"%8 %2d %4s %4s %4s %4s %4s %4s %4s %4s %4s %4s %4s %4s %4s %4s",
-/* SPRSDE */	"%8 %2d %9s %4s%6 %4s %4s %4s %4s %4s %4s %4s %4s",
+/* SPRSDE */	"%8 %2d %9s %4s%6 %4s %4s %4s %4s %4s %4s %4s %4s %4s",
 /* SSBOND */	"%7 %3d %4s%c %4d%c   %4s%c %4d%c%23 %6d %6d %5f",
 /* TER */	"%6 %5d%6 %4s%c%4d%c",
 /* TITLE */	"%8 %2d%70s",

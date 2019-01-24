@@ -270,7 +270,7 @@ public:
     int continuation;
     Date timestamp;
     PName id;
-    PName supersede[8];
+    PName supersede[9];
   };
   struct Ssbond {
     int seqNum;
