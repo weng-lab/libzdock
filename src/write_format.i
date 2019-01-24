@@ -20,6 +20,7 @@
 "ANISOU%5d %-4s%c%-4s%c%4d%c %7d%7d%7d%7d%7d%7d",	/* SIGUIJ */
 "ATOM  %5d %-4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s", /* HETATM, SIGATM */
 "AUTHOR   %c%-60s",			/* COMPND, EXPDTA, JRNL, SOURCE */
+"CAVEAT  %2D %4s    %-60s",
 "COMPND   %c%-60s",					/* AUTHOR */
 "CONECT%5d%5D%5D%5D%5D%5D%5D%5D%5D%5D%5D",
 "CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f %-11s%4d",

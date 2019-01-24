@@ -147,6 +147,11 @@ public:
     Date timestamp;
     PName id;
   };
+  struct Caveat {
+    int continuation;
+    PName id;
+    char text[61];
+  };
   struct Helix {
     int serialNum;
     Id id;
@@ -372,6 +377,7 @@ public:
     ANISOU,
     ATOM,
     AUTHOR,
+    CAVEAT,
     COMPND,
     CONECT,
     CRYST1,
@@ -465,6 +471,7 @@ public:
     Anisou anisou;
     Atom atom;
     Author author;
+    Caveat caveat;
     Cmpdes cmpdes;
     Cmpont cmpont;
     Compnd compnd;

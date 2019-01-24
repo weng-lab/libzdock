@@ -369,6 +369,10 @@ PDB::RecordType PDB::getType(const char *buf) {
 
   case 'C':
     switch (rt[1]) {
+    case 'A':
+      if (rt[2] == 'V' && rt[3] == 'E')
+        return CAVEAT;
+      break;
     case 'M':
       if (rt[2] == 'P' && rt[3] == 'D')
         return CMPDES;
