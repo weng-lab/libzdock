@@ -136,7 +136,7 @@ PDB::PDB(const char *buf) {
     break;
 
   case COMPND:
-    if (0 > sscanf(buf, fmt, &compnd.continuation, compnd.specification))
+    if (0 > sscanf(buf, fmt, &compnd.continuation, compnd.compound))
       goto unknown;
     break;
 
