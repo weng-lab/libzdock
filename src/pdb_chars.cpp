@@ -193,6 +193,10 @@ const char *PDB::chars(void) const {
                     master.numTer, master.numConect, master.numSeqres);
     break;
 
+  case MDLTYP:
+    count = sprintf(buf, fmt, mdltyp.continuation, mdltyp.comment);
+    break;
+
   case MODEL:
     count = sprintf(buf, fmt, model.num);
     break;

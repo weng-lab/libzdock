@@ -226,6 +226,11 @@ PDB::PDB(const char *buf) {
       goto unknown;
     break;
 
+  case MDLTYP:
+    if (0 > sscanf(buf, fmt, &mdltyp.continuation, mdltyp.comment))
+      goto unknown;
+    break;
+
   case MODEL:
     if (0 > sscanf(buf, fmt, &model.num))
       goto unknown;
@@ -234,7 +239,6 @@ PDB::PDB(const char *buf) {
   case NUMMDL:
     if (0 > sscanf(buf, fmt, &nummdl.number))
       goto unknown;
-    std::cerr << "NUMMDL: number: " << nummdl.number << std::endl;
     break;
 
   case MTRIX:
