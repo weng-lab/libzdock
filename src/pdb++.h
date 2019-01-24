@@ -187,6 +187,9 @@ public:
     int numConect;
     int numSeqres;
   };
+  struct Nummdl {
+    int number;
+  };
   struct Model {
     int num;
   };
@@ -405,6 +408,7 @@ public:
     KEYWDS,
     MASTER,
     MTRIX,
+    NUMMDL,
     OBSLTE,
     ORIGX,
     REMARK,
@@ -506,6 +510,7 @@ public:
     Model model;
     Mtrix mtrix;
     Mtxdes mtxdes;
+    Nummdl nummdl;
     Obslte obslte;
     Origx origx;
     Remark remark;

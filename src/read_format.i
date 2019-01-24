@@ -35,6 +35,7 @@
 /* KEYWDS */ "%8 %2d%69s",
 /* MASTER */	"%10 %5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
 /* MTRIX */	"%5 %d %3d%10f%10f%10f%5 %10f   %2d",
+/* NUMMDL */ "%10 %4d",
 /* OBSLTE */	"%8 %2d %9s %4s%6 %4s %4s %4s %4s %4s %4s %4s %4s %4s",
 /* ORIGX */	"%5 %d%4 %10f%10f%10f%5 %10f",	/* SCALE */
 /* REMARK */	"%7 %3d %68s",			/* FTNOTE */
