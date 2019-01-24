@@ -19,7 +19,7 @@
 /* UNKNOWN */	NULL,
 /* ANISOU */	"%6 %5d %4s%c%4s%c%4d%c %7d%7d%7d%7d%7d%7d",	/* SIGUIJ */
 /* ATOM */	"%6 %5d %4s%c%4s%c%4d%c   %8f%8f%8f%6f%6f          %2s%2s",	/* HETATM, SIGATM */
-/* AUTHOR */	"%9 %c%60s",		/* JRNL */
+/* AUTHOR */	"%8 %2d%69s",
 /* CAVEAT */ "%8 %2d %4s    %60s",
 /* COMPND */	"%7 %3d%70s",
 /* CONECT */	"%6 %5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
@@ -31,7 +31,7 @@
 /* HELIX */	"%7 %3d %3s %4s%c %4d%c %4s%c %4d%c%2d%30s %5d",
 /* HET */	"%7 %4s %c%4d%c  %5d%5 %40s",
 /* HETATM */	"%6 %5d %4s%c%4s%c%4d%c   %8f%8f%8f%6f%6f          %2s%2s",	/* ATOM */
-/* JRNL */	"%9 %c%60s",			/* AUTHOR */
+/* JRNL */	"%12 %67s",
 /* KEYWDS */ "%8 %2d%69s",
 /* MASTER */	"%10 %5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
 /* MDLTYP */ "%8 %2d%70s",

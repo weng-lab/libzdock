@@ -108,7 +108,7 @@ public:
     Charge charge;
   };
   struct Author {
-    char data[61];
+    char authors[70];
     char continuation;
   };
   typedef Agrdes Cmpdes;
@@ -172,7 +172,9 @@ public:
     char text[41];
   };
   typedef Atom Hetatm;
-  typedef Author Jrnl;
+  struct Jrnl {
+    char text[68];
+  };
   struct Master {
     int numRemark;
     int numFtnote;

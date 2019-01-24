@@ -19,7 +19,7 @@
 "UNKNOWN:  ??%-6.6s??",
 "ANISOU%5d %-4s%c%-4s%c%4d%c %7d%7d%7d%7d%7d%7d",	/* SIGUIJ */
 "ATOM  %5d %-4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s", /* HETATM, SIGATM */
-"AUTHOR   %c%-60s",			/* JRNL */
+"AUTHOR  %2D%-69s",
 "CAVEAT  %2D %4s    %-60s",
 "COMPND %3D%-70s",
 "CONECT%5d%5D%5D%5D%5D%5D%5D%5D%5D%5D%5D",
@@ -31,7 +31,7 @@
 "HELIX  %3D %3s %-4s%c %4d%c %-4s%c %4d%c%2D%-30s %5D",
 "HET    %-4s %c%4d%c  %5d     %-40s",
 "HETATM%5d %-4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s",
-"JRNL     %c%-60s",					/* AUTHOR */
+"JRNL        %-67s",
 "KEYWDS  %2D%-69s",
 "MASTER    %5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
 "MDLTYP  %2D%-70s",

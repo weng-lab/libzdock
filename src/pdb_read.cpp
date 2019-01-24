@@ -119,8 +119,12 @@ PDB::PDB(const char *buf) {
     break;
 
   case AUTHOR:
+    if (0 > sscanf(buf, fmt, &author.continuation, author.authors))
+      goto unknown;
+    break;
+
   case JRNL:
-    if (0 > sscanf(buf, fmt, &author.continuation, author.data))
+    if (0 > sscanf(buf, fmt, &jrnl.text))
       goto unknown;
     break;
 
