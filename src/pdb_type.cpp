@@ -438,6 +438,11 @@ PDB::RecordType PDB::getType(const char *buf) {
       return JRNL;
     break;
 
+  case 'K':
+    if (rt[1] == 'E' && rt[2] == 'Y' && rt[3] == 'W')
+      return KEYWDS;
+    break;
+
   case 'M':
     switch (rt[1]) {
     case 'A':

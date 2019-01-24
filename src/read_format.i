@@ -32,6 +32,7 @@
 /* HET */	"%7 %4s %c%4d%c  %5d%5 %40s",
 /* HETATM */	"%6 %5d %4s%c%4s%c%4d%c   %8f%8f%8f%6f%6f          %2s%2s",	/* ATOM */
 /* JRNL */	"%9 %c%60s",			/* AUTHOR */
+/* KEYWDS */ "%8 %2d%69s",
 /* MASTER */	"%10 %5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
 /* MTRIX */	"%5 %d %3d%10f%10f%10f%5 %10f   %2d",
 /* OBSLTE */	"%8 %2d %9s %4s%6 %4s %4s %4s %4s %4s %4s %4s %4s %4s",
