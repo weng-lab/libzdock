@@ -106,6 +106,10 @@ const char *PDB::chars(void) const {
     count = sprintf(buf, fmt, author.continuation, author.data);
     break;
 
+  case KEYWDS:
+    count = sprintf(buf, fmt, keywds.continuation, keywds.keywds);
+    break;
+
   case SOURCE:
     count = sprintf(buf, fmt, source.continuation, source.name);
     break;

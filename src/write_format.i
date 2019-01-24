@@ -32,6 +32,7 @@
 "HET    %-4s %c%4d%c  %5d     %-40s",
 "HETATM%5d %-4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s",
 "JRNL     %c%-60s",					/* AUTHOR */
+"KEYWDS  %2D%-69s",
 "MASTER    %5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
 "MTRIX%1d %3d%10.6f%10.6f%10.6f     %10.5f   %2D",
 "OBSLTE  %2D %-9s %-10s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-5s%-4s",

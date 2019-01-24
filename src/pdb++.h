@@ -204,6 +204,10 @@ public:
     int continuation;
     PName idMap[14];
   };
+  struct Keywds {
+    int continuation;
+    char keywds[70];
+  };
   struct Origx {
     int rowNum;
     Real o1, o2, o3, t;
@@ -395,6 +399,7 @@ public:
     HET,
     HETATM,
     JRNL,
+    KEYWDS,
     MASTER,
     MTRIX,
     OBSLTE,
@@ -493,6 +498,7 @@ public:
     Het het;
     Hetatm hetatm;
     Jrnl jrnl;
+    Keywds keywds;
     Master master;
     Model model;
     Mtrix mtrix;

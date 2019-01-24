@@ -125,6 +125,11 @@ PDB::PDB(const char *buf) {
       goto unknown;
     break;
 
+  case KEYWDS:
+    if (0 > sscanf(buf, fmt, &keywds.continuation, keywds.keywds))
+      goto unknown;
+    break;
+
   case SOURCE:
     if (0 > sscanf(buf, fmt, &source.continuation, source.name))
       goto unknown;
