@@ -179,7 +179,8 @@ const char *PDB::chars(void) const {
     count = sprintf(buf, fmt, obslte.continuation, obslte.timestamp,
                     obslte.oldId, obslte.idMap[0], obslte.idMap[1],
                     obslte.idMap[2], obslte.idMap[3], obslte.idMap[4],
-                    obslte.idMap[2], obslte.idMap[6], obslte.idMap[7]);
+                    obslte.idMap[5], obslte.idMap[6], obslte.idMap[7],
+                    obslte.idMap[8]);
     break;
 
   case ORIGX:

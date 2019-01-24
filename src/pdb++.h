@@ -190,7 +190,7 @@ public:
     int continuation;
     Date timestamp;
     PName oldId;
-    PName idMap[8];
+    PName idMap[9];
   };
   struct Origx {
     int rowNum;
