@@ -462,6 +462,11 @@ PDB::RecordType PDB::getType(const char *buf) {
     }
     break;
 
+  case 'N':
+    if (rt[1] == 'U' && rt[2] == 'M' && rt[3] == 'M')
+      return NUMMDL;
+    break;
+
   case 'O':
     switch (rt[1]) {
     case 'B':

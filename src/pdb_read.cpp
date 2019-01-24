@@ -231,6 +231,12 @@ PDB::PDB(const char *buf) {
       goto unknown;
     break;
 
+  case NUMMDL:
+    if (0 > sscanf(buf, fmt, &nummdl.number))
+      goto unknown;
+    std::cerr << "NUMMDL: number: " << nummdl.number << std::endl;
+    break;
+
   case MTRIX:
     if (0 > sscanf(buf, fmt, &mtrix.rowNum, &mtrix.serialNum, &mtrix.m1,
                    &mtrix.m2, &mtrix.m3, &mtrix.v, &mtrix.given))

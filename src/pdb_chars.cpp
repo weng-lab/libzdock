@@ -197,6 +197,10 @@ const char *PDB::chars(void) const {
     count = sprintf(buf, fmt, model.num);
     break;
 
+  case NUMMDL:
+    count = sprintf(buf, fmt, nummdl.number);
+    break;
+
   case MTRIX:
     count = sprintf(buf, fmt, mtrix.rowNum, mtrix.serialNum, mtrix.m1, mtrix.m2,
                     mtrix.m3, mtrix.v, mtrix.given);
