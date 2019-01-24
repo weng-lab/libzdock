@@ -276,7 +276,7 @@ const char *PDB::chars(void) const {
         sprintf(buf, fmt, sprsde.continuation, sprsde.timestamp, sprsde.id,
                 sprsde.supersede[0], sprsde.supersede[1], sprsde.supersede[2],
                 sprsde.supersede[3], sprsde.supersede[4], sprsde.supersede[5],
-                sprsde.supersede[6], sprsde.supersede[7]);
+                sprsde.supersede[6], sprsde.supersede[7], sprsde.supersede[8]);
     break;
 
   case SSBOND:
