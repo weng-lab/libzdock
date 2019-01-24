@@ -26,7 +26,7 @@
 /* END */	NULL,
 /* FORMUL */	"%8 %2d  %4s%2d%c%51s",
 /* FTNOTE */	"%7 %3d %68s",	/*  REMARK, SYMDES, MTXDES, CMPDES, AGRDES */
-/* HEADER */	"%10 %40s%9s  %c%4s",
+/* HEADER */	"%10 %40s%9s   %4s",
 /* HELIX */	"%7 %3d %3s %4s%c %4d%c %4s%c %4d%c%2d%30s %5d",
 /* HET */	"%7 %4s %c%4d%c  %5d%5 %40s",
 /* HETATM */	"%6 %5d %4s%c%4s%c%4d%c   %8f%8f%8f%6f%6f          %2s%2s",	/* ATOM */

@@ -17,7 +17,6 @@ const std::vector<p::PDB> &PDB::records() { return records_; }
 const Eigen::Matrix<double, 3, Eigen::Dynamic> &
 PDB::transform(Eigen::Transform<double, 3, Eigen::Affine> t) {
   m_ = t * m_;
-
   // reconstitute atom records from matrix
   size_t i = 0;
   for (const auto j : atoms_) {
@@ -26,7 +25,6 @@ PDB::transform(Eigen::Transform<double, 3, Eigen::Affine> t) {
     records_[j].atom.xyz[2] = m_(2, i);
     i++;
   }
-
   return m_;
 }
 

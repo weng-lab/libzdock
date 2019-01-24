@@ -141,7 +141,7 @@ const char *PDB::chars(void) const {
 
   case HEADER:
     count = sprintf(buf, fmt, header.classification, header.timestamp,
-                    header.type, header.id);
+                    header.id);
     break;
 
   case HELIX:

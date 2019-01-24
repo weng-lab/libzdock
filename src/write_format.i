@@ -26,7 +26,7 @@
 "END",
 "FORMUL  %2D  %-4s%2D%c%-51s",
 "FTNOTE %3D %-68s",					/* REMARK */
-"HEADER    %-40s%-11s%c%-4s",
+"HEADER    %-40s%-11s %-4s",
 "HELIX  %3D %3s %-4s%c %4d%c %-4s%c %4d%c%2D%-30s %5D",
 "HET    %-4s %c%4d%c  %5d     %-40s",
 "HETATM%5d %-4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s",
