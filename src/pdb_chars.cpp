@@ -117,7 +117,7 @@ const char *PDB::chars(void) const {
 
   case COMPND:
     count = sprintf(
-        buf, fmt, compnd.continuation, compnd.specification);
+        buf, fmt, compnd.continuation, compnd.compound);
     break;
 
   case SPLIT:

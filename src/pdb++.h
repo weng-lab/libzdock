@@ -118,7 +118,7 @@ public:
   };
   struct Compnd {
     int continuation;
-    char specification[71];
+    char compound[71];
   };
   struct Conect {
     int serialNum;
