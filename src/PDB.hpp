@@ -1,9 +1,9 @@
 #pragma once
 
 #include "pdb++.h"
+#include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include <Eigen/Dense>
 
 namespace zlab {
 class PDB {
