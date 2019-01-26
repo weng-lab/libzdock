@@ -22,7 +22,7 @@ OBJ := $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(call rwildcard, src/, *
 BINOBJ = $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(BIN_SOURCES)))
 LIBOBJ = $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(LIB_SOURCES)))
 
-all:		dirs Makefile $(BIN)
+all:		Makefile $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR) $(BIN)
 
 $(LIBARCH): $(LIBOBJ)
 	ar cru $(LIBARCH) $(LIBOBJ)
@@ -35,8 +35,8 @@ $(BIN): $(BINOBJ) $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
 	$(STRIP) $@
 
-dirs:
-	mkdir -p $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR)
+$(OBJ_DIR) $(LIB_DIR) $(BIN_DIR):
+	mkdir -p $@
 
 clean:;		rm -f $(OBJ) $(LIBARCH) $(BIN)
 
