@@ -1,8 +1,9 @@
 #include "ZDOCK.hpp"
+#include <iostream>
 #include <exception>
 
-namespace eg = ::Eigen;
-namespace p = ::libpdb;
+//namespace eg = ::Eigen;
+//namespace p = ::libpdb;
 
 int main() {
   /*
