@@ -75,8 +75,8 @@ void ZDOCK::read_() {
       // M-ZDOCK _must_ have 3 header rows
       throw ZDOCKInvalidFormat(filename_, "M-ZDOCK header error");
     }
-    if (3 != std::sscanf(header[0].c_str(), "%d\t%lf\t%d", &boxsize_,
-                         &spacing_, &symmetry_)) {
+    if (3 != std::sscanf(header[0].c_str(), "%d\t%lf\t%d", &boxsize_, &spacing_,
+                         &symmetry_)) {
       throw ZDOCKInvalidFormat(filename_, "M-ZDOCK header error");
     }
   }
