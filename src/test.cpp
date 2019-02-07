@@ -43,10 +43,16 @@ int main() {
     std::cout << "version: " << z.version() << std::endl;
     std::cout << "npred: " << z.npredictions() << std::endl;
     std::cout << "receptor: " << z.receptor() << std::endl;
+    if (z.ismzdock()) {
+      std::cout << "symmetry: " << z.symmetry() << std::endl;
+    }
     if (!z.ismzdock()) {
       std::cout << "ligand: " << z.ligand() << std::endl;
     }
-    std::cout << z.predictions()[0] << std::endl;
+    for (const auto& x : z.predictions()) {
+      std::cout << x << '\n';
+      break;
+    }
     std::cout << std::endl;
   }
 

@@ -8,7 +8,7 @@ namespace zlab {
 
 ZDOCK::ZDOCK(const std::string &fn)
     : boxsize_(0), spacing_(0.0), isswitched_(false), ismzdock_(false),
-      isfixed_(false), version_(0), filename_(fn) {
+      isfixed_(false), version_(0), symmetry_(0), filename_(fn) {
   read_();
 }
 
@@ -75,6 +75,10 @@ void ZDOCK::read_() {
       // M-ZDOCK _must_ have 3 header rows
       throw ZDOCKInvalidFormat(filename_, "M-ZDOCK header error");
     }
+    if (3 != std::sscanf(header[0].c_str(), "%d\t%lf\t%d", &boxsize_,
+                         &spacing_, &symmetry_)) {
+      throw ZDOCKInvalidFormat(filename_, "M-ZDOCK header error");
+    }
   }
 
   // receptor
@@ -117,6 +121,14 @@ void ZDOCK::read_() {
                                "Unable to obtain receptor initial translation");
     }
   }
+}
+
+// get m-zdock symmetry
+int ZDOCK::symmetry() const {
+  if (!ismzdock_) {
+    throw ZDOCKUnsupported("symmetry() not supported for ZDOCK output");
+  }
+  return symmetry_;
 }
 
 // get ligand (unsupported for M-ZDOCK)
