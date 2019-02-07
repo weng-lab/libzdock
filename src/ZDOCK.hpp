@@ -15,7 +15,7 @@ public:
   friend std::ostream &operator<<(std::ostream &os, const structure &obj);
 };
 
-struct prediction {
+class prediction {
 public:
   prediction()
       : rotation{0.0, 0.0, 0.0}, translation{0, 0, 0}, score(0.0),
