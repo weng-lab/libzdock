@@ -18,6 +18,8 @@ void ZDOCK::read_() {
   std::string line;
   if (infile.is_open()) {
     predictions_.clear();
+    bool headerdone = false;
+    int linenum = 1;
     while (std::getline(infile, line)) {
       prediction p;
       p.ismzdock = false;
@@ -27,8 +29,11 @@ void ZDOCK::read_() {
                            &p.translation[2], &p.score)) {
         if (ismzdock_) {
           // M-ZDOCK established but 7-column prediction encountered
-          throw ZDOCKInvalidFormat(filename_, "Invalid M-ZDOCK prediction");
+          throw ZDOCKInvalidFormat(filename_,
+                                   "Invalid M-ZDOCK prediction (line " +
+                                       std::to_string(linenum) + ")");
         }
+        headerdone = true;
         predictions_.push_back(p);
       } else if (5 == std::sscanf(line.c_str(), "%lf\t%lf\t%d\t%d\t%lf",
                                   &p.rotation[0], &p.rotation[1],
@@ -36,14 +41,21 @@ void ZDOCK::read_() {
                                   &p.score)) {
         if (!ismzdock_ && predictions_.size() > 0) {
           // ZDOCK established but 5-column prediction encountered
-          throw ZDOCKInvalidFormat(filename_, "Invalid ZDOCK prediction");
+          throw ZDOCKInvalidFormat(filename_,
+                                   "Invalid ZDOCK prediction (line " +
+                                       std::to_string(linenum) + ")");
         }
         ismzdock_ = true;
         p.ismzdock = true;
+        headerdone = true;
         predictions_.push_back(p);
-      } else {
+      } else if (!headerdone) {
         header.push_back(line);
+      } else {
+        throw ZDOCKInvalidFormat(filename_, "Invalid prediction (line " +
+                                                std::to_string(linenum) + ")");
       }
+      linenum++;
     }
   }
 
