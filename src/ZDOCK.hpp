@@ -41,6 +41,7 @@ private:
   bool ismzdock_;   // mzdock format
   bool isfixed_;    // -F was used (receptor fixed)
   int version_;     // format version; (old/mzdock:0; new: 1)
+  int symmetry_;    // m-zdock symmetry
   const std::string filename_;
 
   // private methods
@@ -56,6 +57,7 @@ public:
   bool ismzdock() const { return ismzdock_; }
   bool isfixed() const { return isfixed_; }
   int version() const { return version_; }
+  int symmetry() const;
   const std::string &filename() const { return filename_; }
 
   // structures
