@@ -1,8 +1,8 @@
 #include "ZDOCK.hpp"
 #include "Exception.hpp"
-#include <cstdio>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 namespace zlab {
 
