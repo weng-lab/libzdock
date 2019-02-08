@@ -144,7 +144,7 @@ int ZDOCK::symmetry() const {
 }
 
 // get ligand (unsupported for M-ZDOCK)
-const structure &ZDOCK::ligand() const {
+structure &ZDOCK::ligand() {
   if (ismzdock_) {
     throw ZDOCKUnsupported("ligand() not supported for M-ZDOCK output");
   }
@@ -164,16 +164,55 @@ std::ostream &operator<<(std::ostream &os, const structure &obj) {
 std::ostream &operator<<(std::ostream &os, const prediction &obj) {
   char s[256];
   if (obj.ismzdock) {
-    snprintf(s, sizeof(s), "%.3f\t%.3f\t%d\t%d\t%.2f", obj.rotation[0],
+    snprintf(s, sizeof(s), "%.6f\t%.6f\t%d\t%d\t%.2f", obj.rotation[0],
              obj.rotation[1], obj.translation[0], obj.translation[1],
              obj.score);
   } else {
-    snprintf(s, sizeof(s), "%.3f\t%.3f\t%.3f\t%d\t%d\t%d\t%.3f",
+    snprintf(s, sizeof(s), "%.6f\t%.6f\t%.6f\t%d\t%d\t%d\t%.3f",
              obj.rotation[0], obj.rotation[1], obj.rotation[2],
              obj.translation[0], obj.translation[1], obj.translation[2],
              obj.score);
   }
   os << s;
+  return os;
+}
+
+// text representation of m-)zdock
+std::ostream &operator<<(std::ostream &os, const ZDOCK &obj) {
+  char s[256];
+  if (obj.ismzdock_) {
+    // M-ZDOCK header 1, 2
+    snprintf(s, sizeof(s), "%d\t%.1f\t%d\n%.6f\t%.6f\t%.6f\n", obj.boxsize_,
+             obj.spacing_, obj.symmetry_, obj.receptor_.rotation[0],
+             obj.receptor_.rotation[1], obj.receptor_.rotation[2]);
+  } else if (obj.isfixed_) {
+    // ZDOCK (fixed) header 1, 2
+    snprintf(s, sizeof(s), "%d\t%.1f\n%.6f\t%.6f\t%.6f\n", obj.boxsize_,
+             obj.spacing_, obj.receptor_.rotation[0], obj.receptor_.rotation[1],
+             obj.receptor_.rotation[2]);
+  } else {
+    // ZDOCK (new format / not fixed) header 1, 2
+    snprintf(s, sizeof(s), "%d\t%.1f\t%d\n%.6f\t%.6f\t%.6f\n", obj.boxsize_,
+             obj.spacing_, obj.isswitched_, obj.receptor_.rotation[0],
+             obj.receptor_.rotation[1], obj.receptor_.rotation[2]);
+  }
+  os << s;
+  if (!obj.ismzdock_ && !obj.isfixed_) {
+    // ZDOCK (new format / not fixed) ligand rotation
+    snprintf(s, sizeof(s), "%.6f\t%.6f\t%.6f\n", obj.ligand_.rotation[0],
+             obj.ligand_.rotation[1], obj.ligand_.rotation[2]);
+    os << s;
+  }
+  // receptor / ligand filename and translation
+  os << (obj.isswitched_ ? obj.ligand_ : obj.receptor_);
+  if (!obj.ismzdock_) {
+    // ligand / receptor filename and translation
+    os << '\n' << (obj.isswitched_ ? obj.receptor_ : obj.ligand_);
+  }
+  // predictions
+  for (const auto &x : obj.predictions_) {
+    os << '\n' << x;
+  }
   return os;
 }
 
