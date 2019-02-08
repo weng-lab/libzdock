@@ -8,7 +8,7 @@ int main() {
     // /Users/vanderva/Desktop/c0d92b1b-0888-4fa3-83a2-0ccc2f7e60af/zdock.out.pruned
     // /Users/vanderva/Desktop/0116d0ab47/job.154074.mzdock_24.out
     std::string file = "/Users/vanderva/Desktop/c0d92b1b-0888-4fa3-83a2-0ccc2f7e60af/zdock.out.pruned";
-    zlab::ZDOCK z(file);
+    zdock::ZDOCK z(file);
     auto &v = z.predictions();
     std::sort(v.begin(), v.end(),
               [](const auto &a, const auto &b) { return a.score > b.score; });

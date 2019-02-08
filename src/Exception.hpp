@@ -3,7 +3,7 @@
 #include <exception>
 #include <string>
 
-namespace zlab {
+namespace zdock {
 
 class PDBOpenException : public std::exception {
 private:
@@ -36,4 +36,4 @@ public:
 };
 
 
-} // namespace zlab
+} // namespace zdock
