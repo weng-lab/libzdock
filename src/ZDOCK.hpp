@@ -61,12 +61,15 @@ public:
   const std::string &filename() const { return filename_; }
 
   // structures
-  const structure &receptor() const { return receptor_; }
-  const structure &ligand() const;
+  structure &receptor() { return receptor_; }
+  structure &ligand();
 
   // predictions
   size_t npredictions() const { return predictions_.size(); }
-  const std::vector<prediction> &predictions() const { return predictions_; }
+  std::vector<prediction> &predictions() { return predictions_; }
+
+  // stream out
+  friend std::ostream &operator<<(std::ostream &os, const ZDOCK &obj);
 };
 
 } // namespace zlab
