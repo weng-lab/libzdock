@@ -6,7 +6,7 @@
 namespace p = ::libpdb;
 namespace e = ::Eigen;
 
-namespace zlab {
+namespace zdock {
 
 PDB::PDB(const std::string &fn) { read_(fn); }
 
@@ -80,4 +80,4 @@ void PDB::read_(const std::string &fn) {
   }
 }
 
-} // namespace zlab
+} // namespace zdock

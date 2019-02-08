@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-namespace zlab {
+namespace zdock {
 class PDB {
 private:
   std::vector<size_t> atoms_;
@@ -21,4 +21,4 @@ public:
   const std::vector<libpdb::PDB> &records();
 };
 
-} // namespace zlab
+} // namespace zdock

@@ -3,36 +3,36 @@
 #include <string>
 #include <vector>
 
-namespace zlab {
+namespace zdock {
 
-class structure {
+class Structure {
 public:
-  structure()
+  Structure()
       : filename(""), translation{0.0, 0.0, 0.0}, rotation{0.0, 0.0, 0.0} {}
   std::string filename;
   double translation[3]; // actual
   double rotation[3];
-  friend std::ostream &operator<<(std::ostream &os, const structure &obj);
+  friend std::ostream &operator<<(std::ostream &os, const Structure &obj);
 };
 
-class prediction {
+class Prediction {
 public:
-  prediction()
+  Prediction()
       : rotation{0.0, 0.0, 0.0}, translation{0, 0, 0}, score(0.0),
         ismzdock(false) {}
   double rotation[3];
   int translation[3]; // grid cells
   double score;
   bool ismzdock;
-  friend std::ostream &operator<<(std::ostream &os, const prediction &obj);
+  friend std::ostream &operator<<(std::ostream &os, const Prediction &obj);
 };
 
 class ZDOCK {
 private:
   // structures and predictions
-  structure receptor_;
-  structure ligand_;
-  std::vector<prediction> predictions_;
+  Structure receptor_;
+  Structure ligand_;
+  std::vector<Prediction> predictions_;
 
   // metadata (i.e. from header)
   int boxsize_;     // box size
@@ -61,15 +61,15 @@ public:
   const std::string &filename() const { return filename_; }
 
   // structures
-  structure &receptor() { return receptor_; }
-  structure &ligand();
+  Structure &receptor() { return receptor_; }
+  Structure &ligand();
 
   // predictions
   size_t npredictions() const { return predictions_.size(); }
-  std::vector<prediction> &predictions() { return predictions_; }
+  std::vector<Prediction> &predictions() { return predictions_; }
 
   // stream out
   friend std::ostream &operator<<(std::ostream &os, const ZDOCK &obj);
 };
 
-} // namespace zlab
+} // namespace zdock

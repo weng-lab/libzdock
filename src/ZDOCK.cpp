@@ -4,7 +4,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace zlab {
+namespace zdock {
 
 ZDOCK::ZDOCK(const std::string &fn)
     : boxsize_(0), spacing_(0.0), isswitched_(false), ismzdock_(false),
@@ -21,7 +21,7 @@ void ZDOCK::read_() {
     bool headerdone = false;
     int linenum = 1;
     while (std::getline(infile, line)) {
-      prediction p;
+      Prediction p;
       p.ismzdock = false;
       if (7 == std::sscanf(line.c_str(), "%lf\t%lf\t%lf\t%d\t%d\t%d\t%lf",
                            &p.rotation[0], &p.rotation[1], &p.rotation[2],
@@ -144,7 +144,7 @@ int ZDOCK::symmetry() const {
 }
 
 // get ligand (unsupported for M-ZDOCK)
-structure &ZDOCK::ligand() {
+Structure &ZDOCK::ligand() {
   if (ismzdock_) {
     throw ZDOCKUnsupported("ligand() not supported for M-ZDOCK output");
   }
@@ -152,7 +152,7 @@ structure &ZDOCK::ligand() {
 }
 
 // text representation of structure (in (m-)zdock format)
-std::ostream &operator<<(std::ostream &os, const structure &obj) {
+std::ostream &operator<<(std::ostream &os, const Structure &obj) {
   char s[256];
   snprintf(s, sizeof(s), "%s\t%.3f\t%.3f\t%.3f", obj.filename.c_str(),
            obj.translation[0], obj.translation[1], obj.translation[2]);
@@ -161,7 +161,7 @@ std::ostream &operator<<(std::ostream &os, const structure &obj) {
 }
 
 // text representation of prediction (actual (m-)zdock.out format)
-std::ostream &operator<<(std::ostream &os, const prediction &obj) {
+std::ostream &operator<<(std::ostream &os, const Prediction &obj) {
   char s[256];
   if (obj.ismzdock) {
     snprintf(s, sizeof(s), "%.6f\t%.6f\t%d\t%d\t%.2f", obj.rotation[0],
@@ -216,5 +216,5 @@ std::ostream &operator<<(std::ostream &os, const ZDOCK &obj) {
   return os;
 }
 
-} // namespace zlab
+} // namespace zdock
 
