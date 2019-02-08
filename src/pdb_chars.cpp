@@ -101,11 +101,39 @@ const char *PDB::chars(void) const {
     break;
 
   case AUTHOR:
-  case COMPND:
+    count = sprintf(buf, fmt, author.continuation, author.authors);
+    break;
+
   case JRNL:
-  case SOURCE:
+    count = sprintf(buf, fmt, jrnl.text);
+    break;
+
   case EXPDTA:
-    count = sprintf(buf, fmt, author.continuation, author.data);
+    count = sprintf(buf, fmt, expdta.continuation, expdta.technique);
+    break;
+
+  case KEYWDS:
+    count = sprintf(buf, fmt, keywds.continuation, keywds.keywds);
+    break;
+
+  case SOURCE:
+    count = sprintf(buf, fmt, source.continuation, source.name);
+    break;
+
+  case CAVEAT:
+    count = sprintf(buf, fmt, caveat.continuation, caveat.id, caveat.text);
+    break;
+
+  case COMPND:
+    count = sprintf(buf, fmt, compnd.continuation, compnd.compound);
+    break;
+
+  case SPLIT:
+    count = sprintf(
+        buf, fmt, split.continuation, split.idMap[0], split.idMap[1],
+        split.idMap[2], split.idMap[3], split.idMap[4], split.idMap[5],
+        split.idMap[6], split.idMap[7], split.idMap[8], split.idMap[9],
+        split.idMap[10], split.idMap[11], split.idMap[12], split.idMap[13]);
     break;
 
   case CONECT:
@@ -140,8 +168,8 @@ const char *PDB::chars(void) const {
     break;
 
   case HEADER:
-    count = sprintf(buf, fmt, header.classification, header.timestamp,
-                    header.type, header.id);
+    count =
+        sprintf(buf, fmt, header.classification, header.timestamp, header.id);
     break;
 
   case HELIX:
@@ -166,8 +194,16 @@ const char *PDB::chars(void) const {
                     master.numTer, master.numConect, master.numSeqres);
     break;
 
+  case MDLTYP:
+    count = sprintf(buf, fmt, mdltyp.continuation, mdltyp.comment);
+    break;
+
   case MODEL:
     count = sprintf(buf, fmt, model.num);
+    break;
+
+  case NUMMDL:
+    count = sprintf(buf, fmt, nummdl.number);
     break;
 
   case MTRIX:
@@ -176,10 +212,11 @@ const char *PDB::chars(void) const {
     break;
 
   case OBSLTE:
-    count = sprintf(buf, fmt, obslte.continuation, obslte.timestamp,
-                    obslte.oldId, obslte.idMap[0], obslte.idMap[1],
-                    obslte.idMap[2], obslte.idMap[3], obslte.idMap[4],
-                    obslte.idMap[2], obslte.idMap[6], obslte.idMap[7]);
+    count =
+        sprintf(buf, fmt, obslte.continuation, obslte.timestamp, obslte.oldId,
+                obslte.idMap[0], obslte.idMap[1], obslte.idMap[2],
+                obslte.idMap[3], obslte.idMap[4], obslte.idMap[5],
+                obslte.idMap[6], obslte.idMap[7], obslte.idMap[8]);
     break;
 
   case ORIGX:
@@ -188,9 +225,10 @@ const char *PDB::chars(void) const {
     break;
 
   case REVDAT:
-    count = sprintf(buf, fmt, revdat.modification, revdat.continuation,
-                    revdat.timestamp, revdat.id, revdat.modType,
-                    revdat.corrections);
+    count =
+        sprintf(buf, fmt, revdat.modification, revdat.continuation,
+                revdat.timestamp, revdat.id, revdat.modType, revdat.record[0],
+                revdat.record[1], revdat.record[2], revdat.record[3]);
     break;
 
   case SCALE:
@@ -238,7 +276,7 @@ const char *PDB::chars(void) const {
         sprintf(buf, fmt, sprsde.continuation, sprsde.timestamp, sprsde.id,
                 sprsde.supersede[0], sprsde.supersede[1], sprsde.supersede[2],
                 sprsde.supersede[3], sprsde.supersede[4], sprsde.supersede[5],
-                sprsde.supersede[6], sprsde.supersede[7]);
+                sprsde.supersede[6], sprsde.supersede[7], sprsde.supersede[8]);
     break;
 
   case SSBOND:

@@ -369,6 +369,10 @@ PDB::RecordType PDB::getType(const char *buf) {
 
   case 'C':
     switch (rt[1]) {
+    case 'A':
+      if (rt[2] == 'V' && rt[3] == 'E')
+        return CAVEAT;
+      break;
     case 'M':
       if (rt[2] == 'P' && rt[3] == 'D')
         return CMPDES;
@@ -434,11 +438,20 @@ PDB::RecordType PDB::getType(const char *buf) {
       return JRNL;
     break;
 
+  case 'K':
+    if (rt[1] == 'E' && rt[2] == 'Y' && rt[3] == 'W')
+      return KEYWDS;
+    break;
+
   case 'M':
     switch (rt[1]) {
     case 'A':
       if (rt[2] == 'S' && rt[3] == 'T')
         return MASTER;
+      break;
+    case 'D':
+      if (rt[2] == 'L' && rt[3] == 'T')
+        return MDLTYP;
       break;
     case 'O':
       if (rt[2] == 'D' && rt[3] == 'E')
@@ -451,6 +464,11 @@ PDB::RecordType PDB::getType(const char *buf) {
         return MTXDES;
       break;
     }
+    break;
+
+  case 'N':
+    if (rt[1] == 'U' && rt[2] == 'M' && rt[3] == 'M')
+      return NUMMDL;
     break;
 
   case 'O':
@@ -508,6 +526,8 @@ PDB::RecordType PDB::getType(const char *buf) {
       break;
 
     case 'P':
+      if (rt[2] == 'L' && rt[3] == 'I')
+        return SPLIT;
       if (rt[2] == 'R' && rt[3] == 'S')
         return SPRSDE;
       break;

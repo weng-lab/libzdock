@@ -1,14 +1,11 @@
 #pragma once
 
 #include "pdb++.h"
+#include <Eigen/Dense>
 #include <iostream>
 #include <vector>
 
-#define EIGEN_USE_LAPACKE
-
-#include <Eigen/Dense>
-
-namespace zlab {
+namespace zdock {
 class PDB {
 private:
   std::vector<size_t> atoms_;
@@ -24,4 +21,4 @@ public:
   const std::vector<libpdb::PDB> &records();
 };
 
-} // namespace zlab
+} // namespace zdock

@@ -108,7 +108,7 @@ public:
     Charge charge;
   };
   struct Author {
-    char data[61];
+    char authors[70];
     char continuation;
   };
   typedef Agrdes Cmpdes;
@@ -116,7 +116,10 @@ public:
     int seqNum;
     Residue residues[2];
   };
-  typedef Author Compnd;
+  struct Compnd {
+    int continuation;
+    char compound[71];
+  };
   struct Conect {
     int serialNum;
     int covalent[4];
@@ -133,7 +136,10 @@ public:
   };
   // no structure for END
   // no structure for ENDMDL
-  typedef Author Expdta;
+  struct Expdta {
+    int continuation;
+    char technique[70];
+  };
   struct Formul {
     int component;
     RName hetId;
@@ -146,7 +152,11 @@ public:
     char classification[41];
     Date timestamp;
     PName id;
-    char type;
+  };
+  struct Caveat {
+    int continuation;
+    PName id;
+    char text[61];
   };
   struct Helix {
     int serialNum;
@@ -162,7 +172,9 @@ public:
     char text[41];
   };
   typedef Atom Hetatm;
-  typedef Author Jrnl;
+  struct Jrnl {
+    char text[68];
+  };
   struct Master {
     int numRemark;
     int numFtnote;
@@ -176,6 +188,13 @@ public:
     int numTer;
     int numConect;
     int numSeqres;
+  };
+  struct Nummdl {
+    int number;
+  };
+  struct Mdltyp {
+    int continuation;
+    char comment[71];
   };
   struct Model {
     int num;
@@ -191,7 +210,15 @@ public:
     int continuation;
     Date timestamp;
     PName oldId;
-    PName idMap[8];
+    PName idMap[9];
+  };
+  struct Split {
+    int continuation;
+    PName idMap[14];
+  };
+  struct Keywds {
+    int continuation;
+    char keywds[70];
   };
   struct Origx {
     int rowNum;
@@ -202,9 +229,9 @@ public:
     int modification;
     int continuation;
     Date timestamp;
-    char id[8];
-    char modType;
-    char corrections[31];
+    PName id;
+    int modType;
+    char record[4][7];
   };
   struct Scale {
     int rowNum;
@@ -235,12 +262,15 @@ public:
     int count;
     Residue residues[4];
   };
-  typedef Author Source;
+  struct Source {
+    int continuation;
+    char name[70];
+  };
   struct Sprsde {
     int continuation;
     Date timestamp;
     PName id;
-    PName supersede[8];
+    PName supersede[9];
   };
   struct Ssbond {
     int seqNum;
@@ -369,6 +399,7 @@ public:
     ANISOU,
     ATOM,
     AUTHOR,
+    CAVEAT,
     COMPND,
     CONECT,
     CRYST1,
@@ -380,8 +411,11 @@ public:
     HET,
     HETATM,
     JRNL,
+    KEYWDS,
     MASTER,
+    MDLTYP,
     MTRIX,
+    NUMMDL,
     OBSLTE,
     ORIGX,
     REMARK,
@@ -393,6 +427,7 @@ public:
     SIGUIJ,
     SITE,
     SOURCE,
+    SPLIT,
     SPRSDE,
     SSBOND,
     TER,
@@ -461,6 +496,7 @@ public:
     Anisou anisou;
     Atom atom;
     Author author;
+    Caveat caveat;
     Cmpdes cmpdes;
     Cmpont cmpont;
     Compnd compnd;
@@ -476,10 +512,13 @@ public:
     Het het;
     Hetatm hetatm;
     Jrnl jrnl;
+    Keywds keywds;
     Master master;
     Model model;
     Mtrix mtrix;
     Mtxdes mtxdes;
+    Nummdl nummdl;
+    Mdltyp mdltyp;
     Obslte obslte;
     Origx origx;
     Remark remark;
@@ -491,6 +530,7 @@ public:
     Siguij siguij;
     Site site;
     Source source;
+    Split split;
     Sprsde sprsde;
     Ssbond ssbond;
     Symdes symdes;

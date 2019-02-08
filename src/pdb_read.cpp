@@ -119,11 +119,47 @@ PDB::PDB(const char *buf) {
     break;
 
   case AUTHOR:
-  case COMPND:
-  case EXPDTA:
+    if (0 > sscanf(buf, fmt, &author.continuation, author.authors))
+      goto unknown;
+    break;
+
   case JRNL:
+    if (0 > sscanf(buf, fmt, &jrnl.text))
+      goto unknown;
+    break;
+
+  case EXPDTA:
+    if (0 > sscanf(buf, fmt, &expdta.continuation, expdta.technique))
+      goto unknown;
+    break;
+
+  case KEYWDS:
+    if (0 > sscanf(buf, fmt, &keywds.continuation, keywds.keywds))
+      goto unknown;
+    break;
+
   case SOURCE:
-    if (0 > sscanf(buf, fmt, &author.continuation, author.data))
+    if (0 > sscanf(buf, fmt, &source.continuation, source.name))
+      goto unknown;
+    break;
+
+  case CAVEAT:
+    if (0 > sscanf(buf, fmt, &caveat.continuation, caveat.id, caveat.text))
+      goto unknown;
+    break;
+
+  case COMPND:
+    if (0 > sscanf(buf, fmt, &compnd.continuation, compnd.compound))
+      goto unknown;
+    break;
+
+  case SPLIT:
+    if (0 > sscanf(buf, fmt, &split.continuation, split.idMap[0],
+                   split.idMap[1], split.idMap[2], split.idMap[3],
+                   split.idMap[4], split.idMap[5], split.idMap[6],
+                   split.idMap[7], split.idMap[8], split.idMap[9],
+                   split.idMap[10], split.idMap[11], split.idMap[12],
+                   split.idMap[13]))
       goto unknown;
     break;
 
@@ -163,8 +199,8 @@ PDB::PDB(const char *buf) {
     break;
 
   case HEADER:
-    if (0 > sscanf(buf, fmt, header.classification, header.timestamp,
-                   &header.type, header.id))
+    if (0 >
+        sscanf(buf, fmt, header.classification, header.timestamp, header.id))
       goto unknown;
     break;
 
@@ -194,8 +230,18 @@ PDB::PDB(const char *buf) {
       goto unknown;
     break;
 
+  case MDLTYP:
+    if (0 > sscanf(buf, fmt, &mdltyp.continuation, mdltyp.comment))
+      goto unknown;
+    break;
+
   case MODEL:
     if (0 > sscanf(buf, fmt, &model.num))
+      goto unknown;
+    break;
+
+  case NUMMDL:
+    if (0 > sscanf(buf, fmt, &nummdl.number))
       goto unknown;
     break;
 
@@ -209,7 +255,8 @@ PDB::PDB(const char *buf) {
     if (0 > sscanf(buf, fmt, &obslte.continuation, obslte.timestamp,
                    obslte.oldId, obslte.idMap[0], obslte.idMap[1],
                    obslte.idMap[2], obslte.idMap[3], obslte.idMap[4],
-                   obslte.idMap[2], obslte.idMap[6], obslte.idMap[7]))
+                   obslte.idMap[5], obslte.idMap[6], obslte.idMap[7],
+                   obslte.idMap[8]))
       goto unknown;
     break;
 
@@ -222,7 +269,8 @@ PDB::PDB(const char *buf) {
   case REVDAT:
     if (0 > sscanf(buf, fmt, &revdat.modification, &revdat.continuation,
                    revdat.timestamp, revdat.id, &revdat.modType,
-                   revdat.corrections))
+                   revdat.record[0], revdat.record[1], revdat.record[2],
+                   revdat.record[3]))
       goto unknown;
     break;
 
@@ -272,11 +320,11 @@ PDB::PDB(const char *buf) {
     break;
 
   case SPRSDE:
-    if (0 > sscanf(buf, fmt, &sprsde.continuation, sprsde.timestamp, sprsde.id,
-                   sprsde.supersede[0], sprsde.supersede[1],
-                   sprsde.supersede[2], sprsde.supersede[3],
-                   sprsde.supersede[4], sprsde.supersede[5],
-                   sprsde.supersede[6], sprsde.supersede[7]))
+    if (0 >
+        sscanf(buf, fmt, &sprsde.continuation, sprsde.timestamp, sprsde.id,
+               sprsde.supersede[0], sprsde.supersede[1], sprsde.supersede[2],
+               sprsde.supersede[3], sprsde.supersede[4], sprsde.supersede[5],
+               sprsde.supersede[6], sprsde.supersede[7], sprsde.supersede[8]))
       goto unknown;
     break;
 
