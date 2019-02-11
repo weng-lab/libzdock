@@ -43,6 +43,11 @@ void PDB::type(RecordType t) {
   }
 }
 
+bool PDB::isalpha() {
+  return PDB::ATOM == type() &&
+         (0 == strncmp(atom.name, " CA", sizeof(AName)));
+}
+
 int PDB::byteCmp(const PDB &l, const PDB &r) {
   return memcmp(&l, &r, sizeof(PDB));
 }

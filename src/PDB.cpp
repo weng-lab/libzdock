@@ -1,21 +1,22 @@
 #include "PDB.hpp"
 #include "Exception.hpp"
 #include <fstream>
-#include <iostream>
 
 namespace p = ::libpdb;
 namespace e = ::Eigen;
 
 namespace zdock {
 
-PDB::PDB(const std::string &fn) { read_(fn); }
+PDB::PDB(const std::string &fn, const int model, const bool alpha) {
+  read_(fn, model, alpha);
+}
 
 const e::Matrix<double, 3, e::Dynamic> &PDB::matrix() { return m_; }
 
 const std::vector<p::PDB> &PDB::records() { return records_; }
 
-const Eigen::Matrix<double, 3, Eigen::Dynamic> &
-PDB::transform(Eigen::Transform<double, 3, Eigen::Affine> t) {
+const e::Matrix<double, 3, e::Dynamic> &
+PDB::transform(const e::Transform<double, 3, e::Affine> &t) {
   m_ = t * m_;
   // reconstitute atom records from matrix
   size_t i = 0;
@@ -28,9 +29,24 @@ PDB::transform(Eigen::Transform<double, 3, Eigen::Affine> t) {
   return m_;
 }
 
-void PDB::read_(const std::string &fn) {
+const e::Matrix<double, 3, e::Dynamic> &
+PDB::setMatrix(const e::Matrix<double, 3, e::Dynamic> &m) {
+  // reconstitute atom records from matrix
+  m_ = m;
+  size_t i = 0;
+  for (const auto j : atoms_) {
+    records_[j].atom.xyz[0] = m_(0, i);
+    records_[j].atom.xyz[1] = m_(1, i);
+    records_[j].atom.xyz[2] = m_(2, i);
+    i++;
+  }
+  return m_;
+}
+
+void PDB::read_(const std::string &fn, const int model, const bool alpha) {
   p::PDB record;
-  int model = 0;
+  int firstmodel = 0;
+  int m = 0;
   size_t count = 0;
   std::string title;
   std::ifstream infile(fn);
@@ -41,25 +57,39 @@ void PDB::read_(const std::string &fn) {
     m_.resize(3, 0);
     while (infile >> record) {
       switch (record.type()) {
+
+      // keep track of model number
       case p::PDB::MODEL:
-        model = record.model.num;
-        if (model < 2) { // read first model (clear upon 'model entry')
-          atoms_.clear();
+        m = record.model.num;
+        if (!firstmodel) {
+          if (MODEL_ALL != model) {
+            atoms_.clear();
+          }
+          firstmodel = m;
         }
         break;
+
+      // model dependent capturing of atom/hetatm
       case p::PDB::ATOM:
       case p::PDB::HETATM:
-        if (model < 2) { // read first model (or 0 if none defined)
+        if (alpha && !record.isalpha()) {
+          continue; // skip non-CA if alpha is set
+        }
+        if (model == m || MODEL_ALL == model ||
+            (MODEL_FIRST == model && firstmodel == m)) {
           atoms_.push_back(count);
         }
         break;
-      case p::PDB::TITLE:
+
+      // parse title
+      case p::PDB::TITLE: // capture title
         if (record.title.continuation) {
           title += std::string(record.title.text).substr(1);
         } else {
           title = record.title.text;
         }
         break;
+
       default:
         break;
       }
