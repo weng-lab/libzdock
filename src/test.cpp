@@ -33,14 +33,13 @@ int main() {
   e::Transform<double, 3, e::Affine> t0, t1, tp;
 
   try {
-    zdock::PDB rec(receptor, zdock::PDB::MODEL_FIRST, true);
-    zdock::PDB lig(ligand, zdock::PDB::MODEL_FIRST, true);
+    zdock::PDB rec(receptor); //, zdock::PDB::MODEL_FIRST, true);
+    zdock::PDB lig(ligand); //, zdock::PDB::MODEL_FIRST, true);
     zdock::ZDOCK z(zfile);
 
     const auto p = z.predictions()[0];
     const auto &l = z.ligand();
     const auto &r = z.receptor();
-    auto &pdb = lig;
 
     t0 = e::Translation3d(-e::Vector3d(l.translation)) *
          eulerRotation(r.rotation);
@@ -48,7 +47,7 @@ int main() {
          eulerRotation(l.rotation, true);
     tp = eulerRotation(p.rotation, true) *
          boxTranslation(p.translation, z.spacing(), z.boxsize());
-    pdb.transform(t1 * tp * t0);
+    lig.transform(t1 * tp * t0);
 
     for (const auto &x : rec.records()) {
       std::cout << x << '\n';
