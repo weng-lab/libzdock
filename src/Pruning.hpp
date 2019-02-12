@@ -6,6 +6,8 @@ namespace zdock {
 
 class Pruning {
 private:
+  typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
+
   zdock::Structure receptor_, ligand_;   // zdock metadata
   std::unique_ptr<PDB> recpdb_, ligpdb_; // pdb file data
   ZDOCK zdock_;                          // zdock output
@@ -14,12 +16,12 @@ private:
   bool rev_, fixed_;                     // fixed / switched flags
 
   // precomputed transformation matrices
-  Eigen::Transform<double, 3, Eigen::Affine> t0_, t1_, t2_;
+  Transform t0_, t1_, t2_;
 
   // Euler angles to Z-X-Z transformation matrix
-  inline const Eigen::Transform<double, 3, Eigen::Affine>
+  inline const Transform
   eulerRotation(const double (&r)[3], bool rev = false) const {
-    Eigen::Transform<double, 3, Eigen::Affine> t;
+    Transform t;
     t = Eigen::AngleAxisd(r[0], Eigen::Vector3d::UnitZ()) *
         Eigen::AngleAxisd(r[1], Eigen::Vector3d::UnitX()) *
         Eigen::AngleAxisd(r[2], Eigen::Vector3d::UnitZ());
@@ -27,9 +29,9 @@ private:
   }
 
   // grid to actual translation ('circularized')
-  inline const Eigen::Transform<double, 3, Eigen::Affine>
+  inline const Transform
   boxTranslation(const int (&t)[3], bool rev = false) const {
-    Eigen::Transform<double, 3, Eigen::Affine> ret;
+    Transform ret;
     Eigen::Vector3d d;
     d << (t[0] >= boxsize_ / 2 ? t[0] - boxsize_ : t[0]),
         (t[1] >= boxsize_ / 2 ? t[1] - boxsize_ : t[1]),
@@ -61,7 +63,7 @@ public:
   // perform actual ligand transformation
   inline const Eigen::Matrix<double, 3, Eigen::Dynamic>
   txLigand(const PDB &pdb, const Prediction &pred) const {
-    Eigen::Transform<double, 3, Eigen::Affine> t;
+    Transform t;
     if (rev_) { // reverse (receptor was rotated, rather than ligand)
       t = eulerRotation(pred.rotation, true) * boxTranslation(pred.translation);
       return t1_ * t * t0_ * pdb.matrix();
