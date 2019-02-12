@@ -67,6 +67,7 @@ public:
   // predictions
   size_t npredictions() const { return predictions_.size(); }
   std::vector<Prediction> &predictions() { return predictions_; }
+  const std::vector<Prediction> &predictions() const { return predictions_; }
 
   // stream out
   friend std::ostream &operator<<(std::ostream &os, const ZDOCK &obj);

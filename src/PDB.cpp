@@ -11,7 +11,7 @@ PDB::PDB(const std::string &fn, const int model, const bool alpha) {
   read_(fn, model, alpha);
 }
 
-const e::Matrix<double, 3, e::Dynamic> &PDB::matrix() { return m_; }
+const e::Matrix<double, 3, e::Dynamic> &PDB::matrix() const { return m_; }
 
 const std::vector<p::PDB> &PDB::records() { return records_; }
 

@@ -19,7 +19,7 @@ public:
   static const int MODEL_FIRST = 0;
   PDB(const std::string &fn, const int model = MODEL_FIRST,
       const bool alpha = false);
-  const Eigen::Matrix<double, 3, Eigen::Dynamic> &matrix();
+  const Eigen::Matrix<double, 3, Eigen::Dynamic> &matrix() const;
   const Eigen::Matrix<double, 3, Eigen::Dynamic> &
   transform(const Eigen::Transform<double, 3, Eigen::Affine> &t);
   const Eigen::Matrix<double, 3, Eigen::Dynamic> &
