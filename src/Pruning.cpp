@@ -8,33 +8,11 @@ namespace e = Eigen;
 
 namespace zdock {
 
-const e::Transform<double, 3, e::Affine>
-Pruning::eulerRotation(const double (&r)[3], bool rev) const {
-  e::Transform<double, 3, e::Affine> t;
-  t = e::AngleAxisd(r[0], e::Vector3d::UnitZ()) *
-      e::AngleAxisd(r[1], e::Vector3d::UnitX()) *
-      e::AngleAxisd(r[2], e::Vector3d::UnitZ());
-  return (rev ? t.inverse() : t);
-}
-
-const e::Transform<double, 3, e::Affine>
-Pruning::boxTranslation(const int (&t)[3], bool rev) const {
-  e::Transform<double, 3, e::Affine> ret;
-  e::Vector3d d;
-  d << (t[0] >= boxsize_ / 2 ? t[0] - boxsize_ : t[0]),
-      (t[1] >= boxsize_ / 2 ? t[1] - boxsize_ : t[1]),
-      (t[2] >= boxsize_ / 2 ? t[2] - boxsize_ : t[2]);
-  if (rev) {
-    ret = e::Translation3d(-spacing_ * d);
-  } else {
-    ret = e::Translation3d(spacing_ * d);
-  }
-  return ret;
-}
-
 Pruning::Pruning(const std::string &zdockouput, const std::string &receptorpdb,
                  const std::string &ligandpdb)
     : zdock_(zdockouput) {
+
+  // read receptor pdb
   if ("" == receptorpdb) {
     std::string fn = zdock_.receptor().filename;
     if ('/' != fn[0]) { // relative
@@ -44,6 +22,8 @@ Pruning::Pruning(const std::string &zdockouput, const std::string &receptorpdb,
   } else {
     recpdb_ = std::make_unique<PDB>(receptorpdb, PDB::MODEL_ALL, true);
   }
+
+  // read ligand pdb
   if ("" == ligandpdb) {
     std::string fn = zdock_.ligand().filename;
     if ('/' != fn[0]) { // relative
@@ -53,12 +33,16 @@ Pruning::Pruning(const std::string &zdockouput, const std::string &receptorpdb,
   } else {
     ligpdb_ = std::make_unique<PDB>(ligandpdb, PDB::MODEL_ALL, true);
   }
+
+  // copy relevant info from zdock file
   receptor_ = zdock_.receptor();
   ligand_ = zdock_.ligand();
   rev_ = zdock_.isswitched();
   fixed_ = zdock_.isfixed();
   spacing_ = zdock_.spacing();
   boxsize_ = zdock_.boxsize();
+
+  // precalculate some transformation matrices
   t0_ = e::Translation3d(-e::Vector3d(ligand_.translation)) *
         eulerRotation(receptor_.rotation);
   t1_ = e::Translation3d(e::Vector3d(receptor_.translation)) *
@@ -96,8 +80,9 @@ void Pruning::prune(const double cutoff) {
   }
   // print zdock file
   std::cout << zdock_ << std::endl;
-  std::cerr << "cutoff: " << cutoff << ", min: " << min << ", ligsize: " << ligsize
-            << ", clusters: " << clusters << std::endl;
+  std::cerr << "cutoff: " << cutoff << ", min: " << min
+            << ", ligsize: " << ligsize << ", clusters: " << clusters
+            << std::endl;
 }
 
 void Pruning::makeComplex(const size_t n) {
