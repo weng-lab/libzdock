@@ -5,6 +5,16 @@
 
 namespace zdock {
 
+class PathException: public std::exception {
+private:
+  const std::string what_;
+
+public:
+  PathException(const std::string &msg)
+      : what_(msg) {}
+  const char *what() const throw() { return what_.c_str(); }
+};
+
 class PDBOpenException : public std::exception {
 private:
   const std::string what_;
