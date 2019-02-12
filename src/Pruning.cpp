@@ -96,7 +96,7 @@ void Pruning::prune(const double cutoff) {
   }
   // print zdock file
   std::cout << zdock_ << std::endl;
-  std::cerr << "min: " << min << ", ligsize: " << ligsize
+  std::cerr << "cutoff: " << cutoff << ", min: " << min << ", ligsize: " << ligsize
             << ", clusters: " << clusters << std::endl;
 }
 
