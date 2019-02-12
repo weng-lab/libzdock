@@ -6,7 +6,7 @@ int main() {
   const std::string ligand = "572b42d9-8406-41df-8200-fabd347a9548/ligand.pdb";
 
   try {
-    zdock::Pruning p(zfile, receptor, ligand);
+    zdock::Pruning p(zfile); //, receptor, ligand);
     //p.makeComplex(0);
     p.prune(6.0);
   } catch (const std::exception &e) {

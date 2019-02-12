@@ -1,4 +1,5 @@
 #include "Pruning.hpp"
+#include "Utils.hpp"
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -35,14 +36,20 @@ Pruning::Pruning(const std::string &zdockouput, const std::string &receptorpdb,
                  const std::string &ligandpdb)
     : zdock_(zdockouput) {
   if ("" == receptorpdb) {
-    recpdb_ =
-        std::make_unique<PDB>(zdock_.receptor().filename, PDB::MODEL_ALL, true);
+    std::string fn = zdock_.receptor().filename;
+    if ('/' != fn[0]) { // relative
+      fn = Utils::copath(zdockouput, fn);
+    }
+    recpdb_ = std::make_unique<PDB>(fn, PDB::MODEL_ALL, true);
   } else {
     recpdb_ = std::make_unique<PDB>(receptorpdb, PDB::MODEL_ALL, true);
   }
   if ("" == ligandpdb) {
-    ligpdb_ =
-        std::make_unique<PDB>(zdock_.ligand().filename, PDB::MODEL_ALL, true);
+    std::string fn = zdock_.ligand().filename;
+    if ('/' != fn[0]) { // relative
+      fn = Utils::copath(zdockouput, fn);
+    }
+    ligpdb_ = std::make_unique<PDB>(fn, PDB::MODEL_ALL, true);
   } else {
     ligpdb_ = std::make_unique<PDB>(ligandpdb, PDB::MODEL_ALL, true);
   }
