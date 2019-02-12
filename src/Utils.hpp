@@ -17,8 +17,16 @@ public:
       throw PathException("realpath not found for '" + file + "'");
     }
   }
+  static std::string dirname(const std::string &path) {
+    size_t p = path.find_last_of('/');
+    if (std::string::npos != p) {
+      return path.substr(0, std::min(p + 1, path.size() - 1));
+    } else {
+      return "";
+    }
+  }
   static std::string copath(const std::string &path, const std::string &file) {
-    return realpath(path + "/../" + file);
+    return realpath(dirname(path) + file);
   }
 };
 
