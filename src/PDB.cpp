@@ -11,12 +11,11 @@ PDB::PDB(const std::string &fn, const int model, const bool alpha) {
   read_(fn, model, alpha);
 }
 
-const e::Matrix<double, 3, e::Dynamic> &PDB::matrix() const { return m_; }
+const PDB::Matrix &PDB::matrix() const { return m_; }
 
 const std::vector<p::PDB> &PDB::records() { return records_; }
 
-const e::Matrix<double, 3, e::Dynamic> &
-PDB::transform(const e::Transform<double, 3, e::Affine> &t) {
+const PDB::Matrix &PDB::transform(const PDB::Transform &t) {
   m_ = t * m_;
   // reconstitute atom records from matrix
   size_t i = 0;
@@ -29,8 +28,7 @@ PDB::transform(const e::Transform<double, 3, e::Affine> &t) {
   return m_;
 }
 
-const e::Matrix<double, 3, e::Dynamic> &
-PDB::setMatrix(const e::Matrix<double, 3, e::Dynamic> &m) {
+const PDB::Matrix &PDB::setMatrix(const PDB::Matrix &m) {
   // reconstitute atom records from matrix
   m_ = m;
   size_t i = 0;
