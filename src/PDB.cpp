@@ -108,4 +108,8 @@ void PDB::read_(const std::string &fn, const int model, const bool alpha) {
   }
 }
 
+const e::Vector3d PDB::centroid() const {
+  return m_.rowwise().mean();
+}
+
 } // namespace zdock

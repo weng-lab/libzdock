@@ -74,7 +74,7 @@ public:
 
     if (rev_) {
 
-      /* Translation; reverse (receptor was rotated, rather than ligand)
+      /* Transformation; reverse (receptor was rotated, rather than ligand)
        *
        *     X(rec trans) * X(lig rot, reverse) *
        *       X(pred rot, reverse) * X(pred trans) *
@@ -86,7 +86,7 @@ public:
       return t1_ * t * t0_ * pdb.matrix();
     } else {
 
-      /* Translation; normal (ligand was rotated)
+      /* Transformation; normal (ligand was rotated)
        *
        * fixed case:
        *     X(rec trans) * X(-pred trans) * X(pred rot) *
@@ -101,6 +101,8 @@ public:
           boxTranslation(pred.translation, true) *
           eulerRotation(pred.rotation) * t2_;
       if (!fixed_) {
+        // !fixed means initial random rotation of receptor
+        // so we need to rotate to rec frame
         t = eulerRotation(receptor_.rotation, true) * t;
       }
       return t * pdb.matrix();

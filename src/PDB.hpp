@@ -27,6 +27,7 @@ public:
   const Matrix &transform(const Transform &t);
   const Matrix &setMatrix(const Matrix &m);
   const std::vector<libpdb::PDB> &records();
+  const Eigen::Vector3d centroid() const;
 };
 
 } // namespace zdock
