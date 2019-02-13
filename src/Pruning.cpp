@@ -15,15 +15,18 @@ Pruning::Pruning(const std::string &zdockouput, const std::string &receptorpdb,
   using e::Translation3d;
   using e::Vector3d;
 
+  // load C-alphas only
+  const bool caonly = true;
+
   // read receptor pdb
   if ("" == receptorpdb) {
     std::string fn = zdock_.receptor().filename;
     if ('/' != fn[0]) { // relative
       fn = Utils::copath(zdockouput, fn);
     }
-    recpdb_ = std::make_unique<PDB>(fn, PDB::MODEL_FIRST, true);
+    recpdb_ = std::make_unique<PDB>(fn, PDB::MODEL_FIRST, caonly);
   } else {
-    recpdb_ = std::make_unique<PDB>(receptorpdb, PDB::MODEL_FIRST, true);
+    recpdb_ = std::make_unique<PDB>(receptorpdb, PDB::MODEL_FIRST, caonly);
   }
 
   // read ligand pdb
@@ -32,9 +35,9 @@ Pruning::Pruning(const std::string &zdockouput, const std::string &receptorpdb,
     if ('/' != fn[0]) { // relative
       fn = Utils::copath(zdockouput, fn);
     }
-    ligpdb_ = std::make_unique<PDB>(fn, PDB::MODEL_FIRST, true);
+    ligpdb_ = std::make_unique<PDB>(fn, PDB::MODEL_FIRST, caonly);
   } else {
-    ligpdb_ = std::make_unique<PDB>(ligandpdb, PDB::MODEL_FIRST, true);
+    ligpdb_ = std::make_unique<PDB>(ligandpdb, PDB::MODEL_FIRST, caonly);
   }
 
   // copy relevant info from zdock file
