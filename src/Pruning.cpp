@@ -12,6 +12,9 @@ Pruning::Pruning(const std::string &zdockouput, const std::string &receptorpdb,
                  const std::string &ligandpdb)
     : zdock_(zdockouput) {
 
+  using e::Translation3d;
+  using e::Vector3d;
+
   // read receptor pdb
   if ("" == receptorpdb) {
     std::string fn = zdock_.receptor().filename;
@@ -43,12 +46,12 @@ Pruning::Pruning(const std::string &zdockouput, const std::string &receptorpdb,
   boxsize_ = zdock_.boxsize();
 
   // precalculate some transformation matrices
-  t0_ = e::Translation3d(-e::Vector3d(ligand_.translation)) *
+  t0_ = Translation3d(-Vector3d(ligand_.translation)) *
         eulerRotation(receptor_.rotation);
-  t1_ = e::Translation3d(e::Vector3d(receptor_.translation)) *
+  t1_ = Translation3d(Vector3d(receptor_.translation)) *
         eulerRotation(ligand_.rotation, true);
   t2_ = eulerRotation(ligand_.rotation) *
-        e::Translation3d(-e::Vector3d(ligand_.translation));
+        Translation3d(-Vector3d(ligand_.translation));
 }
 
 void Pruning::prune(const double cutoff) {
@@ -59,7 +62,14 @@ void Pruning::prune(const double cutoff) {
   std::vector<bool> l(n, true);
   double min = std::numeric_limits<double>::max(); // big number
   int clusters = 0;
-  zdock_.predictions().clear();
+
+  // some stats
+  std::cerr << "file: " << Utils::realpath(zdock_.filename())
+            << " (preds: " << zdock_.npredictions() << ")\n"
+            << "receptor: " << Utils::realpath(zdock_.receptor().filename)
+            << " (recsize: " << recpdb_->matrix().cols() << ")\n"
+            << "ligand: " << Utils::realpath(zdock_.ligand().filename)
+            << " (ligsize: " << ligsize << ")" << std::endl;
 
   // pre-compute all poses
   std::vector<Pruning::Matrix> poses;
@@ -68,6 +78,7 @@ void Pruning::prune(const double cutoff) {
   }
 
   // find clusters
+  zdock_.predictions().clear();
   for (size_t i = 0; i < n; ++i) {
     if (!(i % 100)) {
       std::cerr << i << '\t' << clusters << std::endl;
@@ -93,7 +104,8 @@ void Pruning::prune(const double cutoff) {
   std::cout << zdock_ << std::endl;
 
   // print some stats
-  std::cerr << std::endl << "cutoff: " << cutoff << ", min: " << min
+  std::cerr << std::endl
+            << "cutoff: " << cutoff << ", min: " << min
             << ", ligsize: " << ligsize << ", clusters: " << clusters
             << std::endl;
 }
