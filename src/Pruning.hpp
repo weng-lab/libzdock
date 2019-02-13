@@ -7,6 +7,7 @@ namespace zdock {
 class Pruning {
 private:
   typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
+  typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
 
   zdock::Structure receptor_, ligand_;   // zdock metadata
   std::unique_ptr<PDB> recpdb_, ligpdb_; // pdb file data
@@ -53,15 +54,11 @@ public:
   // perform pruning
   void prune(const double cutoff);
 
-  // calculate rmsd between two predictions
-  double rmsd(const Prediction p1, const Prediction p2,
-              const double ligsize = 1.0) const;
-
   // ligand pdb record to stdout
   void makeComplex(const size_t n);
 
   // perform actual ligand transformation
-  inline const Eigen::Matrix<double, 3, Eigen::Dynamic>
+  inline const Matrix
   txLigand(const PDB &pdb, const Prediction &pred) const {
     Transform t;
     if (rev_) { // reverse (receptor was rotated, rather than ligand)

@@ -18,9 +18,9 @@ Pruning::Pruning(const std::string &zdockouput, const std::string &receptorpdb,
     if ('/' != fn[0]) { // relative
       fn = Utils::copath(zdockouput, fn);
     }
-    recpdb_ = std::make_unique<PDB>(fn, PDB::MODEL_ALL, true);
+    recpdb_ = std::make_unique<PDB>(fn, PDB::MODEL_FIRST, true);
   } else {
-    recpdb_ = std::make_unique<PDB>(receptorpdb, PDB::MODEL_ALL, true);
+    recpdb_ = std::make_unique<PDB>(receptorpdb, PDB::MODEL_FIRST, true);
   }
 
   // read ligand pdb
@@ -29,9 +29,9 @@ Pruning::Pruning(const std::string &zdockouput, const std::string &receptorpdb,
     if ('/' != fn[0]) { // relative
       fn = Utils::copath(zdockouput, fn);
     }
-    ligpdb_ = std::make_unique<PDB>(fn, PDB::MODEL_ALL, true);
+    ligpdb_ = std::make_unique<PDB>(fn, PDB::MODEL_FIRST, true);
   } else {
-    ligpdb_ = std::make_unique<PDB>(ligandpdb, PDB::MODEL_ALL, true);
+    ligpdb_ = std::make_unique<PDB>(ligandpdb, PDB::MODEL_FIRST, true);
   }
 
   // copy relevant info from zdock file
@@ -60,15 +60,25 @@ void Pruning::prune(const double cutoff) {
   double min = std::numeric_limits<double>::max(); // big number
   int clusters = 0;
   zdock_.predictions().clear();
+
+  // pre-compute all poses
+  std::vector<Pruning::Matrix> poses;
   for (size_t i = 0; i < n; ++i) {
+    poses.push_back(txLigand(*ligpdb_, v[i]));
+  }
+
+  // find clusters
+  for (size_t i = 0; i < n; ++i) {
+    if (!(i % 100)) {
+      std::cerr << i << '\t' << clusters << std::endl;
+    }
     if (l[i]) {
       l[i] = false;
       preds.push_back(v[i]);
-      const auto x = txLigand(*ligpdb_, v[i]);
       for (size_t j = i + 1; j < n; ++j) {
         if (l[j]) {
-          const auto y = txLigand(*ligpdb_, v[j]);
-          const double rmsd = std::sqrt((x - y).array().pow(2).sum() / ligsize);
+          const double rmsd = std::sqrt(
+              (poses.at(i) - poses.at(j)).array().pow(2).sum() / ligsize);
           min = std::min(min, rmsd);
           if (rmsd < cutoff) {
             l[j] = false;
@@ -78,9 +88,12 @@ void Pruning::prune(const double cutoff) {
       clusters++;
     }
   }
+
   // print zdock file
   std::cout << zdock_ << std::endl;
-  std::cerr << "cutoff: " << cutoff << ", min: " << min
+
+  // print some stats
+  std::cerr << std::endl << "cutoff: " << cutoff << ", min: " << min
             << ", ligsize: " << ligsize << ", clusters: " << clusters
             << std::endl;
 }
