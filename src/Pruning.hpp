@@ -93,9 +93,7 @@ public:
        *       X(lig rot) * X(-lig trans) * M
        *
        * not fixed case:
-       *     X(rec rot, reverse) * X(rec trans) *
-       *       X(-pred trans) * X(pred rot) * X(lig rot) *
-       *         X(-lig trans) * M
+       *     X(rec rot, reverse) * [fixed case]
        *
        */
 
