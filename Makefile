@@ -8,7 +8,7 @@ SRC = -I/opt/local/include/eigen3
 BINOBJ = src/test.cpp
 OBJ_DIR := build
 LIB_DIR := lib
-OPT		= -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic
+OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic -funroll-loops
 DEBUG		=
 CXXFLAGS		= $(OPT) $(DEBUG)
 LIBRARY		= pdb++
