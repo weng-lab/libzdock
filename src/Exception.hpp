@@ -5,6 +5,28 @@
 
 namespace zdock {
 
+class AtomNotFoundException: public std::exception {
+private:
+  const std::string what_;
+
+public:
+  AtomNotFoundException(const std::string &msg)
+      : what_(msg) {}
+  const char *what() const throw() { return what_.c_str(); }
+};
+
+
+class ConstraintException: public std::exception {
+private:
+  const std::string what_;
+
+public:
+  ConstraintException(const std::string &msg)
+      : what_(msg) {}
+  const char *what() const throw() { return what_.c_str(); }
+};
+
+
 class PathException: public std::exception {
 private:
   const std::string what_;

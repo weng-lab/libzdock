@@ -1,3 +1,4 @@
+#include "Constraints.hpp"
 #include "PDB.hpp"
 #include "ZDOCK.hpp"
 #include <memory>
@@ -15,6 +16,7 @@ private:
   double spacing_;                       // grid spacing
   int boxsize_;                          // grid size
   bool rev_, fixed_;                     // fixed / switched flags
+  std::string recfn_, ligfn_;            // receptor and ligand filenames
 
   // precomputed transformation matrices
   Transform t0_, t1_, t2_;
@@ -64,6 +66,9 @@ public:
 
   // ligand pdb record to stdout
   void makeComplex(const size_t n);
+
+  // filter predictions based on constraints
+  void filterConstraints(const std::string& fn);
 
   // perform actual ligand transformation
   inline const Matrix txLigand(const PDB &pdb, const Prediction &pred) const {

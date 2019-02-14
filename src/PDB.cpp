@@ -1,5 +1,6 @@
 #include "PDB.hpp"
 #include "Exception.hpp"
+#include "Utils.hpp"
 #include <fstream>
 
 namespace p = ::libpdb;
@@ -7,13 +8,46 @@ namespace e = ::Eigen;
 
 namespace zdock {
 
-PDB::PDB(const std::string &fn, const int model, const bool alpha) {
-  read_(fn, model, alpha);
+PDB::PDB() {
+  m_.resize(3, 0);
+}
+
+PDB::PDB(const std::string &fn, const int model,
+         std::function<bool(const libpdb::PDB &)> filter) {
+  read_(fn, model, filter);
 }
 
 const PDB::Matrix &PDB::matrix() const { return m_; }
 
 const std::vector<p::PDB> &PDB::records() { return records_; }
+
+const libpdb::PDB &PDB::operator[](const Coord &coord) const {
+  const libpdb::PDB &x = (*this)[coord.serialNum];
+  if (Utils::trim_copy(x.atom.name) == coord.atomName &&
+      Utils::trim_copy(x.atom.residue.name) == coord.resName &&
+      x.atom.residue.chainId == coord.chain &&
+      x.atom.residue.seqNum == coord.resNum) {
+    return x;
+  } else {
+    throw AtomNotFoundException("Atom not found.");
+  }
+}
+
+const libpdb::PDB &PDB::operator[](const int serial) const {
+  for (const auto &r : records_) {
+    switch (r.type()) {
+    case libpdb::PDB::ATOM:
+    case libpdb::PDB::HETATM:
+      if (serial == r.atom.serialNum) {
+        return r;
+      }
+      break;
+    default:
+      break;
+    }
+  }
+  throw AtomNotFoundException("Atom not found.");
+}
 
 const PDB::Matrix &PDB::transform(const PDB::Transform &t) {
   m_ = t * m_;
@@ -41,19 +75,23 @@ const PDB::Matrix &PDB::setMatrix(const PDB::Matrix &m) {
   return m_;
 }
 
-void PDB::read_(const std::string &fn, const int model, const bool alpha) {
+void PDB::read_(const std::string &fn, const int model,
+                std::function<bool(const libpdb::PDB &)> filter) {
   p::PDB record;
   int firstmodel = 0;
   int m = 0;
   size_t count = 0;
-  std::string title;
   std::ifstream infile(fn);
   if (infile.is_open()) {
+    std::lock_guard<std::mutex> lock(insertmtx_);
     // read pdb lines
     atoms_.clear();
     records_.clear();
     m_.resize(3, 0);
     while (infile >> record) {
+      if (!filter(record)) {
+        continue;
+      }
       switch (record.type()) {
 
       // keep track of model number
@@ -70,21 +108,9 @@ void PDB::read_(const std::string &fn, const int model, const bool alpha) {
       // model dependent capturing of atom/hetatm
       case p::PDB::ATOM:
       case p::PDB::HETATM:
-        if (alpha && !record.isalpha()) {
-          continue; // skip non-CA if alpha is set
-        }
         if (model == m || MODEL_ALL == model ||
             (MODEL_FIRST == model && firstmodel == m)) {
           atoms_.push_back(count);
-        }
-        break;
-
-      // parse title
-      case p::PDB::TITLE: // capture title
-        if (record.title.continuation) {
-          title += std::string(record.title.text).substr(1);
-        } else {
-          title = record.title.text;
         }
         break;
 
@@ -108,8 +134,18 @@ void PDB::read_(const std::string &fn, const int model, const bool alpha) {
   }
 }
 
-const e::Vector3d PDB::centroid() const {
-  return m_.rowwise().mean();
+void PDB::append(const p::PDB &r) {
+  if (p::PDB::UNKNOWN != r.type()) { // silently drop 'UNKNOWN' type records
+    std::lock_guard<std::mutex> lock(insertmtx_);
+    if (p::PDB::ATOM == r.type() || p::PDB::HETATM == r.type()) {
+      m_.conservativeResize(m_.rows(), m_.cols() + 1);
+      m_.col(m_.cols() - 1) = e::Vector3d(r.atom.xyz);
+      atoms_.push_back(records_.size());
+    }
+    records_.push_back(r);
+  }
 }
+
+const e::Vector3d PDB::centroid() const { return m_.rowwise().mean(); }
 
 } // namespace zdock
