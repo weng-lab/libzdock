@@ -1,7 +1,7 @@
 #pragma once
 
-#include "PDB.hpp"
 #include "Exception.hpp"
+#include "PDB.hpp"
 #include <sstream>
 #include <string>
 #include <vector>
@@ -21,10 +21,11 @@ class Constraints {
 private:
   const std::string filename_;
   std::vector<Constraint> cons_;
+
 public:
   Constraints() {}
   Constraints(const std::string &filename);
-  const std::vector<Constraint>& constraints() const;
+  const std::vector<Constraint> &constraints() const;
 };
 
 inline std::istream &operator>>(std::istream &s, Constraint &c) {
@@ -56,4 +57,5 @@ inline std::ostream &operator<<(std::ostream &s, const Constraint &c) {
   s << os.str();
   return s;
 }
-}
+
+} // namespace zdock

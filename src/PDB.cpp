@@ -8,9 +8,7 @@ namespace e = ::Eigen;
 
 namespace zdock {
 
-PDB::PDB() {
-  m_.resize(3, 0);
-}
+PDB::PDB() { m_.resize(3, 0); }
 
 PDB::PDB(const std::string &fn, const int model,
          std::function<bool(const libpdb::PDB &)> filter) {

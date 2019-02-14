@@ -3,8 +3,8 @@
 #include "pdb++.h"
 #include <Eigen/Dense>
 #include <iostream>
-#include <vector>
 #include <mutex>
+#include <vector>
 
 namespace zdock {
 
@@ -30,6 +30,7 @@ private:
              std::function<bool(const libpdb::PDB &)> filter =
                  [](const libpdb::PDB &) { return true; });
   std::mutex insertmtx_;
+
 public:
   static const int MODEL_ALL = -1;
   static const int MODEL_FIRST = 0;
@@ -42,9 +43,9 @@ public:
   const Matrix &setMatrix(const Matrix &m);
   const std::vector<libpdb::PDB> &records();
   const Eigen::Vector3d centroid() const;
-  const libpdb::PDB& operator[](const int serial) const;
-  const libpdb::PDB& operator[](const Coord& coord) const;
-  void append(const libpdb::PDB&);
+  const libpdb::PDB &operator[](const int serial) const;
+  const libpdb::PDB &operator[](const Coord &coord) const;
+  void append(const libpdb::PDB &);
 };
 
 inline std::ostream &operator<<(std::ostream &s, const Coord &c) {

@@ -28,4 +28,5 @@ Constraints::Constraints(const std::string &filename)
 const std::vector<Constraint> &Constraints::constraints() const {
   return cons_;
 }
-}
+
+} // namespace zdock

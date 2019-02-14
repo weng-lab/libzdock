@@ -59,7 +59,7 @@ public:
   Pruning(const std::string &zdockouput,
           const std::string &receptorpdb = "", // or grab from zdock.out
           const std::string &ligandpdb = ""    // or grab from zdock.out
-          );
+  );
 
   // perform pruning
   void prune(const double cutoff);
@@ -68,7 +68,7 @@ public:
   void makeComplex(const size_t n);
 
   // filter predictions based on constraints
-  void filterConstraints(const std::string& fn);
+  void filterConstraints(const std::string &fn);
 
   // perform actual ligand transformation
   inline const Matrix txLigand(const PDB &pdb, const Prediction &pred) const {
