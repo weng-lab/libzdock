@@ -577,7 +577,7 @@ public:
   PDB(RecordType t) { type(t); }
   PDB(const char *buf);
   RecordType type() const { return rType; }
-  bool isalpha();
+  bool isalpha() const;
   void type(RecordType t);
   const char *chars() const;
   static int PdbrunInputVersion() { return pdbrunInputVersion; }

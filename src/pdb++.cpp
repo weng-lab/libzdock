@@ -43,7 +43,7 @@ void PDB::type(RecordType t) {
   }
 }
 
-bool PDB::isalpha() {
+bool PDB::isalpha() const {
   return PDB::ATOM == type() &&
          (0 == strncmp(atom.name, " CA", sizeof(AName)));
 }
