@@ -145,8 +145,10 @@ void Pruning::filterConstraints(const std::string &fn) {
   std::vector<double> maxdist;
   for (const auto &x : ccc.constraints()) {
     try {
-      const p::PDB r = receptor[x.recCoord];
-      const p::PDB l = ligand[x.ligCoord];
+      // these throw exceptions for bad constraints; we want to append
+      // both_ l and r or _none_.
+      const p::PDB &r = receptor[x.recCoord];
+      const p::PDB &l = ligand[x.ligCoord];
       recatoms.append(r);
       ligatoms.append(l);
       if (Constraint::MAX == x.constraintType) {
