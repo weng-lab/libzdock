@@ -106,6 +106,13 @@ public:
     Real occupancy, tempFactor;
     Element element;
     Charge charge;
+    // ZDATOM
+    bool iszdatom;
+    int type;
+    int surface;
+    Real rad;
+    char segid[5];
+    Real chg;
   };
   struct Author {
     char authors[70];
@@ -446,6 +453,7 @@ public:
     TRNSFM,
     AGRDES,
     AGGRGT,
+    ZDATOM,
     USER_PDBRUN,
     USER_EYEPOS,
     USER_ATPOS,
@@ -478,9 +486,9 @@ public:
     USER_GFX_POINT
   };
 #ifdef PDB_WORKAROUND
-  enum { NUM_TYPES = AGGRGT + 1, NUM_USER = USER_GFX_POINT - USER_PDBRUN + 1 };
+  enum { NUM_TYPES = AGGRGT + 2, NUM_USER = USER_GFX_POINT - USER_PDBRUN + 1 };
 #else
-  static const int NUM_TYPES = AGGRGT + 1;
+  static const int NUM_TYPES = AGGRGT + 2;
   static const int NUM_USER = USER_GFX_POINT - USER_PDBRUN + 1;
 #endif
 private:

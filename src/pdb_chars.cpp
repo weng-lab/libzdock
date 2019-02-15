@@ -93,11 +93,19 @@ const char *PDB::chars(void) const {
   case ATOM:
   case HETATM:
   case SIGATM:
-    count =
-        sprintf(buf, fmt, atom.serialNum, atom.name, atom.altLoc,
-                atom.residue.name, atom.residue.chainId, atom.residue.seqNum,
-                atom.residue.insertCode, atom.xyz[0], atom.xyz[1], atom.xyz[2],
-                atom.occupancy, atom.tempFactor, atom.element, atom.charge);
+    if (!atom.iszdatom) {
+      count = sprintf(buf, fmt, atom.serialNum, atom.name, atom.altLoc,
+                      atom.residue.name, atom.residue.chainId,
+                      atom.residue.seqNum, atom.residue.insertCode, atom.xyz[0],
+                      atom.xyz[1], atom.xyz[2], atom.occupancy, atom.tempFactor,
+                      atom.element, atom.charge);
+    } else {
+      count = sprintf(buf, pdbRecordFormat[ZDATOM], atom.serialNum, atom.name, atom.altLoc,
+                      atom.residue.name, atom.residue.chainId,
+                      atom.residue.seqNum, atom.residue.insertCode, atom.xyz[0],
+                      atom.xyz[1], atom.xyz[2], atom.type, atom.surface,
+                      atom.rad, atom.segid, atom.chg);
+    }
     break;
 
   case AUTHOR:
