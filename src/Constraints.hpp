@@ -28,25 +28,7 @@ public:
   const std::vector<Constraint> &constraints() const;
 };
 
-inline std::istream &operator>>(std::istream &s, Constraint &c) {
-  std::string line;
-  std::string ctype;
-  if (std::getline(s, line)) {
-    std::istringstream ss(line);
-    if (!(ss >> c.recCoord.serialNum >> c.recCoord.atomName >>
-          c.recCoord.resName >> c.recCoord.chain >> c.recCoord.resNum >>
-          c.ligCoord.serialNum >> c.ligCoord.atomName >> c.ligCoord.resName >>
-          c.ligCoord.chain >> c.ligCoord.resNum >> c.distance)) {
-      throw ConstraintException("Error reading constraint.");
-    }
-    if (ss >> ctype && "MIN" == ctype) {
-      c.constraintType = Constraint::MIN;
-    } else {
-      c.constraintType = Constraint::MAX;
-    }
-  }
-  return s;
-}
+std::istream &operator>>(std::istream &s, Constraint &c);
 
 inline std::ostream &operator<<(std::ostream &s, const Constraint &c) {
   std::ostringstream os;
