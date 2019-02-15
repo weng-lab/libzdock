@@ -10,6 +10,18 @@ ZDOCK::ZDOCK(const std::string &fn)
     : boxsize_(0), spacing_(0.0), isswitched_(false), ismzdock_(false),
       isfixed_(false), version_(0), symmetry_(0), filename_(fn) {
   read_();
+
+  /*
+  std::cerr << "fixed: " << isfixed_ << std::endl;
+  std::cerr << "switched: " << isswitched_ << std::endl;
+  std::cerr << "version : " << version_ << std::endl;
+  std::cerr << "rec: " << receptor_.filename << " (" << receptor_.rotation[0]
+            << ", " << receptor_.rotation[1] << ", " << receptor_.rotation[2]
+            << ")" << std::endl;
+  std::cerr << "lig: " << ligand_.filename << " (" << ligand_.rotation[0]
+            << ", " << ligand_.rotation[1] << ", " << ligand_.rotation[2] << ")"
+            << std::endl;
+  */
 }
 
 void ZDOCK::read_() {
@@ -94,12 +106,14 @@ void ZDOCK::read_() {
   }
 
   // receptor
-  int count =
-      std::sscanf(header[1].c_str(), "%lf\t%lf\t%lf", &receptor_.rotation[0],
-                  &receptor_.rotation[1], &receptor_.rotation[2]);
-  if (3 != count) {
-    throw ZDOCKInvalidFormat(filename_,
-                             "Unable to obtain receptor initial rotation");
+  if (!isfixed_) {
+    int count =
+        std::sscanf(header[1].c_str(), "%lf\t%lf\t%lf", &receptor_.rotation[0],
+                    &receptor_.rotation[1], &receptor_.rotation[2]);
+    if (3 != count) {
+      throw ZDOCKInvalidFormat(filename_,
+                               "Unable to obtain receptor initial rotation");
+    }
   }
   try {
     std::stringstream ss(header[(isswitched_ ? 4 : 3) - (!version_)]);
@@ -114,13 +128,11 @@ void ZDOCK::read_() {
 
   // ligand
   if (!ismzdock_) {
-    if (0 != version_) {
-      if (3 != std::sscanf(header[2].c_str(), "%lf\t%lf\t%lf",
+      if (3 != std::sscanf(header[(isfixed_ ? 1 : 2)].c_str(), "%lf\t%lf\t%lf",
                            &ligand_.rotation[0], &ligand_.rotation[1],
                            &ligand_.rotation[2])) {
         throw ZDOCKInvalidFormat(filename_,
                                  "Unable to obtain receptor initial rotation");
-      }
     }
     try {
       std::stringstream ss(header[(isswitched_ ? 3 : 4) - (!version_)]);
@@ -188,21 +200,17 @@ std::ostream &operator<<(std::ostream &os, const ZDOCK &obj) {
   } else if (obj.isfixed_) {
     // ZDOCK (fixed) header 1, 2
     snprintf(s, sizeof(s), "%d\t%.1f\n%.6f\t%.6f\t%.6f\n", obj.boxsize_,
-             obj.spacing_, obj.receptor_.rotation[0], obj.receptor_.rotation[1],
-             obj.receptor_.rotation[2]);
+             obj.spacing_, obj.ligand_.rotation[0], obj.ligand_.rotation[1],
+             obj.ligand_.rotation[2]);
   } else {
     // ZDOCK (new format / not fixed) header 1, 2
-    snprintf(s, sizeof(s), "%d\t%.1f\t%d\n%.6f\t%.6f\t%.6f\n", obj.boxsize_,
-             obj.spacing_, obj.isswitched_, obj.receptor_.rotation[0],
-             obj.receptor_.rotation[1], obj.receptor_.rotation[2]);
+    snprintf(s, sizeof(s), "%d\t%.1f\t%d\n%.6f\t%.6f\t%.6f\n%.6f\t%.6f\t%.6f\n",
+             obj.boxsize_, obj.spacing_, obj.isswitched_,
+             obj.receptor_.rotation[0], obj.receptor_.rotation[1],
+             obj.receptor_.rotation[2], obj.ligand_.rotation[0],
+             obj.ligand_.rotation[1], obj.ligand_.rotation[2]);
   }
   os << s;
-  if (!obj.ismzdock_ && !obj.isfixed_) {
-    // ZDOCK (new format / not fixed) ligand rotation
-    snprintf(s, sizeof(s), "%.6f\t%.6f\t%.6f\n", obj.ligand_.rotation[0],
-             obj.ligand_.rotation[1], obj.ligand_.rotation[2]);
-    os << s;
-  }
   // receptor / ligand filename and translation
   os << (obj.isswitched_ ? obj.ligand_ : obj.receptor_);
   if (!obj.ismzdock_) {
