@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
       zdock::Pruning p(zfile);
 //      p.prune(cutoff);
       p.filterConstraints(cfile);
-      std::cout << cutoff << std::endl;
+ //     std::cout << cutoff << std::endl;
     } else {
       std::cerr << "Usage: " << argv[0] << " <zdock-output-file> <cut-off> <constrains-file>" << std::endl;
       exit(1);
