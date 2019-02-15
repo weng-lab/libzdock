@@ -5,35 +5,30 @@
 
 namespace zdock {
 
-class AtomNotFoundException: public std::exception {
+class AtomNotFoundException : public std::exception {
 private:
   const std::string what_;
 
 public:
-  AtomNotFoundException(const std::string &msg)
-      : what_(msg) {}
+  AtomNotFoundException(const std::string &msg) : what_(msg) {}
   const char *what() const throw() { return what_.c_str(); }
 };
 
-
-class ConstraintException: public std::exception {
+class ConstraintException : public std::exception {
 private:
   const std::string what_;
 
 public:
-  ConstraintException(const std::string &msg)
-      : what_(msg) {}
+  ConstraintException(const std::string &msg) : what_(msg) {}
   const char *what() const throw() { return what_.c_str(); }
 };
 
-
-class PathException: public std::exception {
+class PathException : public std::exception {
 private:
   const std::string what_;
 
 public:
-  PathException(const std::string &msg)
-      : what_(msg) {}
+  PathException(const std::string &msg) : what_(msg) {}
   const char *what() const throw() { return what_.c_str(); }
 };
 
@@ -57,15 +52,13 @@ public:
   const char *what() const throw() { return what_.c_str(); }
 };
 
-class ZDOCKUnsupported: public std::exception {
+class ZDOCKUnsupported : public std::exception {
 private:
   const std::string what_;
 
 public:
-  ZDOCKUnsupported(const std::string &msg = "")
-      : what_(msg) {}
+  ZDOCKUnsupported(const std::string &msg = "") : what_(msg) {}
   const char *what() const throw() { return what_.c_str(); }
 };
-
 
 } // namespace zdock

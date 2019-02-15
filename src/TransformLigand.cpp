@@ -5,10 +5,10 @@ namespace p = libpdb;
 
 namespace zdock {
 
-TransformLigand::TransformLigand(const std::string &zdock) : TransformLigand(ZDOCK(zdock)) {}
+TransformLigand::TransformLigand(const std::string &zdock)
+    : TransformLigand(ZDOCK(zdock)) {}
 
-TransformLigand::TransformLigand(const ZDOCK &zdock)
-    : zdock_(zdock) {
+TransformLigand::TransformLigand(const ZDOCK &zdock) : zdock_(zdock) {
 
   using e::Translation3d;
   using e::Vector3d;

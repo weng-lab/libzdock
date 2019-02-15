@@ -10,7 +10,7 @@ namespace zdock {
 
 PDB::PDB() { m_.resize(3, 0); }
 
-PDB::PDB(const PDB& p) : PDB() {
+PDB::PDB(const PDB &p) : PDB() {
   atoms_ = p.atoms_;
   records_ = p.records_;
   m_ = p.m_;
@@ -21,7 +21,7 @@ PDB::PDB(const std::string &fn, const int model,
   read_(fn, model, filter);
 }
 
-PDB& PDB::operator=(const PDB& p) {
+PDB &PDB::operator=(const PDB &p) {
   atoms_ = p.atoms_;
   records_ = p.records_;
   m_ = p.m_;
