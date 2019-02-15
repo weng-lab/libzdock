@@ -67,3 +67,4 @@
 "TRNSFM %3d %3d %3d",
 "AGRDES %3d %68s",					/* FTNOTE */
 "AGGRGT %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d %3d",
+"ATOM  %5d %-4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f %2d    %2d %4.2f    %4s %5.2f",	/* ZDOCK ATOM, after marksur */

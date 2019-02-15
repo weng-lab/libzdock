@@ -114,8 +114,17 @@ PDB::PDB(const char *buf) {
                    atom.residue.name, &atom.residue.chainId,
                    &atom.residue.seqNum, &atom.residue.insertCode, &atom.xyz[0],
                    &atom.xyz[1], &atom.xyz[2], &atom.occupancy,
-                   &atom.tempFactor, &atom.element, &atom.charge))
-      goto unknown;
+                   &atom.tempFactor, &atom.element, &atom.charge)) {
+      if (0 > sscanf(buf, pdbRecordFormat[ZDATOM], &atom.serialNum, atom.name,
+                     &atom.altLoc, atom.residue.name, &atom.residue.chainId,
+                     &atom.residue.seqNum, &atom.residue.insertCode,
+                     &atom.xyz[0], &atom.xyz[1], &atom.xyz[2], &atom.type,
+                     &atom.surface, &atom.rad, &atom.segid, &atom.chg)) {
+        goto unknown;
+      } else {
+        atom.iszdatom = true;
+      }
+    }
     break;
 
   case AUTHOR:
