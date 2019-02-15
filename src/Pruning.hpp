@@ -10,8 +10,6 @@ private:
   typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
   typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
 
-  zdock::Structure receptor_, ligand_; // zdock metadata
-  PDB recpdb_, ligpdb_;                // pdb file data
   ZDOCK zdock_;                        // zdock output
   const TransformLigand txl_;          // ligand tranfomation class
   std::string recfn_, ligfn_;          // receptor and ligand filenames

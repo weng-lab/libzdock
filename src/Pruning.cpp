@@ -24,9 +24,6 @@ Pruning::Pruning(const std::string &zdockoutput, const std::string &receptorpdb,
   } else {
     recfn_ = receptorpdb;
   }
-  recpdb_ = PDB(recfn_, PDB::MODEL_FIRST, [](const p::PDB &r) {
-    return p::PDB::ATOM == r.type() && r.isalpha(); // CA only
-  });
 
   // read ligand pdb (first model)
   if ("" == ligandpdb) {
@@ -37,32 +34,37 @@ Pruning::Pruning(const std::string &zdockoutput, const std::string &receptorpdb,
   } else {
     ligfn_ = ligandpdb;
   }
-  ligpdb_ = PDB(ligfn_, PDB::MODEL_FIRST, [](const p::PDB &r) {
-    return p::PDB::ATOM == r.type() && r.isalpha(); // CA only
-  });
 }
 
 void Pruning::prune(const double cutoff) {
   const auto v = zdock_.predictions(); // our copy
   const auto n = zdock_.npredictions();
-  const double ligsize = ligpdb_.matrix().cols();
   auto &preds = zdock_.predictions();              // our ref
   double min = std::numeric_limits<double>::max(); // big number
   std::vector<int> l(n, 0);
   int clusters = 0;
 
+  // read pdb files
+  PDB recpdb(recfn_, PDB::MODEL_FIRST, [](const p::PDB &r) {
+    return p::PDB::ATOM == r.type() && r.isalpha(); // CA only
+  });
+  PDB ligpdb(ligfn_, PDB::MODEL_FIRST, [](const p::PDB &r) {
+    return p::PDB::ATOM == r.type() && r.isalpha(); // CA only
+  });
+  const double ligsize = ligpdb.matrix().cols();
+
   // some stats
   std::cerr << "file: " << Utils::realpath(zdock_.filename())
             << " (preds: " << zdock_.npredictions() << ")\n"
-            << "receptor: " << recfn_
-            << " (recsize: " << recpdb_.matrix().cols() << ")\n"
+            << "receptor: " << recfn_ << " (recsize: " << recpdb.matrix().cols()
+            << ")\n"
             << "ligand: " << ligfn_ << " (ligsize: " << ligsize << ")"
             << std::endl;
 
   // pre-compute all poses
   std::vector<Pruning::Matrix> poses;
   for (size_t i = 0; i < n; ++i) {
-    poses.push_back(txl_.txLigand(ligpdb_, v[i]));
+    poses.push_back(txl_.txLigand(ligpdb, v[i]));
   }
 
   // find clusters
@@ -110,11 +112,16 @@ void Pruning::prune(const double cutoff) {
 void Pruning::makeComplex(const size_t n) {
   const auto &v = zdock_.predictions();
   const auto &p = v[n];
-  ligpdb_.setMatrix(txl_.txLigand(ligpdb_, p));
-  for (const auto &x : recpdb_.records()) {
+
+  // read pdb files
+  PDB recpdb(recfn_, PDB::MODEL_FIRST);
+  PDB ligpdb(ligfn_, PDB::MODEL_FIRST);
+
+  ligpdb.setMatrix(txl_.txLigand(ligpdb, p));
+  for (const auto &x : recpdb.records()) {
     std::cout << x << '\n';
   }
-  for (const auto &x : ligpdb_.records()) {
+  for (const auto &x : ligpdb.records()) {
     std::cout << x << '\n';
   }
 }
