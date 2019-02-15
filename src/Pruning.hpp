@@ -20,7 +20,7 @@ public:
   Pruning(const std::string &zdockoutput,
           const std::string &receptorpdb = "", // or grab from zdock.out
           const std::string &ligandpdb = ""    // or grab from zdock.out
-          );
+  );
 
   // perform pruning
   void prune(const double cutoff);

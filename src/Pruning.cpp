@@ -46,7 +46,7 @@ void Pruning::prune(const double cutoff) {
   const auto v = zdock_.predictions(); // our copy
   const auto n = zdock_.npredictions();
   const double ligsize = ligpdb_.matrix().cols();
-  auto &preds = zdock_.predictions(); // our ref
+  auto &preds = zdock_.predictions();              // our ref
   double min = std::numeric_limits<double>::max(); // big number
   std::vector<int> l(n, 0);
   int clusters = 0;

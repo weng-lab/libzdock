@@ -1,5 +1,5 @@
-#include "Pruning.hpp"
 #include "Constraints.hpp"
+#include "Pruning.hpp"
 #include <iostream>
 
 int main(int argc, char **argv) {
@@ -9,11 +9,13 @@ int main(int argc, char **argv) {
       const double cutoff = std::stod(argv[2]);
       const std::string cfile = std::string(argv[3]);
       zdock::Pruning p(zfile);
-//      p.prune(cutoff);
+      //      p.prune(cutoff);
       p.filterConstraints(cfile);
- //     std::cout << cutoff << std::endl;
+      //     std::cout << cutoff << std::endl;
     } else {
-      std::cerr << "Usage: " << argv[0] << " <zdock-output-file> <cut-off> <constrains-file>" << std::endl;
+      std::cerr << "Usage: " << argv[0]
+                << " <zdock-output-file> <cut-off> <constrains-file>"
+                << std::endl;
       exit(1);
     }
   } catch (const std::exception &e) {
