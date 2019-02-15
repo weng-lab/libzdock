@@ -35,9 +35,11 @@ public:
   static const int MODEL_ALL = -1;
   static const int MODEL_FIRST = 0;
   PDB();
+  PDB(const PDB& p);
   PDB(const std::string &fn, const int model = MODEL_FIRST,
       std::function<bool(const libpdb::PDB &)> filter =
           [](const libpdb::PDB &) { return true; });
+  PDB& operator=(const PDB& p);
   const Matrix &matrix() const;
   const Matrix &transform(const Transform &t);
   const Matrix &setMatrix(const Matrix &m);
