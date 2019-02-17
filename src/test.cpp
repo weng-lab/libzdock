@@ -31,11 +31,13 @@ int main(int argc, char **argv) {
       zdock::Prediction p = z.predictions()[0];
 
       Eigen::Matrix<double, 3, Eigen::Dynamic> m;
+      int serial = 0;
       for (int n = 0; n < 24; ++n) {
         zdock::PDB pdb = s;
         m = txm.txMultimer(pdb, p, n);
         pdb.setMatrix(m);
         for (auto x : pdb.records()) {
+          x.atom.serialNum = ++serial;
           x.atom.residue.chainId =
               zdock::TransformMultimer::CHAINS[n].c_str()[0];
           std::cout << x << '\n';
