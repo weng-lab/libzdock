@@ -1,11 +1,10 @@
 #include "Constraints.hpp"
 #include "Pruning.hpp"
 #include "TransformMultimer.hpp"
-#include "ZDOCK.hpp"
 #include "Utils.hpp"
+#include "ZDOCK.hpp"
 #include <iostream>
 #include <regex>
-
 
 int main(int argc, char **argv) {
   try {
@@ -23,18 +22,19 @@ int main(int argc, char **argv) {
         m = txm.txMultimer(pdb, p, n);
         pdb.setMatrix(m);
         for (auto x : pdb.records()) {
-          x.atom.residue.chainId = zdock::TransformMultimer::CHAINS[n].c_str()[0];
+          x.atom.residue.chainId =
+              zdock::TransformMultimer::CHAINS[n].c_str()[0];
           std::cout << x << '\n';
         }
       }
 
-      //const double cutoff = std::stod(argv[2]);
-      //const std::string cfile = std::string(argv[3]);
-      //zdock::Pruning p(zfile);
-      //p.prune(cutoff);
-      //p.filterConstraints(cfile);
+      // const double cutoff = std::stod(argv[2]);
+      // const std::string cfile = std::string(argv[3]);
+      // zdock::Pruning p(zfile);
+      // p.prune(cutoff);
+      // p.filterConstraints(cfile);
       //     std::cout << cutoff << std::endl;
-      //p.makeComplex(0);
+      // p.makeComplex(0);
     } else {
       std::cerr << "Usage: " << argv[0]
                 << " <zdock-output-file> <cut-off> <constrains-file>"
