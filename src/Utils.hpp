@@ -30,6 +30,8 @@ public:
     return realpath(dirname(path) + file);
   }
 
+  // https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring/217605#217605
+
   // trim from start (in place)
   static inline void ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(),
