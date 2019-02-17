@@ -40,12 +40,12 @@ flags = [
   '-isystem', '/home/vanderva/local/eigen3',
 
   # zdock/libpdb
-  '-I', 'include',
-  '-I', 'src',
   '-I', 'src/libpdb++',
   '-I', 'src/zdock',
   '-I', 'src/common',
   '-I', 'src/pdb',
+  '-I', 'src',
+  '-I', 'include',
 ]
 
 def parsepaths(flags):
