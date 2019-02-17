@@ -53,19 +53,23 @@ std::istream &operator>>(std::istream &s, Constraint &c) {
   std::string ctype;
   if (std::getline(s, line)) {
     if (std::regex_match(line, cm, r)) {
-      c.recCoord.serialNum = std::stoi(cm[1]);
-      c.recCoord.atomName = cm[2];
-      c.recCoord.resName = cm[3];
-      c.recCoord.chain = cm[4].str().c_str()[0];
-      c.recCoord.resNum = std::stoi(cm[5]);
-      c.ligCoord.serialNum = std::stoi(cm[6]);
-      c.ligCoord.atomName = cm[7];
-      c.ligCoord.resName = cm[8];
-      c.ligCoord.chain = cm[9].str().c_str()[0];
-      c.ligCoord.resNum = std::stoi(cm[10]);
-      c.distance = std::stod(cm[11]);
-      c.constraintType =
-          ("MIN" == std::string(cm[13]) ? Constraint::MIN : Constraint::MAX);
+      try {
+        c.recCoord.serialNum = std::stoi(cm[1]);
+        c.recCoord.atomName = cm[2];
+        c.recCoord.resName = cm[3];
+        c.recCoord.chain = cm[4].str().c_str()[0];
+        c.recCoord.resNum = std::stoi(cm[5]);
+        c.ligCoord.serialNum = std::stoi(cm[6]);
+        c.ligCoord.atomName = cm[7];
+        c.ligCoord.resName = cm[8];
+        c.ligCoord.chain = cm[9].str().c_str()[0];
+        c.ligCoord.resNum = std::stoi(cm[10]);
+        c.distance = std::stod(cm[11]);
+        c.constraintType =
+            ("MIN" == std::string(cm[13]) ? Constraint::MIN : Constraint::MAX);
+      } catch (const std::invalid_argument e) {
+        throw ConstraintException("Constraint format error; invalid argument");
+      }
     } else {
       throw ConstraintException("Constraint format error");
     }
