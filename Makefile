@@ -15,10 +15,13 @@ CXXFLAGS		= $(OPT) $(DEBUG)
 LIBRARY		= pdb++
 LIBARCH		= $(LIB_DIR)/lib$(LIBRARY).a
 BIN_SOURCES = src/test.cpp
-LIB_SOURCES = src/PDB.cpp src/pdb++.cpp src/pdb_chars.cpp src/pdb_read.cpp src/pdb_sprntf.cpp \
-              src/pdb_sscanf.cpp src/pdb_type.cpp src/pdbinput.cpp src/ZDOCK.cpp src/Pruning.cpp \
-              src/Constraints.cpp src/TransformLigand.cpp src/TransformMultimer.cpp src/TransformUtil.cpp
-
+LIB_SOURCES = src/libpdb++/pdbinput.cpp src/libpdb++/pdb_read.cpp src/libpdb++/pdb++.cpp \
+             src/libpdb++/pdb_sscanf.cpp src/libpdb++/pdb_type.cpp src/libpdb++/pdb_sprntf.cpp \
+             src/libpdb++/pdb_chars.cpp src/Pruning.cpp src/zdock/TransformMultimer.cpp \
+             src/zdock/Constraints.cpp src/zdock/TransformLigand.cpp src/zdock/TransformUtil.cpp \
+             src/zdock/ZDOCK.cpp src/pdb/PDB.cpp
+INCLUDE_PATHS = -Isrc/libpdb++ -Isrc/zdock -Isrc/common -Isrc/pdb -Iinclude
+SRC += $(INCLUDE_PATHS)
 rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
 HEADERS = $(call rwildcard, src/, *.h) $(call rwildcard, src/, *.hpp) $(call rwildcard, src/, *.i)
 OBJ := $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(call rwildcard, src/, *.cpp)))
