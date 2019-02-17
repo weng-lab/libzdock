@@ -56,7 +56,7 @@
 /* TURN */	"%7 %3d %3s %4s%c%4d%c %4s%c%4d%c%4 %30s",
 /* TVECT */	"%7 %3d%10f%10f%10f%30s",
 /* USER */	"%4 %2s%66s",
-/* MODEL */	"%9 %5d",
+/* MODEL */	"%6 %8d", /* non-standard; allow number to directly follow MODEL */
 /* ENDMDL */	NULL,
 /* EXPDTA */	"%8 %2d%69s",
 /* SYMDES */	"%7 %3d %68s",			/* FTNOTE */
