@@ -106,7 +106,8 @@ public:
     Real occupancy, tempFactor;
     Element element;
     Charge charge;
-    // ZDATOM
+
+    // support for non-standard Atom produced by zlab mark_sur
     bool iszdatom;
     int type;
     int surface;
