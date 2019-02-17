@@ -9,12 +9,13 @@ class TransformUtil {
 private:
   typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
   typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
+
 public:
   static const double PI;
 
   // Euler angles to Z-X-Z transformation matrix
   static inline const Transform eulerRotation(const double (&r)[3],
-                                       bool rev = false) {
+                                              bool rev = false) {
     Transform t;
 
     using Eigen::AngleAxisd;
@@ -36,7 +37,6 @@ public:
         (v[2] >= boxsize / 2 ? v[2] - boxsize : v[2]);
     return d;
   }
-
 };
 
 } // namespace zdock

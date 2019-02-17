@@ -100,8 +100,8 @@ const char *PDB::chars(void) const {
                       atom.xyz[1], atom.xyz[2], atom.occupancy, atom.tempFactor,
                       atom.element, atom.charge);
     } else {
-      count = sprintf(buf, pdbRecordFormat[ZDATOM], atom.serialNum, atom.name, atom.altLoc,
-                      atom.residue.name, atom.residue.chainId,
+      count = sprintf(buf, pdbRecordFormat[ZDATOM], atom.serialNum, atom.name,
+                      atom.altLoc, atom.residue.name, atom.residue.chainId,
                       atom.residue.seqNum, atom.residue.insertCode, atom.xyz[0],
                       atom.xyz[1], atom.xyz[2], atom.type, atom.surface,
                       atom.rad, atom.segid, atom.chg);

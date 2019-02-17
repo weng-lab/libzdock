@@ -111,7 +111,6 @@ void Pruning::makeZDOCKComplex(const size_t n) {
   PDB recpdb(recfn_, PDB::MODEL_FIRST);
   PDB ligpdb(ligfn_, PDB::MODEL_FIRST);
 
-
   ligpdb.setMatrix(txl_.txLigand(ligpdb, p));
   for (const auto &x : recpdb.records()) {
     std::cout << x << '\n';

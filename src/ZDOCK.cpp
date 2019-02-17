@@ -10,18 +10,6 @@ ZDOCK::ZDOCK(const std::string &fn)
     : boxsize_(0), spacing_(0.0), isswitched_(false), ismzdock_(false),
       isfixed_(false), version_(0), symmetry_(0), filename_(fn) {
   read_();
-
-  /*
-  std::cerr << "fixed: " << isfixed_ << std::endl;
-  std::cerr << "switched: " << isswitched_ << std::endl;
-  std::cerr << "version : " << version_ << std::endl;
-  std::cerr << "rec: " << receptor_.filename << " (" << receptor_.rotation[0]
-            << ", " << receptor_.rotation[1] << ", " << receptor_.rotation[2]
-            << ")" << std::endl;
-  std::cerr << "lig: " << ligand_.filename << " (" << ligand_.rotation[0]
-            << ", " << ligand_.rotation[1] << ", " << ligand_.rotation[2] << ")"
-            << std::endl;
-  */
 }
 
 void ZDOCK::read_() {
@@ -57,8 +45,6 @@ void ZDOCK::read_() {
                                    "Invalid ZDOCK prediction (line " +
                                        std::to_string(linenum) + ")");
         }
-        //p.rotation[1] = -p.rotation[1];
-        //p.rotation[2] = -p.rotation[2];
         p.rotation[2] = 0.0;
         p.translation[2] = 0.0;
         ismzdock_ = true;
@@ -132,11 +118,11 @@ void ZDOCK::read_() {
 
   // ligand
   if (!ismzdock_) {
-      if (3 != std::sscanf(header[(isfixed_ ? 1 : 2)].c_str(), "%lf\t%lf\t%lf",
-                           &ligand_.rotation[0], &ligand_.rotation[1],
-                           &ligand_.rotation[2])) {
-        throw ZDOCKInvalidFormat(filename_,
-                                 "Unable to obtain receptor initial rotation");
+    if (3 != std::sscanf(header[(isfixed_ ? 1 : 2)].c_str(), "%lf\t%lf\t%lf",
+                         &ligand_.rotation[0], &ligand_.rotation[1],
+                         &ligand_.rotation[2])) {
+      throw ZDOCKInvalidFormat(filename_,
+                               "Unable to obtain receptor initial rotation");
     }
     try {
       std::stringstream ss(header[(isswitched_ ? 3 : 4) - (!version_)]);

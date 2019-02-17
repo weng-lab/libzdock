@@ -10,9 +10,9 @@ private:
   typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
   typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
 
-  ZDOCK zdock_;                        // zdock output
-  const TransformLigand txl_;          // ligand tranfomation class
-  std::string recfn_, ligfn_;          // receptor and ligand filenames
+  ZDOCK zdock_;               // zdock output
+  const TransformLigand txl_; // ligand tranfomation class
+  std::string recfn_, ligfn_; // receptor and ligand filenames
 
 public:
   Pruning(const std::string &zdockoutput,
