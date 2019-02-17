@@ -32,14 +32,9 @@ private:
     using Eigen::Vector3d;
 
     Transform ret;
-    Vector3d d;
-
-    // circular translation
-    d << (t[0] >= boxsize_ / 2 ? t[0] - boxsize_ : t[0]),
-        (t[1] >= boxsize_ / 2 ? t[1] - boxsize_ : t[1]),
-        (t[2] >= boxsize_ / 2 ? t[2] - boxsize_ : t[2]);
 
     // rotate vector by angle alpha
+    Vector3d d = u::boxedGridCoord(t, boxsize_);
     d = u::eulerRotation({0.0, 0.0, alpha}, true) * (spacing_ * factor_ * d);
     ret = Translation3d(d);
     return ret;

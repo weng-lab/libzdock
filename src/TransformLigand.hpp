@@ -31,10 +31,7 @@ private:
     using Eigen::Translation3d;
     using Eigen::Vector3d;
 
-    Vector3d d;
-    d << (t[0] >= boxsize_ / 2 ? t[0] - boxsize_ : t[0]),
-        (t[1] >= boxsize_ / 2 ? t[1] - boxsize_ : t[1]),
-        (t[2] >= boxsize_ / 2 ? t[2] - boxsize_ : t[2]);
+    Vector3d d = u::boxedGridCoord(t, boxsize_);
     if (rev) {
       ret = Translation3d(-spacing_ * d);
     } else {
