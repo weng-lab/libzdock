@@ -3,6 +3,9 @@ import os
 def abspath(x):
   return os.path.abspath(os.path.normpath(os.path.expanduser(x)))
 
+def copath(x):
+  return os.path.abspath(os.path.normpath(os.path.join(__file__, "..", os.path.expanduser(x))))
+
 base = os.path.normpath(os.path.realpath(os.path.dirname(__file__)))
 
 flags = [
@@ -35,6 +38,14 @@ flags = [
   # specific
   '-isystem', '/opt/local/include/eigen3',
   '-isystem', '/home/vanderva/local/eigen3',
+
+  # zdock/libpdb
+  '-I', 'include',
+  '-I', 'src',
+  '-I', 'src/libpdb++',
+  '-I', 'src/zdock',
+  '-I', 'src/common',
+  '-I', 'src/pdb',
 ]
 
 def parsepaths(flags):
@@ -46,6 +57,10 @@ def parsepaths(flags):
           while stash:
             yield stash.pop()
           yield abspath(x)
+        elif os.path.isdir(copath(x)):
+          while stash:
+            yield stash.pop()
+          yield copath(x)
         else:
           stash = []
       else:

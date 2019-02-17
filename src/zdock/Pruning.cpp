@@ -14,7 +14,6 @@
 
 #include "Pruning.hpp"
 #include "Utils.hpp"
-
 #include <cmath>
 #include <iostream>
 #include <limits>
