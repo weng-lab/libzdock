@@ -23,10 +23,10 @@ TransformLigand::TransformLigand(const ZDOCK &zdock) : zdock_(zdock) {
 
   // precalculate some transformation matrices
   t0_ = Translation3d(-Vector3d(ligand_.translation)) *
-        eulerRotation(receptor_.rotation);
+        u::eulerRotation(receptor_.rotation);
   t1_ = Translation3d(Vector3d(receptor_.translation)) *
-        eulerRotation(ligand_.rotation, true);
-  t2_ = eulerRotation(ligand_.rotation) *
+        u::eulerRotation(ligand_.rotation, true);
+  t2_ = u::eulerRotation(ligand_.rotation) *
         Translation3d(-Vector3d(ligand_.translation));
 }
 

@@ -62,7 +62,9 @@ public:
 
   // structures
   Structure &receptor() { return receptor_; }
+  const Structure &receptor() const { return receptor_; }
   Structure &ligand();
+  const Structure &ligand() const;
 
   // predictions
   size_t npredictions() const { return predictions_.size(); }
