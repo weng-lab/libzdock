@@ -26,6 +26,17 @@ public:
     return (rev ? t.inverse() : t);
   }
 
+  // Adjust grid coordinates to fall inside box of size 'boxsize',
+  // NOTE: returns Vector3d (double).
+  static inline const Eigen::Vector3d boxedGridCoord(const int (&v)[3],
+                                                     const int boxsize) {
+    Eigen::Vector3d d;
+    d << (v[0] >= boxsize / 2 ? v[0] - boxsize : v[0]),
+        (v[1] >= boxsize / 2 ? v[1] - boxsize : v[1]),
+        (v[2] >= boxsize / 2 ? v[2] - boxsize : v[2]);
+    return d;
+  }
+
 };
 
 } // namespace zdock
