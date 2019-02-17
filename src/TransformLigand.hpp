@@ -8,8 +8,6 @@ class TransformLigand {
 
   /**
    * Performs ZDOCK prediction transformations on PDB structures.
-   * Supports ZDOCK2.3, 2.4, 3.0 old and new style ZDOCK output
-   * files.
    */
 
 public:
