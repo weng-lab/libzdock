@@ -1,10 +1,10 @@
 SHELL		= /bin/sh
 PREFIX  = $(HOME)/local
-CXX = clang++
+CXX = g++-7
 STRIP = strip
 BIN_DIR = bin
 BIN = $(BIN_DIR)/test
-SRC = -I/opt/local/include/eigen3
+SRC = -I/home/vanderva/local/eigen3
 BINOBJ = src/test.cpp
 OBJ_DIR := build
 LIB_DIR := lib

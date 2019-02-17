@@ -5,6 +5,20 @@
 namespace zdock {
 
 class TransformMultimer {
+
+  /**
+   * Implements M-ZDOCK prediction transformations on PDB structures.
+   *
+   * see:
+   *
+   * M-ZDOCK: a grid-based approach for C n symmetric multimer docking 
+   * Brian Pierce  Weiwei Tong  Zhiping Weng
+   *
+   * Bioinformatics, Volume 21, Issue 8, 15 April 2005, Pages 1472–1478
+   * https://doi.org/10.1093/bioinformatics/bti229
+   *
+   */
+
 public:
   TransformMultimer(const std::string &zdock);
   TransformMultimer(const ZDOCK &zdock);
