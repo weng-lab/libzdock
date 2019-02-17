@@ -15,7 +15,7 @@ Pruning::Pruning(const std::string &zdockoutput, const std::string &receptorpdb,
                  const std::string &ligandpdb)
     : zdock_(zdockoutput), txl_(zdockoutput) {
 
-  // read receptor pdb (first model)
+  // receptor file name
   if ("" == receptorpdb) {
     recfn_ = zdock_.receptor().filename;
     if ('/' != recfn_[0]) { // relative
@@ -25,14 +25,16 @@ Pruning::Pruning(const std::string &zdockoutput, const std::string &receptorpdb,
     recfn_ = receptorpdb;
   }
 
-  // read ligand pdb (first model)
-  if ("" == ligandpdb) {
-    ligfn_ = zdock_.ligand().filename;
-    if ('/' != ligfn_[0]) { // relative
-      ligfn_ = Utils::copath(zdockoutput, ligfn_);
+  // ligand file name
+  if (!zdock_.ismzdock()) {
+    if ("" == ligandpdb) {
+      ligfn_ = zdock_.ligand().filename;
+      if ('/' != ligfn_[0]) { // relative
+        ligfn_ = Utils::copath(zdockoutput, ligfn_);
+      }
+    } else {
+      ligfn_ = ligandpdb;
     }
-  } else {
-    ligfn_ = ligandpdb;
   }
 }
 
@@ -52,14 +54,6 @@ void Pruning::prune(const double cutoff) {
     return p::PDB::ATOM == r.type() && r.isalpha(); // CA only
   });
   const double ligsize = ligpdb.matrix().cols();
-
-  // some stats
-  std::cerr << "file: " << Utils::realpath(zdock_.filename())
-            << " (preds: " << zdock_.npredictions() << ")\n"
-            << "receptor: " << recfn_ << " (recsize: " << recpdb.matrix().cols()
-            << ")\n"
-            << "ligand: " << ligfn_ << " (ligsize: " << ligsize << ")"
-            << std::endl;
 
   // pre-compute all poses
   std::vector<Pruning::Matrix> poses;
@@ -109,7 +103,7 @@ void Pruning::prune(const double cutoff) {
   }
 }
 
-void Pruning::makeComplex(const size_t n) {
+void Pruning::makeZDOCKComplex(const size_t n) {
   const auto &v = zdock_.predictions();
   const auto &p = v[n];
 
@@ -117,12 +111,25 @@ void Pruning::makeComplex(const size_t n) {
   PDB recpdb(recfn_, PDB::MODEL_FIRST);
   PDB ligpdb(ligfn_, PDB::MODEL_FIRST);
 
+
   ligpdb.setMatrix(txl_.txLigand(ligpdb, p));
   for (const auto &x : recpdb.records()) {
     std::cout << x << '\n';
   }
   for (const auto &x : ligpdb.records()) {
     std::cout << x << '\n';
+  }
+}
+
+void Pruning::makeMZDOCKComplex(const size_t n) {
+  std::cerr << "lala" << std::endl;
+}
+
+void Pruning::makeComplex(const size_t n) {
+  if (zdock_.ismzdock()) {
+    makeMZDOCKComplex(n);
+  } else {
+    makeZDOCKComplex(n);
   }
 }
 
@@ -140,6 +147,9 @@ void Pruning::filterConstraints(const std::string &fn) {
   PDB ligatoms, recatoms;
   std::vector<double> mindist;
   std::vector<double> maxdist;
+  if (!ccc.constraints().size()) {
+    throw ConstraintException("No constraints specified");
+  }
   for (const auto &x : ccc.constraints()) {
     try {
       // these throw exceptions for bad constraints; we want to append
@@ -156,7 +166,7 @@ void Pruning::filterConstraints(const std::string &fn) {
         mindist.push_back(x.distance);
       }
     } catch (const AtomNotFoundException e) {
-      std::cerr << "WARN: Invalid Constraint: " << x << std::endl;
+      throw ConstraintException("Constraint Error: " + std::string(e.what()));
     }
   }
 

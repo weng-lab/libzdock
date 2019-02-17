@@ -1,6 +1,6 @@
 #include "PDB.hpp"
+#include "TransformUtil.hpp"
 #include "ZDOCK.hpp"
-#include <Eigen/Dense>
 
 namespace zdock {
 
@@ -12,6 +12,7 @@ public:
 private:
   typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
   typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
+  typedef TransformUtil u;
 
   zdock::Structure receptor_, ligand_; // zdock metadata
   ZDOCK zdock_;                        // zdock output
@@ -21,20 +22,6 @@ private:
 
   // precomputed transformation matrices
   Transform t0_, t1_, t2_;
-
-  // Euler angles to Z-X-Z transformation matrix
-  inline const Transform eulerRotation(const double (&r)[3],
-                                       bool rev = false) const {
-    Transform t;
-
-    using Eigen::AngleAxisd;
-    using Eigen::Vector3d;
-
-    t = AngleAxisd(r[0], Vector3d::UnitZ()) *
-        AngleAxisd(r[1], Vector3d::UnitX()) *
-        AngleAxisd(r[2], Vector3d::UnitZ());
-    return (rev ? t.inverse() : t);
-  }
 
   // grid to actual translation ('circularized')
   inline const Transform boxTranslation(const int (&t)[3],
@@ -74,7 +61,8 @@ public:
        *
        */
 
-      t = eulerRotation(pred.rotation, true) * boxTranslation(pred.translation);
+      t = u::eulerRotation(pred.rotation, true) *
+          boxTranslation(pred.translation);
       return t1_ * t * t0_ * pdb.matrix();
     } else {
 
@@ -91,11 +79,11 @@ public:
 
       t = Translation3d(Vector3d(receptor_.translation)) *
           boxTranslation(pred.translation, true) *
-          eulerRotation(pred.rotation) * t2_;
+          u::eulerRotation(pred.rotation) * t2_;
       if (!fixed_) {
         // !fixed means initial random rotation of receptor
         // so we need to rotate to rec frame
-        t = eulerRotation(receptor_.rotation, true) * t;
+        t = u::eulerRotation(receptor_.rotation, true) * t;
       }
       return t * pdb.matrix();
     }

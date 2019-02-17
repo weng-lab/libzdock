@@ -25,6 +25,8 @@ public:
 
   // ligand pdb record to stdout
   void makeComplex(const size_t n);
+  void makeZDOCKComplex(const size_t n);
+  void makeMZDOCKComplex(const size_t n);
 
   // filter predictions based on constraints
   void filterConstraints(const std::string &fn);

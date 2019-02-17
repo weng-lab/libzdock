@@ -57,6 +57,10 @@ void ZDOCK::read_() {
                                    "Invalid ZDOCK prediction (line " +
                                        std::to_string(linenum) + ")");
         }
+        //p.rotation[1] = -p.rotation[1];
+        //p.rotation[2] = -p.rotation[2];
+        p.rotation[2] = 0.0;
+        p.translation[2] = 0.0;
         ismzdock_ = true;
         p.ismzdock = true;
         headerdone = true;
@@ -157,6 +161,14 @@ int ZDOCK::symmetry() const {
 
 // get ligand (unsupported for M-ZDOCK)
 Structure &ZDOCK::ligand() {
+  if (ismzdock_) {
+    throw ZDOCKUnsupported("ligand() not supported for M-ZDOCK output");
+  }
+  return ligand_;
+}
+
+// get ligand (unsupported for M-ZDOCK)
+const Structure &ZDOCK::ligand() const {
   if (ismzdock_) {
     throw ZDOCKUnsupported("ligand() not supported for M-ZDOCK output");
   }
