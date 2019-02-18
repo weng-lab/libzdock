@@ -18,6 +18,7 @@ namespace zdock {
 
 // Exceptions forward declarations
 
+class Exception;
 class AtomNotFoundException;
 class ConstraintException;
 class PathException;

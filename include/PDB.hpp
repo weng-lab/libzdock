@@ -17,6 +17,7 @@
 #include "pdb++.h"
 #include <Eigen/Dense>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -32,36 +33,40 @@ public:
   Coord() : serialNum(0), atomName(""), resName(""), chain('\0'), resNum(0) {}
 };
 
+class Model;
+
 class PDB {
 private:
-  typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
-  typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
-
-  std::vector<size_t> atoms_;
-  std::vector<libpdb::PDB> records_;
-  Matrix m_;
-  void read_(const std::string &fn, const int model = MODEL_FIRST,
-             std::function<bool(const libpdb::PDB &)> filter =
-                 [](const libpdb::PDB &) { return true; });
-  std::mutex insertmtx_;
+  void read_(const std::string &fn);
 
 public:
-  static const int MODEL_ALL = -1;
-  static const int MODEL_FIRST = 0;
-  PDB();
-  PDB(const PDB &p);
-  PDB(const std::string &fn, const int model = MODEL_FIRST,
-      std::function<bool(const libpdb::PDB &)> filter =
-          [](const libpdb::PDB &) { return true; });
+  typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
+  typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
+  typedef std::shared_ptr<libpdb::PDB> Record;
+  typedef std::shared_ptr<Model> Model;
+
+protected:
+  std::vector<Model> models_;   // zero or more models
+  std::vector<Record> records_; // all records
+  std::vector<Record> atoms_;   // just atoms
+  Matrix matrix_;               // eigen matrix w/ atom coords
+  // atomic inserts...
+  std::mutex lock_;
+
+public:
+  PDB() {}
+  PDB(const PDB& p);
+  PDB(const std::string &filename);
   PDB &operator=(const PDB &p);
   const Matrix &matrix() const;
-  const Matrix &transform(const Transform &t);
   const Matrix &setMatrix(const Matrix &m);
-  const std::vector<libpdb::PDB> &records();
-  const Eigen::Vector3d centroid() const;
-  const libpdb::PDB &operator[](const int serial) const;
-  const libpdb::PDB &operator[](const Coord &coord) const;
-  void append(const libpdb::PDB &);
+  const std::vector<Model> &models() const;
+  const std::vector<Record> &records() const;
+  const std::vector<Record> &atoms() const;
+  const Record &operator[](const int serial) const;
+  const Record &operator[](const Coord &coord) const;
+  void append(const libpdb::PDB &, const int model = 0);
+  void append(const Record &, const int model = 0);
 };
 
 inline std::ostream &operator<<(std::ostream &s, const Coord &c) {
@@ -74,5 +79,15 @@ inline std::ostream &operator<<(std::ostream &s, const Coord &c) {
   s << os.str();
   return s;
 }
+
+class Model : public PDB {
+private:
+  const std::vector<Model> &models() const = delete;
+  int modelNum_;
+
+public:
+  int modelNum() const { return modelNum_; }
+  friend void PDB::append(const Record &r, const int model);
+};
 
 } // namespace zdock
