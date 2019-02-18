@@ -61,7 +61,7 @@ private:
 
 public:
   // perform actual ligand transformation
-  inline const Matrix txLigand(const PDB &pdb, const Prediction &pred) const {
+  inline const Matrix txLigand(const Matrix& matrix, const Prediction &pred) const {
     Transform t;
 
     using Eigen::Translation3d;
@@ -79,7 +79,7 @@ public:
 
       t = u::eulerRotation(pred.rotation, true) *
           boxTranslation(pred.translation);
-      return t1_ * t * t0_ * pdb.matrix();
+      return t1_ * t * t0_ * matrix;
     } else {
 
       /* Transformation; normal (ligand was rotated)
@@ -101,7 +101,7 @@ public:
         // so we need to rotate to rec frame
         t = u::eulerRotation(receptor_.rotation, true) * t;
       }
-      return t * pdb.matrix();
+      return t * matrix;
     }
   }
 };

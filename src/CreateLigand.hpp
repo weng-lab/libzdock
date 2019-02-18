@@ -14,16 +14,31 @@
 
 #pragma once
 
+#include "Exception.hpp"
+#include "ZDOCK.hpp"
+
 namespace zdock {
 
-// Exceptions forward declarations
+class CreateLigand {
+private:
+  const std::string zdockfn_;
+  const std::string ligandfn_;
+  const std::string receptorfn_;
+  const size_t n_;
+  const bool complex_;
 
-class Exception;
-class AtomNotFoundException;
-class ConstraintException;
-class PathException;
-class PDBOpenException;
-class ZDOCKInvalidFormat;
-class ZDOCKUnsupported;
+public:
+  CreateLigand(const std::string &zdockoutput, const std::string &ligand,
+               const std::string &receptor, const size_t n, const bool cmplx);
+  void doCreate();
+};
+
+class CreateLigandException : public Exception {
+private:
+  const std::string what_;
+
+public:
+  CreateLigandException(const std::string &msg) : Exception(msg) {}
+};
 
 } // namespace zdock

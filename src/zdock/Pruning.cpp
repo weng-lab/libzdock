@@ -60,18 +60,14 @@ void Pruning::prune(const double cutoff) {
   int clusters = 0;
 
   // read pdb files
-  PDB recpdb(recfn_, PDB::MODEL_FIRST, [](const p::PDB &r) {
-    return p::PDB::ATOM == r.type() && r.isalpha(); // CA only
-  });
-  PDB ligpdb(ligfn_, PDB::MODEL_FIRST, [](const p::PDB &r) {
-    return p::PDB::ATOM == r.type() && r.isalpha(); // CA only
-  });
+  PDB recpdb(recfn_);
+  PDB ligpdb(ligfn_);
   const double ligsize = ligpdb.matrix().cols();
 
   // pre-compute all poses
   std::vector<Pruning::Matrix> poses;
   for (size_t i = 0; i < n; ++i) {
-    poses.push_back(txl_.txLigand(ligpdb, v[i]));
+    poses.push_back(txl_.txLigand(ligpdb.matrix(), v[i]));
   }
 
   // find clusters
@@ -121,20 +117,20 @@ void Pruning::makeZDOCKComplex(const size_t n) {
   const auto &p = v[n];
 
   // read pdb files
-  PDB recpdb(recfn_, PDB::MODEL_FIRST);
-  PDB ligpdb(ligfn_, PDB::MODEL_FIRST);
+  PDB recpdb(recfn_);
+  PDB ligpdb(ligfn_);
 
-  ligpdb.setMatrix(txl_.txLigand(ligpdb, p));
+  ligpdb.setMatrix(txl_.txLigand(ligpdb.matrix(), p));
   for (const auto &x : recpdb.records()) {
-    std::cout << x << '\n';
+    std::cout << *x << '\n';
   }
   for (const auto &x : ligpdb.records()) {
-    std::cout << x << '\n';
+    std::cout << *x << '\n';
   }
 }
 
 void Pruning::makeMZDOCKComplex(const size_t n) {
-  std::cerr << "lala" << std::endl;
+  std::cerr << "lala: " << n << std::endl;
 }
 
 void Pruning::makeComplex(const size_t n) {
@@ -150,10 +146,8 @@ void Pruning::filterConstraints(const std::string &fn) {
   Constraints ccc(fn);
 
   // load full PDB files (first model)
-  PDB receptor(recfn_, PDB::MODEL_FIRST,
-               [](const p::PDB &r) { return p::PDB::ATOM == r.type(); });
-  PDB ligand(ligfn_, PDB::MODEL_FIRST,
-             [](const p::PDB &r) { return p::PDB::ATOM == r.type(); });
+  PDB receptor(recfn_);
+  PDB ligand(ligfn_);
 
   // grab atoms for valid constraints
   PDB ligatoms, recatoms;
@@ -166,8 +160,8 @@ void Pruning::filterConstraints(const std::string &fn) {
     try {
       // these throw exceptions for bad constraints; we want to append
       // both_ l and r or _none_.
-      const p::PDB &r = receptor[x.recCoord];
-      const p::PDB &l = ligand[x.ligCoord];
+      const PDB::Record &r = receptor[x.recCoord];
+      const PDB::Record &l = ligand[x.ligCoord];
       recatoms.append(r);
       ligatoms.append(l);
       if (Constraint::MAX == x.constraintType) {
@@ -188,7 +182,7 @@ void Pruning::filterConstraints(const std::string &fn) {
   auto &preds = zdock_.predictions();  // our ref
   preds.clear();
   for (const Prediction &p : v) {
-    Pruning::Matrix pose = txl_.txLigand(ligatoms, p);
+    Pruning::Matrix pose = txl_.txLigand(ligatoms.matrix(), p);
     e::Matrix<double, 1, e::Dynamic> m =
         (pose - recatoms.matrix()).colwise().squaredNorm().array().sqrt();
     bool accepted = true;
