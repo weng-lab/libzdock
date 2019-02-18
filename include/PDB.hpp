@@ -55,7 +55,7 @@ protected:
 
 public:
   PDB() {}
-  PDB(const PDB& p);
+  PDB(const PDB &p);
   PDB(const std::string &filename);
   PDB &operator=(const PDB &p);
   const Matrix &matrix() const;

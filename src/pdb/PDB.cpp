@@ -23,16 +23,14 @@ namespace e = ::Eigen;
 
 namespace zdock {
 
-PDB::PDB(const PDB& p) {
+PDB::PDB(const PDB &p) {
   models_ = p.models_;
   records_ = p.records_;
   atoms_ = p.atoms_;
   matrix_ = p.matrix_;
 };
 
-PDB::PDB(const std::string& filename) {
-  read_(filename);
-}
+PDB::PDB(const std::string &filename) { read_(filename); }
 
 PDB &PDB::operator=(const PDB &p) {
   models_ = p.models_;
@@ -54,12 +52,18 @@ void PDB::read_(const std::string &fn) {
         break; // ignore unknown
       case p::PDB::MODEL:
         m = record.model.num;
-        models_.resize(std::min<size_t>(models_.size(), m));
+        while (models_.size() < m) {
+          models_.push_back(std::make_shared<zdock::Model>());
+        }
+        break;
       case p::PDB::ENDMDL:
         m = 0; // ground level
-      default:
-        append(record, m);
         break;
+      default:
+        break;
+      }
+      if (p::PDB::UNKNOWN != record.type()) {
+        append(record, m);
       }
     }
   } else {
@@ -102,7 +106,7 @@ const PDB::Matrix &PDB::matrix() const {
 const PDB::Matrix &PDB::setMatrix(const Matrix &m) {
   if (models_.size() > 0) {
     return models_[0]->setMatrix(m); // first model
-  } else { // only model
+  } else {                           // only model
     std::lock_guard<std::mutex> lock(lock_);
     assert(m.cols() == static_cast<long>(atoms_.size()));
     for (size_t i = 0; i < atoms_.size(); ++i) {
