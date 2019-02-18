@@ -15,6 +15,7 @@
 #include "PDB.hpp"
 #include "Exception.hpp"
 #include "Utils.hpp"
+#include <algorithm>
 #include <fstream>
 
 namespace p = ::libpdb;
@@ -22,155 +23,122 @@ namespace e = ::Eigen;
 
 namespace zdock {
 
-PDB::PDB() { m_.resize(3, 0); }
-
-PDB::PDB(const PDB &p) : PDB() {
-  atoms_ = p.atoms_;
+PDB::PDB(const PDB& p) {
+  models_ = p.models_;
   records_ = p.records_;
-  m_ = p.m_;
-}
+  atoms_ = p.atoms_;
+  matrix_ = p.matrix_;
+};
 
-PDB::PDB(const std::string &fn, const int model,
-         std::function<bool(const libpdb::PDB &)> filter) {
-  read_(fn, model, filter);
+PDB::PDB(const std::string& filename) {
+  read_(filename);
 }
 
 PDB &PDB::operator=(const PDB &p) {
-  atoms_ = p.atoms_;
+  models_ = p.models_;
   records_ = p.records_;
-  m_ = p.m_;
+  atoms_ = p.atoms_;
+  matrix_ = p.matrix_;
   return *this;
 }
 
-const PDB::Matrix &PDB::matrix() const { return m_; }
-
-const std::vector<p::PDB> &PDB::records() { return records_; }
-
-const libpdb::PDB &PDB::operator[](const Coord &coord) const {
-  const libpdb::PDB &x = (*this)[coord.serialNum];
-  if (Utils::trim_copy(x.atom.name) == coord.atomName &&
-      Utils::trim_copy(x.atom.residue.name) == coord.resName &&
-      x.atom.residue.chainId == coord.chain &&
-      x.atom.residue.seqNum == coord.resNum) {
-    return x;
-  } else {
-    throw AtomNotFoundException("Atom not found.");
-  }
-}
-
-const libpdb::PDB &PDB::operator[](const int serial) const {
-  for (const auto &r : records_) {
-    switch (r.type()) {
-    case libpdb::PDB::ATOM:
-    case libpdb::PDB::HETATM:
-      if (serial == r.atom.serialNum) {
-        return r;
-      }
-      break;
-    default:
-      break;
-    }
-  }
-  throw AtomNotFoundException("Atom not found.");
-}
-
-const PDB::Matrix &PDB::transform(const PDB::Transform &t) {
-  m_ = t * m_;
-  // reconstitute atom records from matrix
-  size_t i = 0;
-  for (const auto j : atoms_) {
-    records_[j].atom.xyz[0] = m_(0, i);
-    records_[j].atom.xyz[1] = m_(1, i);
-    records_[j].atom.xyz[2] = m_(2, i);
-    i++;
-  }
-  return m_;
-}
-
-const PDB::Matrix &PDB::setMatrix(const PDB::Matrix &m) {
-  // reconstitute atom records from matrix
-  m_ = m;
-  size_t i = 0;
-  for (const auto j : atoms_) {
-    records_[j].atom.xyz[0] = m_(0, i);
-    records_[j].atom.xyz[1] = m_(1, i);
-    records_[j].atom.xyz[2] = m_(2, i);
-    i++;
-  }
-  return m_;
-}
-
-void PDB::read_(const std::string &fn, const int model,
-                std::function<bool(const libpdb::PDB &)> filter) {
+void PDB::read_(const std::string &fn) {
   p::PDB record;
-  int firstmodel = 0;
-  int m = 0;
-  size_t count = 0;
+  size_t m = 0;
   std::ifstream infile(fn);
   if (infile.is_open()) {
-    std::lock_guard<std::mutex> lock(insertmtx_);
-    // read pdb lines
-    atoms_.clear();
     records_.clear();
-    m_.resize(3, 0);
     while (infile >> record) {
-      if (!filter(record)) {
-        continue;
-      }
       switch (record.type()) {
-
-      // keep track of model number
+      case p::PDB::UNKNOWN:
+        break; // ignore unknown
       case p::PDB::MODEL:
         m = record.model.num;
-        if (!firstmodel) {
-          if (MODEL_ALL != model) {
-            atoms_.clear();
-          }
-          firstmodel = m;
-        }
-        break;
-
-      // model dependent capturing of atom/hetatm
-      case p::PDB::ATOM:
-      case p::PDB::HETATM:
-        if (model == m || MODEL_ALL == model ||
-            (MODEL_FIRST == model && firstmodel == m)) {
-          atoms_.push_back(count);
-        }
-        break;
-
+        models_.resize(std::min<size_t>(models_.size(), m));
+      case p::PDB::ENDMDL:
+        m = 0; // ground level
       default:
+        append(record, m);
         break;
       }
-      if (p::PDB::UNKNOWN != record.type()) {
-        records_.push_back(record);
-        count++;
-      }
-    }
-    // turn atoms into matrix
-    m_.resize(3, atoms_.size());
-    size_t col = 0;
-    for (const auto x : atoms_) {
-      m_.col(col) = e::Vector3d(records_[x].atom.xyz);
-      col++;
     }
   } else {
     throw PDBOpenException(fn);
   }
 }
 
-void PDB::append(const p::PDB &r) {
-  if (p::PDB::UNKNOWN != r.type()) { // silently drop 'UNKNOWN' type records
-    std::lock_guard<std::mutex> lock(insertmtx_);
-    if (p::PDB::ATOM == r.type() || p::PDB::HETATM == r.type()) {
-      m_.conservativeResize(m_.rows(), m_.cols() + 1);
-      m_.col(m_.cols() - 1) = e::Vector3d(r.atom.xyz);
-      atoms_.push_back(records_.size());
+void PDB::append(const libpdb::PDB &record, const int model) {
+  append(std::make_shared<libpdb::PDB>(record), model);
+}
+
+void PDB::append(const Record &r, const int model) {
+  std::lock_guard<std::mutex> lock(lock_);
+  switch (r->type()) {
+  case p::PDB::UNKNOWN:
+    break; // silently drop 'UNKNOWN' type records
+  case p::PDB::ATOM:
+  case p::PDB::HETATM:
+    if (0 == model) {
+      atoms_.push_back(r);
+      matrix_.conservativeResize(matrix_.rows(), matrix_.cols() + 1);
+      matrix_.col(matrix_.cols() - 1) = e::Vector3d(r->atom.xyz);
+    } else {
+      models_[model - 1]->append(r);
+      models_[model - 1]->modelNum_ = model;
     }
+  default:
     records_.push_back(r);
+    break;
   }
 }
 
-const e::Vector3d PDB::centroid() const { return m_.rowwise().mean(); }
+const PDB::Matrix &PDB::matrix() const {
+  if (models_.size() > 0) {
+    return models_[0]->matrix(); // first model
+  }
+  return matrix_; // only model
+}
+
+const PDB::Matrix &PDB::setMatrix(const Matrix &m) {
+  if (models_.size() > 0) {
+    return models_[0]->setMatrix(m); // first model
+  } else { // only model
+    std::lock_guard<std::mutex> lock(lock_);
+    assert(m.cols() == static_cast<long>(atoms_.size()));
+    for (size_t i = 0; i < atoms_.size(); ++i) {
+      atoms_[i]->atom.xyz[0] = m(0, i);
+      atoms_[i]->atom.xyz[1] = m(1, i);
+      atoms_[i]->atom.xyz[2] = m(2, i);
+    }
+    return matrix_;
+  }
+}
+
+const std::vector<PDB::Model> &PDB::models() const { return models_; }
+
+const std::vector<PDB::Record> &PDB::records() const { return records_; }
+
+const std::vector<PDB::Record> &PDB::atoms() const { return atoms_; }
+
+const PDB::Record &PDB::operator[](const int serial) const {
+  for (const auto &a : atoms_) {
+    if (serial == a->atom.serialNum) {
+      return a;
+    }
+  }
+  throw AtomNotFoundException("Atom not found.");
+}
+
+const PDB::Record &PDB::operator[](const Coord &coord) const {
+  const Record &x = (*this)[coord.serialNum];
+  if (Utils::trim_copy(x->atom.name) == coord.atomName &&
+      Utils::trim_copy(x->atom.residue.name) == coord.resName &&
+      x->atom.residue.chainId == coord.chain &&
+      x->atom.residue.seqNum == coord.resNum) {
+    return x;
+  } else {
+    throw AtomNotFoundException("Atom not found.");
+  }
+}
 
 } // namespace zdock

@@ -19,60 +19,47 @@
 
 namespace zdock {
 
-class AtomNotFoundException : public std::exception {
-private:
+class Exception : public std::exception {
+protected:
   const std::string what_;
 
 public:
-  AtomNotFoundException(const std::string &msg) : what_(msg) {}
+  Exception(const std::string &msg) : what_(msg) {}
   const char *what() const throw() { return what_.c_str(); }
 };
 
-class ConstraintException : public std::exception {
-private:
-  const std::string what_;
 
+
+class AtomNotFoundException : public Exception {
 public:
-  ConstraintException(const std::string &msg) : what_(msg) {}
-  const char *what() const throw() { return what_.c_str(); }
+  AtomNotFoundException(const std::string &msg) : Exception(msg) {}
 };
 
-class PathException : public std::exception {
-private:
-  const std::string what_;
-
+class ConstraintException : public Exception {
 public:
-  PathException(const std::string &msg) : what_(msg) {}
-  const char *what() const throw() { return what_.c_str(); }
+  ConstraintException(const std::string &msg) : Exception(msg) {}
 };
 
-class PDBOpenException : public std::exception {
-private:
-  const std::string what_;
+class PathException : public Exception {
+public:
+  PathException(const std::string &msg) : Exception(msg) {}
+};
 
+class PDBOpenException : public Exception {
 public:
   PDBOpenException(const std::string &fn)
-      : what_("Error opening '" + fn + "'") {}
-  const char *what() const throw() { return what_.c_str(); }
+      : Exception("Error opening PDB file '" + fn + "'") {}
 };
 
-class ZDOCKInvalidFormat : public std::exception {
-private:
-  const std::string what_;
-
+class ZDOCKInvalidFormat : public Exception {
 public:
   ZDOCKInvalidFormat(const std::string &fn, const std::string &msg = "")
-      : what_("Error opening '" + fn + "'" + ("" != msg ? ": " + msg : "")) {}
-  const char *what() const throw() { return what_.c_str(); }
+      : Exception("Error opening ZDOCK file '" + fn + "'" + ("" != msg ? ": " + msg : "")) {}
 };
 
-class ZDOCKUnsupported : public std::exception {
-private:
-  const std::string what_;
-
+class ZDOCKUnsupported : public Exception {
 public:
-  ZDOCKUnsupported(const std::string &msg = "") : what_(msg) {}
-  const char *what() const throw() { return what_.c_str(); }
+  ZDOCKUnsupported(const std::string &msg = "") : Exception(msg) {}
 };
 
 } // namespace zdock

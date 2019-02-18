@@ -72,7 +72,7 @@ public:
   static const std::string CHAINS[52];
 
   // perform actual structure transformation
-  inline const Matrix txMultimer(const PDB &pdb, const Prediction &pred,
+  inline const Matrix txMultimer(const Matrix &matrix, const Prediction &pred,
                                  int n) const {
     Transform t;
     using Eigen::Translation3d;
@@ -96,7 +96,7 @@ public:
     t = u::eulerRotation({0.0, 0.0, beta_ * n}, true) *
         initialTranslation(pred.translation, alpha_) *
         u::eulerRotation({pred.rotation[0], pred.rotation[1]}, true) * t0_;
-    return t * pdb.matrix();
+    return t * matrix;
   }
 };
 
