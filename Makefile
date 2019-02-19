@@ -11,7 +11,7 @@ OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic
 DEBUG		=
 CXXFLAGS		= $(OPT) $(DEBUG)
 
-BINS = $(BIN_DIR)/createlig $(BIN_DIR)/test $(BIN_DIR)/createmultimer
+BINS = $(BIN_DIR)/createlig $(BIN_DIR)/test $(BIN_DIR)/createmultimer $(BIN_DIR)/pruning
 LIBRARY		= zdock
 LIBARCH		= $(LIB_DIR)/lib$(LIBRARY).a
 
@@ -19,7 +19,7 @@ LIB_SOURCES = src/libpdb++/pdbinput.cpp src/libpdb++/pdb_read.cpp src/libpdb++/p
              src/libpdb++/pdb_sscanf.cpp src/libpdb++/pdb_type.cpp src/libpdb++/pdb_sprntf.cpp \
              src/libpdb++/pdb_chars.cpp src/zdock/Pruning.cpp src/zdock/TransformMultimer.cpp \
              src/zdock/Constraints.cpp src/zdock/TransformLigand.cpp src/zdock/TransformUtil.cpp \
-             src/zdock/ZDOCK.cpp src/pdb/PDB.cpp
+             src/zdock/ZDOCK.cpp src/pdb/PDB.cpp src/zdock/ZdockPruning.cpp
 INCLUDE_PATHS = -Isrc/libpdb++ -Isrc/zdock -Isrc/common -Isrc/pdb -Iinclude
 SRC += $(INCLUDE_PATHS)
 rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
@@ -45,6 +45,10 @@ $(BIN_DIR)/createlig: build/src/CreateLigand.o $(LIBARCH)
 	$(STRIP) $@
 
 $(BIN_DIR)/createmultimer: build/src/CreateMultimer.o $(LIBARCH)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
+	$(STRIP) $@
+
+$(BIN_DIR)/pruning: build/src/Pruning.o $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
 	$(STRIP) $@
 

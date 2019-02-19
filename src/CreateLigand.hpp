@@ -26,10 +26,12 @@ private:
   const std::string receptorfn_;
   const size_t n_;
   const bool complex_;
+  const bool atomsonly_;
 
 public:
   CreateLigand(const std::string &zdockoutput, const std::string &ligand,
-               const std::string &receptor, const size_t n, const bool cmplx);
+               const std::string &receptor, const size_t n, const bool cmplx,
+               const bool atomsonly);
   void doCreate();
 };
 

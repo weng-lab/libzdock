@@ -24,8 +24,9 @@ namespace zdock {
 
 CreateMultimer::CreateMultimer(const std::string &zdockoutput,
                                const std::string &receptor, const size_t n,
-                               const int mer)
-    : zdockfn_(zdockoutput), receptorfn_(receptor), n_(n), mer_(mer) {}
+                               const int mer, const bool atomsonly)
+    : zdockfn_(zdockoutput), receptorfn_(receptor), n_(n), mer_(mer),
+      atomsonly_(atomsonly) {}
 
 void CreateMultimer::doCreate() {
   std::string recfn; // receptor file name
@@ -65,16 +66,20 @@ void CreateMultimer::doCreate() {
     int serial = 0;
     for (int i = 0; i < z.symmetry(); ++i) {
       rec.setMatrix(t.txMultimer(m, pred, i));
-      for (const auto &x : rec.records()) {
-        x->atom.serialNum = ++serial;
-        x->atom.residue.chainId = TransformMultimer::CHAINS[i].c_str()[0];
+      for (const auto &x : (atomsonly_ ? rec.atoms() : rec.records())) {
+        if (p::PDB::ATOM == x->type() || p::PDB::HETATM == x->type()) {
+          x->atom.serialNum = ++serial;
+          x->atom.residue.chainId = TransformMultimer::CHAINS[i].c_str()[0];
+        }
         std::cout << *x << '\n'; // no flush
       }
     }
   } else {
     rec.setMatrix(t.txMultimer(m, pred, mer_));
-    for (const auto &x : rec.records()) {
-      x->atom.residue.chainId = TransformMultimer::CHAINS[mer_].c_str()[0];
+    for (const auto &x : (atomsonly_ ? rec.atoms() : rec.records())) {
+      if (p::PDB::ATOM == x->type() || p::PDB::HETATM == x->type()) {
+        x->atom.residue.chainId = TransformMultimer::CHAINS[mer_].c_str()[0];
+      }
       std::cout << *x << '\n'; // no flush
     }
   }
@@ -92,7 +97,8 @@ void usage(const std::string &cmd, const std::string &err = "") {
          "to 1; the top prediction)\n"
       << "  -r <filename>   receptor PDB filename; defaults to receptor in "
          "ZDOCK output\n"
-      << "  -m <mer>        component of multimer to output\n"
+      << "  -m <mer>        component of multimer to output (all if not specified)\n"
+      << "  -a              return atoms only\n"
       << std::endl;
 }
 
@@ -100,11 +106,15 @@ void usage(const std::string &cmd, const std::string &err = "") {
 
 int main(int argc, char *argv[]) {
   std::string zdockfn, recfn;
+  bool atomsonly;
   size_t n = 1;
   int m = -1;
   int c;
-  while ((c = getopt(argc, argv, "hn:r:m:")) != -1) {
+  while ((c = getopt(argc, argv, "ahn:r:m:")) != -1) {
     switch (c) {
+    case 'a':
+      atomsonly = true;
+      break;
     case 'm': // prediction index
       m = std::stoi(optarg);
       break;
@@ -131,7 +141,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   try {
-    zdock::CreateMultimer c(zdockfn, recfn, n, m);
+    zdock::CreateMultimer c(zdockfn, recfn, n, m, atomsonly);
     c.doCreate();
   } catch (const zdock::Exception &e) {
     // something went wrong

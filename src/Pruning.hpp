@@ -12,33 +12,19 @@
  * limitations under the License.
  */
 
-#pragma once
-
-#include "Exception.hpp"
-#include "ZDOCK.hpp"
+#include "ZdockPruning.hpp"
+#include <string>
 
 namespace zdock {
-
-class CreateMultimer {
+class Pruning {
 private:
   const std::string zdockfn_;
-  const std::string receptorfn_;
-  const size_t n_;
-  const int mer_;
-  const bool atomsonly_;
+  const std::string ligfn_;
+  const double cutoff_;
 
 public:
-  CreateMultimer(const std::string &zdockoutput, const std::string &receptor,
-                 const size_t n, const int mer, const bool atomsonly);
-  void doCreate();
+  Pruning(const std::string &zdockfn, const std::string ligandfn,
+          const double cutoff);
+  void doPrune();
 };
-
-class CreateMultimerException : public Exception {
-private:
-  const std::string what_;
-
-public:
-  CreateMultimerException(const std::string &msg) : Exception(msg) {}
-};
-
 } // namespace zdock
