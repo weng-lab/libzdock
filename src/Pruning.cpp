@@ -148,7 +148,8 @@ int main(int argc, char *argv[]) {
     std::cout << p.zdock() << std::endl;
   } catch (const zdock::Exception &e) {
     // something went wrong
-    throw zdock::ZdockPruningException(e.what());
+    zdock::usage(argv[0], e.what());
+    return 1;
   }
 }
 
