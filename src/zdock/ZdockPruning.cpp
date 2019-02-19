@@ -25,7 +25,7 @@ namespace p = libpdb;
 namespace zdock {
 
 ZdockPruning::ZdockPruning(const std::string &zdockoutput, const double cutoff,
-                 const std::string &ligandpdb)
+                           const std::string &ligandpdb)
     : zdock_(zdockoutput), cutoff_(cutoff), txl_(zdockoutput) {
   // ligand file name
   if (!zdock_.ismzdock()) {
@@ -53,8 +53,10 @@ void ZdockPruning::prune() {
     throw ZdockPruningException("M-ZDOCK not supported");
   }
 
-  // read pdb file
-  PDB ligpdb(ligfn_);
+  // read pdb file (CA only!)
+  PDB ligpdb(ligfn_, [](const auto &r) {
+    return Utils::trim_copy(r.atom.name) == "CA";
+  });
   const double ligsize = ligpdb.matrix().cols();
 
   // pre-compute all poses
