@@ -3,18 +3,18 @@ PREFIX  = $(HOME)/local
 CXX = clang++
 STRIP = strip
 BIN_DIR = bin
-BIN = $(BIN_DIR)/test
-SRC = -I/opt/local/include/eigen3
-BINOBJ = src/test.cpp
 OBJ_DIR := build
 LIB_DIR := lib
+SRC = -I/opt/local/include/eigen3
 OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic
 #OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic -funroll-loops
 DEBUG		=
 CXXFLAGS		= $(OPT) $(DEBUG)
-LIBRARY		= pdb++
+
+BINS = $(BIN_DIR)/createlig $(BIN_DIR)/test $(BIN_DIR)/createmultimer
+LIBRARY		= zdock
 LIBARCH		= $(LIB_DIR)/lib$(LIBRARY).a
-BIN_SOURCES = src/test.cpp
+
 LIB_SOURCES = src/libpdb++/pdbinput.cpp src/libpdb++/pdb_read.cpp src/libpdb++/pdb++.cpp \
              src/libpdb++/pdb_sscanf.cpp src/libpdb++/pdb_type.cpp src/libpdb++/pdb_sprntf.cpp \
              src/libpdb++/pdb_chars.cpp src/zdock/Pruning.cpp src/zdock/TransformMultimer.cpp \
@@ -29,10 +29,9 @@ HEADERS = $(call rwildcard, include/, *.hpp) \
           $(call rwildcard, src/, *.hpp) \
           $(call rwildcard, src/libpdb++, *.i)
 OBJ := $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(call rwildcard, src/, *.cpp)))
-BINOBJ = $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(BIN_SOURCES)))
 LIBOBJ = $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(LIB_SOURCES)))
 
-all:		Makefile $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR) $(BIN)
+all:		Makefile $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR) $(BINS)
 
 $(LIBARCH): $(LIBOBJ)
 	ar cru $(LIBARCH) $(LIBOBJ)
@@ -41,12 +40,21 @@ $(OBJ_DIR)/%.o: %.cpp $(HEADERS)
 	@mkdir -p $(OBJ_DIR)/$(shell dirname $<)
 	$(CXX) $(CXXFLAGS) $(SRC) -c -o $@ $<
 
-$(BIN): $(BINOBJ) $(LIBARCH)
+$(BIN_DIR)/createlig: build/src/CreateLigand.o $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
 	$(STRIP) $@
+
+$(BIN_DIR)/createmultimer: build/src/CreateMultimer.o $(LIBARCH)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
+	$(STRIP) $@
+
+$(BIN_DIR)/test: build/src/test.o $(LIBARCH)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
+	$(STRIP) $@
+
 
 $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR):
 	mkdir -p $@
 
-clean:;		rm -f $(OBJ) $(LIBARCH) $(BIN)
+clean:;		rm -f $(OBJ) $(LIBARCH) $(BINS)
 
