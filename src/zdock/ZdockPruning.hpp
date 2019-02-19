@@ -12,38 +12,43 @@
  * limitations under the License.
  */
 
-#include "Constraints.hpp"
 #include "PDB.hpp"
 #include "TransformLigand.hpp"
 #include "ZDOCK.hpp"
+#include "Exception.hpp"
 
 namespace zdock {
 
-class Pruning {
+class ZdockPruning {
 private:
   typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
   typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
 
   ZDOCK zdock_;               // zdock output
+  const double cutoff_;       // cutoff
   const TransformLigand txl_; // ligand tranfomation class
-  std::string recfn_, ligfn_; // receptor and ligand filenames
+  std::string ligfn_;         // receptor and ligand filenames
+
+  // results
+  std::vector<int> clusters_; // cluster assignments
+  size_t ligsize_;            // ligand size
+  int nclusters_;             // number of clusters
 
 public:
-  Pruning(const std::string &zdockoutput,
-          const std::string &receptorpdb = "", // or grab from zdock.out
-          const std::string &ligandpdb = ""    // or grab from zdock.out
+  ZdockPruning(const std::string &zdockoutput, const double cutoff,
+          const std::string &ligandpdb = "" // or grab from zdock.out
   );
 
   // perform pruning
-  void prune(const double cutoff);
+  void prune();
+  const std::vector<int>& clusters() const { return clusters_; }
+  int nclusters() const { return nclusters_; }
+  const ZDOCK& zdock() const { return zdock_; }
+};
 
-  // ligand pdb record to stdout
-  void makeComplex(const size_t n);
-  void makeZDOCKComplex(const size_t n);
-  void makeMZDOCKComplex(const size_t n);
-
-  // filter predictions based on constraints
-  void filterConstraints(const std::string &fn);
+class ZdockPruningException : public Exception {
+public:
+  ZdockPruningException(const std::string &msg) : Exception(msg) {}
 };
 
 } // namespace zdock
