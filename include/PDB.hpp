@@ -61,6 +61,7 @@ public:
   const Matrix &matrix() const;
   const Matrix &setMatrix(const Matrix &m);
   const std::vector<Model> &models() const;
+  size_t nmodels() const;
   const std::vector<Record> &records() const;
   const std::vector<Record> &atoms() const;
   const Record &operator[](const int serial) const;
@@ -83,6 +84,7 @@ inline std::ostream &operator<<(std::ostream &s, const Coord &c) {
 class Model : public PDB {
 private:
   const std::vector<Model> &models() const = delete;
+  const std::vector<Record> &records() const = delete;
   int modelNum_;
 
 public:

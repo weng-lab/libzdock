@@ -53,6 +53,7 @@ void PDB::read_(const std::string &fn) {
       case p::PDB::MODEL:
         m = record.model.num;
         while (models_.size() < m) {
+          // TODO: probably make this a map instead...
           models_.push_back(std::make_shared<zdock::Model>());
         }
         break;
@@ -90,9 +91,12 @@ void PDB::append(const Record &r, const int model) {
       models_[model - 1]->append(r);
       models_[model - 1]->modelNum_ = model;
     }
-  default:
-    records_.push_back(r);
     break;
+  default:
+    break;
+  }
+  if (p::PDB::UNKNOWN != r->type()) {
+    records_.push_back(r);
   }
 }
 
@@ -119,6 +123,8 @@ const PDB::Matrix &PDB::setMatrix(const Matrix &m) {
 }
 
 const std::vector<PDB::Model> &PDB::models() const { return models_; }
+
+size_t PDB::nmodels() const { return models_.size(); }
 
 const std::vector<PDB::Record> &PDB::records() const { return records_; }
 
