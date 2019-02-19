@@ -12,19 +12,44 @@
  * limitations under the License.
  */
 
-#include "ZdockPruning.hpp"
+#include "Exception.hpp"
+#include "TransformLigand.hpp"
+#include "ZDOCK.hpp"
+#include <Eigen/Dense>
 #include <string>
 
 namespace zdock {
-class Pruning {
+
+class ZdockPruning {
 private:
-  const std::string zdockfn_;
-  const std::string ligfn_;
-  const double cutoff_;
+  typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
+  typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
+
+  ZDOCK zdock_;               // zdock output
+  const double cutoff_;       // cutoff
+  const TransformLigand txl_; // ligand tranfomation class
+  std::string ligfn_;         // receptor and ligand filenames
+
+  // results
+  std::vector<int> clusters_; // cluster assignments
+  size_t ligsize_;            // ligand size
+  int nclusters_;             // number of clusters
 
 public:
-  Pruning(const std::string &zdockfn, const std::string ligandfn,
-          const double cutoff);
-  void doPrune();
+  ZdockPruning(const std::string &zdockoutput, const double cutoff,
+               const std::string &ligandpdb = "" // or grab from zdock.out
+  );
+
+  // perform pruning
+  void prune();
+  const std::vector<int> &clusters() const { return clusters_; }
+  int nclusters() const { return nclusters_; }
+  const ZDOCK &zdock() const { return zdock_; }
 };
+
+class ZdockPruningException : public Exception {
+public:
+  ZdockPruningException(const std::string &msg) : Exception(msg) {}
+};
+
 } // namespace zdock

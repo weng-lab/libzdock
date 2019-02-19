@@ -17,9 +17,9 @@ LIBARCH		= $(LIB_DIR)/lib$(LIBRARY).a
 
 LIB_SOURCES = src/libpdb++/pdbinput.cpp src/libpdb++/pdb_read.cpp src/libpdb++/pdb++.cpp \
              src/libpdb++/pdb_sscanf.cpp src/libpdb++/pdb_type.cpp src/libpdb++/pdb_sprntf.cpp \
-             src/libpdb++/pdb_chars.cpp src/zdock/Pruning.cpp src/zdock/TransformMultimer.cpp \
+             src/libpdb++/pdb_chars.cpp src/zdock/TransformMultimer.cpp \
              src/zdock/Constraints.cpp src/zdock/TransformLigand.cpp src/zdock/TransformUtil.cpp \
-             src/zdock/ZDOCK.cpp src/pdb/PDB.cpp src/zdock/ZdockPruning.cpp
+             src/zdock/ZDOCK.cpp src/pdb/PDB.cpp
 INCLUDE_PATHS = -Isrc/libpdb++ -Isrc/zdock -Isrc/common -Isrc/pdb -Iinclude
 SRC += $(INCLUDE_PATHS)
 rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
