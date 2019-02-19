@@ -52,11 +52,15 @@ protected:
   Matrix matrix_;               // eigen matrix w/ atom coords
   // atomic inserts...
   std::mutex lock_;
+  // atom filter
+  const std::function<bool(const libpdb::PDB &)> filter_;
 
 public:
   PDB() {}
   PDB(const PDB &p);
-  PDB(const std::string &filename);
+  PDB(const std::string &filename,
+      std::function<bool(const libpdb::PDB &)> filter =
+          [](const libpdb::PDB &) { return true; });
   PDB &operator=(const PDB &p);
   const Matrix &matrix() const;
   const Matrix &setMatrix(const Matrix &m);

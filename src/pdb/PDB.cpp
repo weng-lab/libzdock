@@ -30,7 +30,11 @@ PDB::PDB(const PDB &p) {
   matrix_ = p.matrix_;
 };
 
-PDB::PDB(const std::string &filename) { read_(filename); }
+PDB::PDB(const std::string &filename,
+         std::function<bool(const libpdb::PDB &)> filter)
+    : filter_(filter) {
+  read_(filename);
+}
 
 PDB &PDB::operator=(const PDB &p) {
   models_ = p.models_;
@@ -83,13 +87,15 @@ void PDB::append(const Record &r, const int model) {
     break; // silently drop 'UNKNOWN' type records
   case p::PDB::ATOM:
   case p::PDB::HETATM:
-    if (0 == model) {
-      atoms_.push_back(r);
-      matrix_.conservativeResize(matrix_.rows(), matrix_.cols() + 1);
-      matrix_.col(matrix_.cols() - 1) = e::Vector3d(r->atom.xyz);
-    } else {
-      models_[model - 1]->append(r);
-      models_[model - 1]->modelNum_ = model;
+    if (filter_(*r)) {
+      if (0 == model) {
+        atoms_.push_back(r);
+        matrix_.conservativeResize(matrix_.rows(), matrix_.cols() + 1);
+        matrix_.col(matrix_.cols() - 1) = e::Vector3d(r->atom.xyz);
+      } else {
+        models_[model - 1]->append(r);
+        models_[model - 1]->modelNum_ = model;
+      }
     }
     break;
   default:
