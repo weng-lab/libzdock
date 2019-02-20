@@ -11,7 +11,8 @@ OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic
 DEBUG		=
 CXXFLAGS		= $(OPT) $(DEBUG)
 
-BINS = $(BIN_DIR)/createlig $(BIN_DIR)/test $(BIN_DIR)/createmultimer $(BIN_DIR)/pruning
+BINS = $(BIN_DIR)/createlig $(BIN_DIR)/createmultimer $(BIN_DIR)/pruning \
+       $(BIN_DIR)/constraints
 LIBRARY		= zdock
 LIBARCH		= $(LIB_DIR)/lib$(LIBRARY).a
 
@@ -52,10 +53,9 @@ $(BIN_DIR)/pruning: build/src/Pruning.o $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
 	$(STRIP) $@
 
-$(BIN_DIR)/test: build/src/test.o $(LIBARCH)
+$(BIN_DIR)/constraints: build/src/FilterConstraints.o $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
 	$(STRIP) $@
-
 
 $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR):
 	mkdir -p $@
