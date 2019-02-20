@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
       cutoff = std::stod(optarg);
       break;
     case 'l':
-      zdockfn = optarg;
+      ligfn = optarg;
       break;
     case 'h': // usage
       zdock::usage(argv[0]);
