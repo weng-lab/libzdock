@@ -16,6 +16,7 @@
 
 #include "Exception.hpp"
 #include <algorithm>
+#include <chrono>
 #include <cstdlib>
 #include <string>
 
@@ -82,6 +83,17 @@ public:
   static inline std::string trim_copy(std::string s) {
     trim(s);
     return s;
+  }
+
+  // return now
+  static inline auto tic() { return std::chrono::high_resolution_clock::now(); }
+
+  // return now - t1
+  static inline auto toc(std::chrono::high_resolution_clock::time_point t1) {
+    auto t2 = tic();
+    return std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1)
+               .count() /
+           1000000.0;
   }
 };
 
