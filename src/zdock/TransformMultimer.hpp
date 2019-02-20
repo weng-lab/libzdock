@@ -99,7 +99,7 @@ public:
 
     t = u::eulerRotation({0.0, 0.0, beta_ * n}, true) *
         initialTranslation(pred.translation, alpha_) *
-        u::eulerRotation({pred.rotation[0], pred.rotation[1]}, true) * t0_;
+        u::eulerRotation({pred.rotation[0], pred.rotation[1], 0.0}, true) * t0_;
     return t * matrix;
   }
 };
