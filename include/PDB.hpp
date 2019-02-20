@@ -23,14 +23,14 @@
 
 namespace zdock {
 
-class Coord {
+class RecordCoord {
 public:
   int serialNum;
   std::string atomName;
   std::string resName;
   char chain;
   int resNum;
-  Coord() : serialNum(0), atomName(""), resName(""), chain('\0'), resNum(0) {}
+  RecordCoord() : serialNum(0), atomName(""), resName(""), chain('\0'), resNum(0) {}
 };
 
 class Model;
@@ -69,12 +69,12 @@ public:
   const std::vector<Record> &records() const;
   const std::vector<Record> &atoms() const;
   const Record &operator[](const int serial) const;
-  const Record &operator[](const Coord &coord) const;
+  const Record &operator[](const RecordCoord &coord) const;
   void append(const libpdb::PDB &, const int model = 0);
   void append(const Record &, const int model = 0);
 };
 
-inline std::ostream &operator<<(std::ostream &s, const Coord &c) {
+inline std::ostream &operator<<(std::ostream &s, const RecordCoord &c) {
   std::ostringstream os;
   os << c.serialNum << '\t';
   os << c.atomName << '\t';

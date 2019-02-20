@@ -147,7 +147,7 @@ const PDB::Record &PDB::operator[](const int serial) const {
   throw AtomNotFoundException("Atom not found.");
 }
 
-const PDB::Record &PDB::operator[](const Coord &coord) const {
+const PDB::Record &PDB::operator[](const RecordCoord &coord) const {
   const Record &x = (*this)[coord.serialNum];
   if (Utils::trim_copy(x->atom.name) == coord.atomName &&
       Utils::trim_copy(x->atom.residue.name) == coord.resName &&

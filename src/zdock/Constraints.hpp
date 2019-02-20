@@ -24,8 +24,8 @@ namespace zdock {
 
 class Constraint {
 public:
-  Coord recCoord;
-  Coord ligCoord;
+  RecordCoord recCoord;
+  RecordCoord ligCoord;
   double distance;
   enum { MIN, MAX } constraintType;
   Constraint() : recCoord(), ligCoord(), distance(0.0), constraintType(MAX) {}
