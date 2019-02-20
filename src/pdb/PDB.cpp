@@ -23,6 +23,8 @@ namespace e = ::Eigen;
 
 namespace zdock {
 
+PDB::PDB() : filter_([](const libpdb::PDB &) { return true; }) {}
+
 PDB::PDB(const PDB &p) {
   models_ = p.models_;
   records_ = p.records_;
