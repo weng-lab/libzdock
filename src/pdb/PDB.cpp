@@ -159,4 +159,8 @@ const PDB::Record &PDB::operator[](const RecordCoord &coord) const {
   }
 }
 
+PDB::Coord PDB::centroid() {
+  return matrix().rowwise().mean();
+}
+
 } // namespace zdock
