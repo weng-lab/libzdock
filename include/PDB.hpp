@@ -43,7 +43,7 @@ public:
   typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
   typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
   typedef std::shared_ptr<libpdb::PDB> Record;
-  typedef std::shared_ptr<Model> Model;
+  typedef std::shared_ptr<zdock::Model> Model;
 
 protected:
   std::vector<Model> models_;   // zero or more models

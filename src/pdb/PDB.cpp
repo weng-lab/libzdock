@@ -30,7 +30,7 @@ PDB::PDB(const PDB &p) {
   records_ = p.records_;
   atoms_ = p.atoms_;
   matrix_ = p.matrix_;
-};
+}
 
 PDB::PDB(const std::string &filename,
          std::function<bool(const libpdb::PDB &)> filter)
