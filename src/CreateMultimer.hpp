@@ -25,11 +25,11 @@ private:
   const std::string receptorfn_;
   const size_t n_;
   const int mer_;
-  const bool atomsonly_;
+  const bool allrecords_;
 
 public:
   CreateMultimer(const std::string &zdockoutput, const std::string &receptor,
-                 const size_t n, const int mer, const bool atomsonly);
+                 const size_t n, const int mer, const bool allrecords);
   void doCreate();
 };
 
