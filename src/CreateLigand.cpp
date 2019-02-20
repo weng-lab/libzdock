@@ -25,9 +25,9 @@ namespace zdock {
 CreateLigand::CreateLigand(const std::string &zdockoutput,
                            const std::string &ligand,
                            const std::string &receptor, const size_t n,
-                           const bool cmplx, const bool atomsonly)
+                           const bool cmplx, const bool allrecords)
     : zdockfn_(zdockoutput), ligandfn_(ligand), receptorfn_(receptor), n_(n),
-      complex_(cmplx), atomsonly_(atomsonly) {}
+      complex_(cmplx), allrecords_(allrecords) {}
 
 void CreateLigand::doCreate() {
   std::string ligfn; // ligand file name
@@ -70,12 +70,12 @@ void CreateLigand::doCreate() {
     rec = PDB(recfn);
   }
 
-  for (const auto &x : (atomsonly_ ? lig.atoms() : lig.records())) {
+  for (const auto &x : (allrecords_ ? lig.records() : lig.atoms())) {
     std::cout << *x << '\n'; // no flush
   }
 
   if (complex_) {
-    for (const auto &x : (atomsonly_ ? rec.atoms() : rec.records())) {
+    for (const auto &x : (allrecords_ ? rec.records() : rec.atoms())) {
       std::cout << *x << '\n'; // no flush
     }
   }
@@ -96,7 +96,9 @@ void usage(const std::string &cmd, const std::string &err = "") {
          "ZDOCK output\n"
       << "  -l <filename>   ligand PDB filename; defaults to ligand in "
          "ZDOCK output\n"
-      << "  -a              return atoms only\n"
+      << "  -a              return all records (by default only ATOM and "
+         "HETATM are returned)\n"
+
       << std::endl;
 }
 
@@ -107,11 +109,11 @@ int main(int argc, char *argv[]) {
   size_t n = 1;
   int c;
   bool cmplx = false;
-  bool atomsonly = false;
+  bool allrecords = false;
   while ((c = getopt(argc, argv, "achn:l:r:")) != -1) {
     switch (c) {
     case 'a':
-      atomsonly = true;
+      allrecords = true;
       break;
     case 'c':
       cmplx = true;
@@ -142,7 +144,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   try {
-    zdock::CreateLigand c(zdockfn, ligfn, recfn, n, cmplx, atomsonly);
+    zdock::CreateLigand c(zdockfn, ligfn, recfn, n, cmplx, allrecords);
     c.doCreate();
   } catch (const zdock::Exception &e) {
     // something went wrong
