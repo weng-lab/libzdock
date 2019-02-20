@@ -38,6 +38,7 @@ private:
   double spacing_;                     // grid spacing
   int boxsize_;                        // grid size
   bool rev_, fixed_;                   // fixed / switched flags
+  bool isvalid_;                       // successfull init
 
   // precomputed transformation matrices
   Transform t0_, t1_, t2_;
@@ -61,11 +62,14 @@ private:
 
 public:
   // perform actual ligand transformation
-  inline const Matrix txLigand(const Matrix& matrix, const Prediction &pred) const {
+  inline const Matrix txLigand(const Matrix &matrix,
+                               const Prediction &pred) const {
     Transform t;
 
     using Eigen::Translation3d;
     using Eigen::Vector3d;
+
+    assert(isvalid_); // did we successfully load zdock data?
 
     if (rev_) {
 
