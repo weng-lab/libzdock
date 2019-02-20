@@ -42,6 +42,7 @@ private:
 public:
   typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
   typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
+  typedef Eigen::Vector3d Coord;
   typedef std::shared_ptr<libpdb::PDB> Record;
   typedef std::shared_ptr<zdock::Model> Model;
 
@@ -72,6 +73,7 @@ public:
   const Record &operator[](const RecordCoord &coord) const;
   void append(const libpdb::PDB &, const int model = 0);
   void append(const Record &, const int model = 0);
+  Coord centroid();
 };
 
 inline std::ostream &operator<<(std::ostream &s, const RecordCoord &c) {
