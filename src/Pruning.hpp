@@ -21,7 +21,7 @@
 
 namespace zdock {
 
-class ZdockPruning {
+class Pruning {
 private:
   typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
   typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
@@ -38,8 +38,8 @@ private:
   int nclusters_;             // number of clusters
 
 public:
-  ZdockPruning(const std::string &zdockoutput, const double cutoff,
-               const std::string &structurefn = "" // or grab from zdock.out
+  Pruning(const std::string &zdockoutput, const double cutoff,
+          const std::string &structurefn = "" // or grab from zdock.out
   );
 
   // perform pruning
@@ -49,9 +49,9 @@ public:
   const ZDOCK &zdock() const { return zdock_; }
 };
 
-class ZdockPruningException : public Exception {
+class PruningException : public Exception {
 public:
-  ZdockPruningException(const std::string &msg) : Exception(msg) {}
+  PruningException(const std::string &msg) : Exception(msg) {}
 };
 
 } // namespace zdock

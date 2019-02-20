@@ -26,8 +26,8 @@ char spinner() {
   return s[(++i) % 4];
 }
 
-ZdockPruning::ZdockPruning(const std::string &zdockoutput, const double cutoff,
-                           const std::string &structurefn)
+Pruning::Pruning(const std::string &zdockoutput, const double cutoff,
+                 const std::string &structurefn)
     : zdock_(zdockoutput), cutoff_(cutoff), txl_(zdockoutput),
       txm_(zdockoutput) {
 
@@ -55,7 +55,7 @@ ZdockPruning::ZdockPruning(const std::string &zdockoutput, const double cutoff,
   }
 }
 
-void ZdockPruning::prune() {
+void Pruning::prune() {
   const auto v = zdock_.predictions(); // our copy
   const auto n = zdock_.npredictions();
   auto &preds = zdock_.predictions();              // our ref
@@ -74,7 +74,7 @@ void ZdockPruning::prune() {
   const double strucsize = pdb.matrix().cols();
 
   // pre-compute all poses
-  std::vector<ZdockPruning::Matrix> poses;
+  std::vector<Pruning::Matrix> poses;
   if (zdock_.ismzdock()) {
     for (size_t i = 0; i < n; ++i) {
       poses.push_back(txm_.txMultimer(pdb.matrix(), v[i], 0));
@@ -168,7 +168,7 @@ int main(int argc, char *argv[]) {
   }
   try {
     const auto t1 = zdock::Utils::tic();
-    zdock::ZdockPruning p(zdockfn, cutoff, ligfn);
+    zdock::Pruning p(zdockfn, cutoff, ligfn);
     p.prune();
     std::cout << p.zdock() << std::endl;
     std::cerr << "duration: " << zdock::Utils::toc(t1) << " sec" << std::endl;
