@@ -56,7 +56,7 @@ protected:
   const std::function<bool(const libpdb::PDB &)> filter_;
 
 public:
-  PDB() {}
+  PDB();
   PDB(const PDB &p);
   PDB(const std::string &filename,
       std::function<bool(const libpdb::PDB &)> filter =
