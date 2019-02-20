@@ -107,6 +107,10 @@ void ZDOCK::read_() {
                          &symmetry_)) {
       throw ZDOCKInvalidFormat(filename_, "M-ZDOCK header error");
     }
+    if (3 > symmetry_) {
+      throw ZDOCKInvalidFormat(filename_,
+                               "M-ZDOCK symmetry cannot be less than 3");
+    }
   }
 
   // receptor
@@ -237,4 +241,3 @@ std::ostream &operator<<(std::ostream &os, const ZDOCK &obj) {
 }
 
 } // namespace zdock
-
