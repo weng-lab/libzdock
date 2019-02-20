@@ -69,6 +69,7 @@ public:
   double spacing() const { return spacing_; }
   bool isswitched() const { return isswitched_; }
   bool ismzdock() const { return ismzdock_; }
+  bool iszdock() const { return !ismzdock_; }
   bool isfixed() const { return isfixed_; }
   int version() const { return version_; }
   int symmetry() const;
