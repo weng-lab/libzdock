@@ -12,6 +12,8 @@
  * limitations under the License.
  */
 
+#pragma once
+
 #include "PDB.hpp"
 #include "TransformUtil.hpp"
 #include "ZDOCK.hpp"
@@ -25,7 +27,7 @@ class TransformMultimer {
    *
    * see:
    *
-   * M-ZDOCK: a grid-based approach for C n symmetric multimer docking 
+   * M-ZDOCK: a grid-based approach for C n symmetric multimer docking
    * Brian Pierce  Weiwei Tong  Zhiping Weng
    *
    * Bioinformatics, Volume 21, Issue 8, 15 April 2005, Pages 1472–1478
@@ -49,6 +51,7 @@ private:
   int symmetry_;               // zdock symmetry number
   double alpha_, beta_;        // alpha and beta angles
   double factor_;              // scaling factor for distance d
+  bool isvalid_;               // indicates successfull init
 
   // precomputed transformation matrices
   Transform t0_;
@@ -78,6 +81,7 @@ public:
     using Eigen::Translation3d;
     using Eigen::Vector3d;
 
+    assert(isvalid_); // did we successfully load m-zdock data?
     assert(n >= 0 && n < symmetry_);
 
     /* Transformation; M-ZDOCK (one of n-mer)

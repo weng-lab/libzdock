@@ -29,17 +29,20 @@ TransformMultimer::TransformMultimer(const ZDOCK &zdock) : zdock_(zdock) {
   using std::cos;
 
   // copy relevant info from zdock file
-  structure_ = zdock_.receptor();
-  spacing_ = zdock_.spacing();
-  boxsize_ = zdock_.boxsize();
-  symmetry_ = (zdock_.symmetry() ? zdock_.symmetry() : 3);
-  beta_ = 2 * u::PI / symmetry_;
-  alpha_ = 0.5 * (u::PI - beta_);
-  factor_ = 1.0 / (2.0 * cos(alpha_));
+  if (zdock_.ismzdock()) {
+    structure_ = zdock_.receptor();
+    spacing_ = zdock_.spacing();
+    boxsize_ = zdock_.boxsize();
+    symmetry_ = (zdock_.symmetry() ? zdock_.symmetry() : 3);
+    beta_ = 2 * u::PI / symmetry_;
+    alpha_ = 0.5 * (u::PI - beta_);
+    factor_ = 1.0 / (2.0 * cos(alpha_));
+    isvalid_ = true;
 
-  // precalculate some transformation matrices
-  t0_ = TransformUtil::eulerRotation(structure_.rotation, true) *
-        Translation3d(-Vector3d(structure_.translation));
+    // precalculate some transformation matrices
+    t0_ = TransformUtil::eulerRotation(structure_.rotation, true) *
+          Translation3d(-Vector3d(structure_.translation));
+  }
 }
 
 // alphabeth for chains
