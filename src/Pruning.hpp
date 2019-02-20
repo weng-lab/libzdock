@@ -14,6 +14,7 @@
 
 #include "Exception.hpp"
 #include "TransformLigand.hpp"
+#include "TransformMultimer.hpp"
 #include "ZDOCK.hpp"
 #include <Eigen/Dense>
 #include <string>
@@ -25,19 +26,20 @@ private:
   typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
   typedef Eigen::Matrix<double, 3, Eigen::Dynamic> Matrix;
 
-  ZDOCK zdock_;               // zdock output
-  const double cutoff_;       // cutoff
-  const TransformLigand txl_; // ligand tranfomation class
-  std::string ligfn_;         // receptor and ligand filenames
+  ZDOCK zdock_;                 // zdock output
+  const double cutoff_;         // cutoff
+  const TransformLigand txl_;   // ligand tranfomation class
+  const TransformMultimer txm_; // multimertranfomation class
+  std::string strucfn_;         // receptor and ligand filenames
 
   // results
   std::vector<int> clusters_; // cluster assignments
-  size_t ligsize_;            // ligand size
+  size_t strucsize_;          // structure size
   int nclusters_;             // number of clusters
 
 public:
   ZdockPruning(const std::string &zdockoutput, const double cutoff,
-               const std::string &ligandpdb = "" // or grab from zdock.out
+               const std::string &structurefn = "" // or grab from zdock.out
   );
 
   // perform pruning

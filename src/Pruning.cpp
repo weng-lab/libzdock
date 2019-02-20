@@ -27,17 +27,30 @@ char spinner() {
 }
 
 ZdockPruning::ZdockPruning(const std::string &zdockoutput, const double cutoff,
-                           const std::string &ligandpdb)
-    : zdock_(zdockoutput), cutoff_(cutoff), txl_(zdockoutput) {
+                           const std::string &structurefn)
+    : zdock_(zdockoutput), cutoff_(cutoff), txl_(zdockoutput),
+      txm_(zdockoutput) {
+
   // ligand file name
   if (!zdock_.ismzdock()) {
-    if ("" == ligandpdb) {
-      ligfn_ = zdock_.ligand().filename;
-      if ('/' != ligfn_[0]) { // relative
-        ligfn_ = Utils::copath(zdockoutput, ligfn_);
+    // ZDOCK has "ligand"
+    if ("" == structurefn) {
+      strucfn_ = zdock_.ligand().filename;
+      if ('/' != strucfn_[0]) { // relative
+        strucfn_ = Utils::copath(zdockoutput, strucfn_);
       }
     } else {
-      ligfn_ = ligandpdb;
+      strucfn_ = structurefn;
+    }
+  } else {
+    // M-ZDOCK only has "receptor"
+    if ("" == structurefn) {
+      strucfn_ = zdock_.receptor().filename;
+      if ('/' != strucfn_[0]) { // relative
+        strucfn_ = Utils::copath(zdockoutput, strucfn_);
+      }
+    } else {
+      strucfn_ = structurefn;
     }
   }
 }
@@ -47,33 +60,41 @@ void ZdockPruning::prune() {
   const auto n = zdock_.npredictions();
   auto &preds = zdock_.predictions();              // our ref
   double min = std::numeric_limits<double>::max(); // big number
-  std::vector<int> l(n, 0);
-  int clusters = 0;
 
   // ZDOCK only for now
   if (zdock_.ismzdock()) {
-    throw ZdockPruningException("M-ZDOCK not supported");
+    std::cerr << "Pruning for M-ZDOCK" << std::endl;
+  } else {
+    std::cerr << "Pruning for ZDOCK" << std::endl;
   }
 
   // read pdb file (CA only!)
-  PDB ligpdb(ligfn_, [](const auto &r) {
-    return Utils::trim_copy(r.atom.name) == "CA";
-  });
-  const double ligsize = ligpdb.matrix().cols();
+  PDB pdb(strucfn_,
+          [](const auto &r) { return Utils::trim_copy(r.atom.name) == "CA"; });
+  const double strucsize = pdb.matrix().cols();
 
   // pre-compute all poses
   std::vector<ZdockPruning::Matrix> poses;
-  for (size_t i = 0; i < n; ++i) {
-    poses.push_back(txl_.txLigand(ligpdb.matrix(), v[i]));
+  if (zdock_.ismzdock()) {
+    for (size_t i = 0; i < n; ++i) {
+      poses.push_back(txm_.txMultimer(pdb.matrix(), v[i], 0));
+    }
+  } else {
+    for (size_t i = 0; i < n; ++i) {
+      poses.push_back(txl_.txLigand(pdb.matrix(), v[i]));
+    }
   }
 
   // find clusters
   zdock_.predictions().clear();
+  std::vector<int> l(n, 0);
+  int clusters = 0;
   char buf[100];
   const size_t interval = 100;
   for (size_t i = 0; i < n; ++i) {
     if (!(i % interval)) {
-      std::snprintf(buf, sizeof(buf), "\r%c prediction: %ld, clusters: %d", spinner(), i, clusters);
+      std::snprintf(buf, sizeof(buf), "\r%c prediction: %ld, clusters: %d",
+                    spinner(), i, clusters);
       std::cerr << buf << std::flush;
     }
     if (!l.at(i)) {
@@ -82,7 +103,7 @@ void ZdockPruning::prune() {
       for (size_t j = i + 1; j < n; ++j) {
         if (!l.at(j)) {
           const double rmsd =
-              std::sqrt((poses.at(i) - poses.at(j)).squaredNorm() / ligsize);
+              std::sqrt((poses.at(i) - poses.at(j)).squaredNorm() / strucsize);
           min = std::min(min, rmsd);
           if (rmsd < cutoff_) {
             l[j] = clusters + 1;
@@ -92,10 +113,13 @@ void ZdockPruning::prune() {
       clusters++;
     }
   }
+  std::snprintf(buf, sizeof(buf), "\r%c prediction: %ld, clusters: %d", '-', n,
+                clusters);
+  std::cerr << buf << std::endl;
 
   // copy out results
   clusters_ = l;
-  ligsize_ = ligsize;
+  strucsize_ = strucsize;
   nclusters_ = clusters;
 }
 
@@ -143,9 +167,11 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   try {
+    const auto t1 = zdock::Utils::tic();
     zdock::ZdockPruning p(zdockfn, cutoff, ligfn);
     p.prune();
     std::cout << p.zdock() << std::endl;
+    std::cerr << "duration: " << zdock::Utils::toc(t1) << " sec" << std::endl;
   } catch (const zdock::Exception &e) {
     // something went wrong
     zdock::usage(argv[0], e.what());
