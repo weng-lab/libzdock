@@ -73,7 +73,7 @@ public:
   const Record &operator[](const RecordCoord &coord) const;
   void append(const libpdb::PDB &, const int model = 0);
   void append(const Record &, const int model = 0);
-  Coord centroid();
+  Coord centroid() const;
 };
 
 inline std::ostream &operator<<(std::ostream &s, const RecordCoord &c) {
