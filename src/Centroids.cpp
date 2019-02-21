@@ -16,9 +16,11 @@
 #include "TransformLigand.cpp"
 #include "Utils.hpp"
 #include "ZDOCK.hpp"
+#include <cmath>
 #include <unistd.h>
 
 namespace p = libpdb;
+namespace e = Eigen;
 
 namespace zdock {
 Centroids::Centroids(const std::string &zdockoutput, const std::string &ligand,
@@ -30,10 +32,12 @@ void Centroids::doCentroids() {
   ZDOCK z(zdockfn_); // zdock output parser
 
   // check n within range
-  if (n_ < 1 || n_ > z.npredictions()) {
+  if (n_ < 1) {
     throw CentroidsException("Invalid prediction; valid range 1 - " +
                              std::to_string(z.npredictions()));
   }
+  // limit to npreds
+  n_ = std::min<size_t>(n_, z.npredictions());
 
   // figure out ligand file name
   if ("" == ligandfn_) {
@@ -55,7 +59,6 @@ void Centroids::doCentroids() {
     e::Vector3d pose = txl.txLigand(v, pred);
     x.atom = templateAtom_;
     x.atom.serialNum = static_cast<int>(i) + 1;
-    x.atom.residue.seqNum = static_cast<int>(i) + 1;
     x.atom.xyz[0] = pose(0);
     x.atom.xyz[1] = pose(1);
     x.atom.xyz[2] = pose(2);
