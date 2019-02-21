@@ -1,18 +1,18 @@
 SHELL		= /bin/sh
 PREFIX  = $(HOME)/local
-CXX = clang++
+CXX = g++-7
 STRIP = strip
 BIN_DIR = bin
 OBJ_DIR := build
 LIB_DIR := lib
-SRC = -I/opt/local/include/eigen3
+SRC = -I/opt/local/include/eigen3 -I/home/vanderva/local/eigen3
 OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic
 #OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic -funroll-loops
 DEBUG		=
 CXXFLAGS		= $(OPT) $(DEBUG)
 
 BINS = $(BIN_DIR)/createlig $(BIN_DIR)/createmultimer $(BIN_DIR)/pruning \
-       $(BIN_DIR)/constraints
+       $(BIN_DIR)/constraints $(BIN_DIR)/centroids
 LIBRARY		= zdock
 LIBARCH		= $(LIB_DIR)/lib$(LIBRARY).a
 
@@ -54,6 +54,10 @@ $(BIN_DIR)/pruning: build/src/Pruning.o $(LIBARCH)
 	$(STRIP) $@
 
 $(BIN_DIR)/constraints: build/src/FilterConstraints.o $(LIBARCH)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
+	$(STRIP) $@
+
+$(BIN_DIR)/centroids: build/src/Centroids.o $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
 	$(STRIP) $@
 
