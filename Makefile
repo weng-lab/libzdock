@@ -5,7 +5,7 @@ STRIP = strip
 BIN_DIR = bin
 OBJ_DIR := build
 LIB_DIR := lib
-SRC = -I/opt/local/include/eigen3 -I/home/vanderva/local/eigen3
+SRC = -Icontrib/eigen
 OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic
 #OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic -funroll-loops
 DEBUG		=
