@@ -35,11 +35,8 @@ flags = [
   '-isystem', '/opt/local/libexec/llvm-7.0/lib/clang/7.0.1/include',
   '-isystem', '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include',
 
-  # specific
-  '-isystem', '/opt/local/include/eigen3',
-  '-isystem', '/home/vanderva/local/eigen3',
-
   # zdock/libpdb
+  '-I', 'contrib/eigen',
   '-I', 'src/libpdb++',
   '-I', 'src/zdock',
   '-I', 'src/common',
