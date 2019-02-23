@@ -32,20 +32,14 @@ FilterConstraints::FilterConstraints(const std::string &zdockoutput,
       confn_(constraints) {
   // receptor file name
   if ("" == receptorpdb) {
-    recfn_ = zdock_.receptor().filename;
-    if ('/' != recfn_[0]) { // relative
-      recfn_ = Utils::copath(zdockoutput, recfn_);
-    }
+    recfn_ = Utils::copath(zdockoutput, zdock_.receptor().filename);
   } else {
     recfn_ = receptorpdb;
   }
   // ligand file name
   if (!zdock_.ismzdock()) {
     if ("" == ligandpdb) {
-      ligfn_ = zdock_.ligand().filename;
-      if ('/' != ligfn_[0]) { // relative
-        ligfn_ = Utils::copath(zdockoutput, ligfn_);
-      }
+      ligfn_ = Utils::copath(zdockoutput, zdock_.ligand().filename);
     } else {
       ligfn_ = ligandpdb;
     }

@@ -35,20 +35,14 @@ Pruning::Pruning(const std::string &zdockoutput, const double cutoff,
   if (!zdock_.ismzdock()) {
     // ZDOCK has "ligand"
     if ("" == structurefn) {
-      strucfn_ = zdock_.ligand().filename;
-      if ('/' != strucfn_[0]) { // relative
-        strucfn_ = Utils::copath(zdockoutput, strucfn_);
-      }
+      strucfn_ = Utils::copath(zdockoutput, zdock_.ligand().filename);
     } else {
       strucfn_ = structurefn;
     }
   } else {
     // M-ZDOCK only has "receptor"
     if ("" == structurefn) {
-      strucfn_ = zdock_.receptor().filename;
-      if ('/' != strucfn_[0]) { // relative
-        strucfn_ = Utils::copath(zdockoutput, strucfn_);
-      }
+      strucfn_ = Utils::copath(zdockoutput, zdock_.receptor().filename);
     } else {
       strucfn_ = structurefn;
     }
@@ -93,16 +87,18 @@ void Pruning::prune() {
   zdock_.predictions().clear();
   std::vector<int> l(n, 0);
   int clusters = 0;
+  int assigned = 0;
   char buf[100];
   const size_t interval = 100;
   for (size_t i = 0; i < n; ++i) {
     if (!(i % interval)) {
-      std::snprintf(buf, sizeof(buf), "\r%c prediction: %ld, clusters: %d",
-                    spinner(), i, clusters);
+      std::snprintf(buf, sizeof(buf), "\r%c prediction: %ld, clusters: %d (%.2f%%)",
+                    spinner(), i, clusters, 100.0 * assigned / n);
       std::cerr << buf << std::flush;
     }
     if (!l.at(i)) {
       l[i] = clusters + 1;
+      assigned++;
       preds.push_back(v[i]);
       for (size_t j = i + 1; j < n; ++j) {
         if (!l.at(j)) {
@@ -120,14 +116,15 @@ void Pruning::prune() {
           min = std::min(min, rmsd); // just for stats
           if (rmsd < cutoff_) {
             l[j] = clusters + 1;
+            assigned++;
           }
         }
       }
       clusters++;
     }
   }
-  std::snprintf(buf, sizeof(buf), "\r%c prediction: %ld, clusters: %d", '-', n,
-                clusters);
+  std::snprintf(buf, sizeof(buf), "\r%c prediction: %ld, clusters: %d (%.2f%%)", '-', n,
+                clusters, 100.0);
   std::cerr << buf << std::endl;
 
   // copy out results
@@ -144,8 +141,8 @@ void usage(const std::string &cmd, const std::string &err = "") {
   // print usage
   std::cerr << "usage: " << cmd << " [options] <zdock output>\n\n"
             << "  -c <double>     cutoff RMSD (defaults to 16.00)\n"
-            << "  -l <filename>   ligand PDB filename; defaults to ligand in "
-               "ZDOCK output\n"
+            << "  -l <filename>   structure PDB filename; defaults to ligand in ZDOCK\n"
+            << "                  output and structure in M-ZDOCK output\n"
             << std::endl;
 }
 

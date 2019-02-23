@@ -41,10 +41,7 @@ void Centroids::doCentroids() {
 
   // figure out ligand file name
   if ("" == ligandfn_) {
-    ligfn = z.ligand().filename;
-    if ('/' != ligfn[0]) { // relative
-      ligfn = Utils::copath(zdockfn_, ligfn);
-    }
+    ligfn = Utils::copath(zdockfn_, z.ligand().filename);
   } else {
     ligfn = ligandfn_;
   }
