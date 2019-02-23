@@ -43,10 +43,7 @@ void CreateLigand::doCreate() {
 
   // figure out ligand file name
   if ("" == ligandfn_) {
-    ligfn = z.ligand().filename;
-    if ('/' != ligfn[0]) { // relative
-      ligfn = Utils::copath(zdockfn_, ligfn);
-    }
+    ligfn = Utils::copath(zdockfn_, z.ligand().filename);
   } else {
     ligfn = ligandfn_;
   }
@@ -60,10 +57,7 @@ void CreateLigand::doCreate() {
   if (complex_) {
     // figure out receptor file name
     if ("" == receptorfn_) {
-      recfn = z.receptor().filename;
-      if ('/' != recfn[0]) { // relative
-        recfn = Utils::copath(zdockfn_, recfn);
-      }
+      recfn = Utils::copath(zdockfn_, z.receptor().filename);
     } else {
       recfn = receptorfn_;
     }

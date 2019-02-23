@@ -50,10 +50,7 @@ void CreateMultimer::doCreate() {
 
   // figure out receptor file name
   if ("" == receptorfn_) {
-    recfn = z.receptor().filename;
-    if ('/' != recfn[0]) { // relative
-      recfn = Utils::copath(zdockfn_, recfn);
-    }
+    recfn = Utils::copath(zdockfn_, z.receptor().filename);
   } else {
     recfn = receptorfn_;
   }

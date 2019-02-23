@@ -42,6 +42,9 @@ public:
     }
   }
   static std::string copath(const std::string &path, const std::string &file) {
+    if ('/' == file[0]) {
+      return realpath(file); // file is absuolute
+    }
     return realpath(dirname(path) + file);
   }
 
