@@ -60,9 +60,10 @@ void Pruning::prune() {
   const auto n = zdock_.npredictions();
   auto &preds = zdock_.predictions();              // our ref
   double min = std::numeric_limits<double>::max(); // big number
+  const bool ismzdock = zdock_.ismzdock();
 
   // ZDOCK only for now
-  if (zdock_.ismzdock()) {
+  if (ismzdock) {
     std::cerr << "Pruning for M-ZDOCK" << std::endl;
   } else {
     std::cerr << "Pruning for ZDOCK" << std::endl;
@@ -74,14 +75,17 @@ void Pruning::prune() {
   const double strucsize = pdb.matrix().cols();
 
   // pre-compute all poses
-  std::vector<Pruning::Matrix> poses;
-  if (zdock_.ismzdock()) {
+  std::vector<Pruning::Matrix> poses0, poses1;
+  if (ismzdock) {
     for (size_t i = 0; i < n; ++i) {
-      poses.push_back(txm_.txMultimer(pdb.matrix(), v[i], 0));
+      poses0.push_back(
+          txm_.txMultimer(pdb.matrix(), v[i], 0)); // "left side" of "receptor"
+      poses1.push_back(
+          txm_.txMultimer(pdb.matrix(), v[i], 2)); // "right side" of "receptor"
     }
   } else {
     for (size_t i = 0; i < n; ++i) {
-      poses.push_back(txl_.txLigand(pdb.matrix(), v[i]));
+      poses0.push_back(txl_.txLigand(pdb.matrix(), v[i]));
     }
   }
 
@@ -102,9 +106,18 @@ void Pruning::prune() {
       preds.push_back(v[i]);
       for (size_t j = i + 1; j < n; ++j) {
         if (!l.at(j)) {
-          const double rmsd =
-              std::sqrt((poses.at(i) - poses.at(j)).squaredNorm() / strucsize);
-          min = std::min(min, rmsd);
+          double rmsd;
+          if (ismzdock) {
+            rmsd = std::min<double>(
+                std::sqrt((poses0.at(i) - poses0.at(j)).squaredNorm() /
+                          strucsize),
+                std::sqrt((poses0.at(i) - poses1.at(j)).squaredNorm() /
+                          strucsize));
+          } else {
+            rmsd = std::sqrt((poses0.at(i) - poses0.at(j)).squaredNorm() /
+                             strucsize);
+          }
+          min = std::min(min, rmsd); // just for stats
           if (rmsd < cutoff_) {
             l[j] = clusters + 1;
           }
