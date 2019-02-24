@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
   std::string zdockfn, ligfn;
   double cutoff = 16.00;
   int c;
-  while ((c = getopt(argc, argv, "h:c:l:")) != -1) {
+  while ((c = getopt(argc, argv, "hc:l:")) != -1) {
     switch (c) {
     case 'c':
       cutoff = std::stod(optarg);
