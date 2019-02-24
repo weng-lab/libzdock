@@ -12,7 +12,8 @@ DEBUG		=
 CXXFLAGS		= $(OPT) $(DEBUG)
 
 BINS = $(BIN_DIR)/createlig $(BIN_DIR)/createmultimer $(BIN_DIR)/pruning \
-       $(BIN_DIR)/constraints $(BIN_DIR)/centroids
+       $(BIN_DIR)/constraints $(BIN_DIR)/centroids $(BIN_DIR)/zdsplit \
+       $(BIN_DIR)/zdunsplit
 LIBRARY		= zdock
 LIBARCH		= $(LIB_DIR)/lib$(LIBRARY).a
 
@@ -58,6 +59,14 @@ $(BIN_DIR)/constraints: build/src/FilterConstraints.o $(LIBARCH)
 	$(STRIP) $@
 
 $(BIN_DIR)/centroids: build/src/Centroids.o $(LIBARCH)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
+	$(STRIP) $@
+
+$(BIN_DIR)/zdsplit: build/src/Split.o $(LIBARCH)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
+	$(STRIP) $@
+
+$(BIN_DIR)/zdunsplit: build/src/UnSplit.o $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
 	$(STRIP) $@
 

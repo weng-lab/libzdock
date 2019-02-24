@@ -206,7 +206,7 @@ void usage(const std::string &cmd, const std::string &err = "") {
 int main(int argc, char *argv[]) {
   std::string zdockfn, confn, recfn, ligfn;
   int c;
-  while ((c = getopt(argc, argv, "h:r:l:")) != -1) {
+  while ((c = getopt(argc, argv, "hr:l:")) != -1) {
     switch (c) {
     case 'r':
       recfn = optarg;

@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
   std::string zdockfn, ligfn;
   int n = 1;
   int c;
-  while ((c = getopt(argc, argv, "h:n:l:")) != -1) {
+  while ((c = getopt(argc, argv, "hn:l:")) != -1) {
     switch (c) {
     case 'n':
       n = std::stoi(optarg);
