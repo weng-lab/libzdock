@@ -4,7 +4,6 @@ CXX = clang++
 STRIP = strip
 BIN_DIR = bin
 OBJ_DIR := build
-SHLIB_OBJ_DIR := buildshared
 LIB_DIR := lib
 SRC = -Icontrib/eigen
 OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic
@@ -17,7 +16,7 @@ BINS = $(BIN_DIR)/createlig $(BIN_DIR)/createmultimer $(BIN_DIR)/pruning \
        $(BIN_DIR)/zdunsplit
 LIBRARY		= zdock
 LIBARCH		= $(LIB_DIR)/lib$(LIBRARY).a
-SHLIBARCH		= $(LIB_DIR)/lib$(LIBRARY).so
+
 LIB_SOURCES = src/libpdb++/pdbinput.cpp src/libpdb++/pdb_read.cpp src/libpdb++/pdb++.cpp \
              src/libpdb++/pdb_sscanf.cpp src/libpdb++/pdb_type.cpp src/libpdb++/pdb_sprntf.cpp \
              src/libpdb++/pdb_chars.cpp src/zdock/TransformMultimer.cpp \
@@ -33,23 +32,15 @@ HEADERS = $(call rwildcard, include/, *.hpp) \
           $(call rwildcard, src/libpdb++, *.i)
 OBJ := $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(call rwildcard, src/, *.cpp)))
 LIBOBJ = $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(LIB_SOURCES)))
-SHAREDLIBOBJ = $(addprefix $(SHLIB_OBJ_DIR)/, $(patsubst %.cpp, %.o, $(LIB_SOURCES)))
 
-all:		Makefile $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR) $(BINS) $(SHLIBARCH)
+all:		Makefile $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR) $(BINS)
 
 $(LIBARCH): $(LIBOBJ)
 	ar cru $(LIBARCH) $(LIBOBJ)
 
-$(SHLIBARCH): $(SHAREDLIBOBJ)
-	$(CXX) $(CXXFLAGS) -shared -o $@ $^ $(LD_FLAGS)
-
 $(OBJ_DIR)/%.o: %.cpp $(HEADERS)
 	@mkdir -p $(OBJ_DIR)/$(shell dirname $<)
 	$(CXX) $(CXXFLAGS) $(SRC) -c -o $@ $<
-
-$(SHLIB_OBJ_DIR)/%.o: %.cpp $(HEADERS)
-	@mkdir -p $(SHLIB_OBJ_DIR)/$(shell dirname $<)
-	$(CXX) -fPIC $(CXXFLAGS) $(SRC) -c -o $@ $<
 
 $(BIN_DIR)/createlig: build/src/CreateLigand.o $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
@@ -67,7 +58,7 @@ $(BIN_DIR)/constraints: build/src/FilterConstraints.o $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
 	$(STRIP) $@
 
-$(BIN_DIR)/centroids: build/src/Centroids.o $(SHLIBARCH)
+$(BIN_DIR)/centroids: build/src/Centroids.o $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
 	$(STRIP) $@
 
@@ -82,5 +73,5 @@ $(BIN_DIR)/zdunsplit: build/src/UnSplit.o $(LIBARCH)
 $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR):
 	mkdir -p $@
 
-clean:;		rm -f $(OBJ) $(LIBARCH) $(BINS) $(SHLIBARCH) $(SHAREDLIBOBJ)
+clean:;		rm -f $(OBJ) $(LIBARCH) $(BINS)
 
