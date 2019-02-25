@@ -115,12 +115,12 @@ void ZDOCK::read_() {
 
   // receptor
   if (!isfixed_) {
+    receptor_.rotation[2] = 0.0; // be sure to set this
     int count =
         std::sscanf(header[1].c_str(), "%lf\t%lf\t%lf", &receptor_.rotation[0],
                     &receptor_.rotation[1], &receptor_.rotation[2]);
-    if (3 != count) {
-      throw ZDOCKInvalidFormat(filename_,
-                               "Unable to obtain receptor initial rotation");
+    if ((3 != count && !ismzdock_) || (count < 2 && ismzdock_)) {
+      throw ZDOCKInvalidFormat(filename_, "Unable to obtain receptor initial rotation");
     }
   }
   try {
