@@ -31,6 +31,7 @@ private:
   const TransformLigand txl_;   // ligand tranfomation class
   const TransformMultimer txm_; // multimertranfomation class
   std::string strucfn_;         // receptor and ligand filenames
+  const bool getclusters_;      // return all w/ cluster number in score
 
   // results
   std::vector<int> clusters_; // cluster assignments
@@ -38,8 +39,10 @@ private:
   int nclusters_;             // number of clusters
 
 public:
-  Pruning(const std::string &zdockoutput, const double cutoff,
-          const std::string &structurefn = "" // or grab from zdock.out
+  Pruning(
+      const std::string &zdockoutput, const double cutoff,
+      const std::string &structurefn = "", // or grab from zdock.out
+      const bool getclusters = false // return all w/ cluster number in score
   );
 
   // perform pruning
