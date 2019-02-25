@@ -27,9 +27,9 @@ char spinner() {
 }
 
 Pruning::Pruning(const std::string &zdockoutput, const double cutoff,
-                 const std::string &structurefn)
+                 const std::string &structurefn, const bool getclusters)
     : zdock_(zdockoutput), cutoff_(cutoff), txl_(zdockoutput),
-      txm_(zdockoutput) {
+      txm_(zdockoutput), getclusters_(getclusters) {
 
   // ligand file name
   if (!zdock_.ismzdock()) {
@@ -92,14 +92,22 @@ void Pruning::prune() {
   const size_t interval = 100;
   for (size_t i = 0; i < n; ++i) {
     if (!(i % interval)) {
-      std::snprintf(buf, sizeof(buf), "\r%c prediction: %ld, clusters: %d (%.2f%%)",
-                    spinner(), i, clusters, 100.0 * assigned / n);
+      std::snprintf(buf, sizeof(buf),
+                    "\r%c prediction: %ld, clusters: %d (%.2f%%)", spinner(), i,
+                    clusters, 100.0 * assigned / n);
       std::cerr << buf << std::flush;
     }
     if (!l.at(i)) {
       l[i] = clusters + 1;
       assigned++;
-      preds.push_back(v[i]);
+      if (getclusters_) {
+        // create prediction object w/ cluster number as score
+        auto tmppred = v[i];
+        tmppred.score = static_cast<double>(l[i]);
+        preds.push_back(tmppred);
+      } else {
+        preds.push_back(v[i]);
+      }
       for (size_t j = i + 1; j < n; ++j) {
         if (!l.at(j)) {
           double rmsd;
@@ -117,14 +125,20 @@ void Pruning::prune() {
           if (rmsd < cutoff_) {
             l[j] = clusters + 1;
             assigned++;
+            if (getclusters_) {
+              // create prediction object w/ cluster number as score
+              auto tmppred = v[j];
+              tmppred.score = static_cast<double>(l[j]);
+              preds.push_back(tmppred);
+            }
           }
         }
       }
       clusters++;
     }
   }
-  std::snprintf(buf, sizeof(buf), "\r%c prediction: %ld, clusters: %d (%.2f%%)", '-', n,
-                clusters, 100.0);
+  std::snprintf(buf, sizeof(buf), "\r%c prediction: %ld, clusters: %d (%.2f%%)",
+                '-', n, clusters, 100.0);
   std::cerr << buf << std::endl;
 
   // copy out results
@@ -141,7 +155,8 @@ void usage(const std::string &cmd, const std::string &err = "") {
   // print usage
   std::cerr << "usage: " << cmd << " [options] <zdock output>\n\n"
             << "  -c <double>     cutoff RMSD (defaults to 16.00)\n"
-            << "  -l <filename>   structure PDB filename; defaults to ligand in ZDOCK\n"
+            << "  -l <filename>   structure PDB filename; defaults to ligand "
+               "in ZDOCK\n"
             << "                  output and structure in M-ZDOCK output\n"
             << std::endl;
 }
@@ -151,14 +166,18 @@ void usage(const std::string &cmd, const std::string &err = "") {
 int main(int argc, char *argv[]) {
   std::string zdockfn, ligfn;
   double cutoff = 16.00;
+  bool getclusters = false;
   int c;
-  while ((c = getopt(argc, argv, "hc:l:")) != -1) {
+  while ((c = getopt(argc, argv, "hc:l:C")) != -1) {
     switch (c) {
     case 'c':
       cutoff = std::stod(optarg);
       break;
     case 'l':
       ligfn = optarg;
+      break;
+    case 'C':
+      getclusters = true;
       break;
     case 'h': // usage
       zdock::usage(argv[0]);
@@ -178,7 +197,7 @@ int main(int argc, char *argv[]) {
   }
   try {
     const auto t1 = zdock::Utils::tic();
-    zdock::Pruning p(zdockfn, cutoff, ligfn);
+    zdock::Pruning p(zdockfn, cutoff, ligfn, getclusters);
     p.prune();
     std::cout << p.zdock() << std::endl;
     std::cerr << "duration: " << zdock::Utils::toc(t1) << " sec" << std::endl;
