@@ -16,6 +16,7 @@
 #include "PDB.hpp"
 #include "Utils.hpp"
 #include <cstdio>
+#include <iomanip>
 #include <unistd.h>
 
 namespace zdock {
@@ -56,11 +57,13 @@ void Pruning::prune() {
   double min = std::numeric_limits<double>::max(); // big number
   const bool ismzdock = zdock_.ismzdock();
 
-  // ZDOCK only for now
+  // print some info on stderr
   if (ismzdock) {
-    std::cerr << "Pruning for M-ZDOCK" << std::endl;
+    std::cerr << "Pruning for M-ZDOCK; cutoff: " << std::fixed
+              << std::setprecision(2) << cutoff_ << std::endl;
   } else {
-    std::cerr << "Pruning for ZDOCK" << std::endl;
+    std::cerr << "Pruning for ZDOCK; cutoff: " << std::fixed
+              << std::setprecision(2) << cutoff_ << std::endl;
   }
 
   // read pdb file (CA only!)
@@ -153,12 +156,14 @@ void usage(const std::string &cmd, const std::string &err = "") {
     std::cerr << "Error: " << err << std::endl << std::endl;
   }
   // print usage
-  std::cerr << "usage: " << cmd << " [options] <zdock output>\n\n"
-            << "  -c <double>     cutoff RMSD (defaults to 16.00)\n"
-            << "  -l <filename>   structure PDB filename; defaults to ligand "
-               "in ZDOCK\n"
-            << "                  output and structure in M-ZDOCK output\n"
-            << std::endl;
+  std::cerr
+      << "usage: " << cmd << " [options] <zdock output>\n\n"
+      << "  -c <double>     cutoff RMSD (defaults to 16.00)\n"
+      << "  -C              return all prediction, but with score replaced by\n"
+      << "                  cluster number.\n"
+      << "  -l <filename>   structure PDB filename; defaults to ligand in "
+         "ZDOCK\n"
+      << std::endl;
 }
 
 } // namespace zdock
