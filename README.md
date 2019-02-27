@@ -13,6 +13,9 @@ SYNOPSIS
 // read pdb file (CA only)
 PDB pdb("filename.pdb", [](const auto &r) { return Utils::trim_copy(r.atom.name) == "CA"; });
 
+// read pdb file (all records)
+PDB pdb("filename.pdb");
+
 // read zdock file
 ZDOCK z("zdock.out");
 
