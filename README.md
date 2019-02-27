@@ -104,7 +104,7 @@ Vreven T, Schweppe DK, Chavez JD, Weisbrod CR, Shibata S, Zheng C, Bruce JE, Wen
 # libpdb++
 libpdb++ from http://www.cgl.ucsf.edu/Overview/software.html#pdbio
 
-Below is a copy of the original libpdb++ manual page. This documentation has not been updated and should still be a valid reference for the libpdb++ part of this library.
+Below is a copy of the original libpdb++ manual page. This documentation has not been updated but should still be a valid reference for the libpdb++ part of this library.
 
 PDB++
 =====
