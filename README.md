@@ -43,8 +43,8 @@ REFERENCES
 ----------
 
 **ZDOCK**
-Pierce BG, Wiehe K, Hwang H, Kim BH, Vreven T, Weng Z. (2014) ZDOCK Server: Interactive Docking Prediction of Protein-Protein Complexes and Symmetric Multimers. Bioinformatics 30(12): 1771-3.
 
+Pierce BG, Wiehe K, Hwang H, Kim BH, Vreven T, Weng Z. (2014) ZDOCK Server: Interactive Docking Prediction of Protein-Protein Complexes and Symmetric Multimers. Bioinformatics 30(12): 1771-3.
 
 **Other References:**
 
