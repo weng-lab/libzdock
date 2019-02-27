@@ -62,7 +62,7 @@ The compiler (i.e. g++-7 or clang++) can be updated in the Makefile to reflect y
 CONSTRAINT FILES
 ----------------
 
-Constraint files are line based. Each line constains a distance constraint
+Constraint files are line based. Each line contains a distance constraint
 (either minimum distance, or maximum distance) between two atoms in two
 structures. For ZDOCK these represent the "receptor" and "ligand" stuctures
 and for M-ZDOCK they refer to two atoms in the same structure.
