@@ -28,6 +28,9 @@ for (const auto& x : pdb.records()) {
  std::cout << *x << '\n';
 }
 
+// print centroid (center of mass)
+std::cout << pdb.matrix().rowwise().mean() << std::endl;
+
 ....
 ```
 
