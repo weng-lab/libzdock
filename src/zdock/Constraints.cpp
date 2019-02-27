@@ -45,6 +45,33 @@ const std::vector<Constraint> &Constraints::constraints() const {
 }
 
 std::istream &operator>>(std::istream &s, Constraint &c) {
+
+  /**
+   *
+   * Constraint files are line based. Each line constains a distance constraint
+   * (either minimum distance, or maximum distance) between two atoms in two
+   * structures. For ZDOCK these represent the "receptor" and "ligand" stuctures
+   * and for M-ZDOCK they refer to two atoms in the same structure.
+   *
+   * The format whitespace separated and looks as follows:
+   *
+   * 13  OE2 GLU A   5    101  OD1 ASP b  12 7.3 MIN
+   * 13  OE2 GLU A   5    101  OD1 ASP b  12 7.5
+   *
+   * Column 1-5 represent:
+   *
+   *   - ATOM/HETATM serial (integer)
+   *   - ATOM name
+   *   - Residue name
+   *   - Chain identifier (exactly one character)
+   *   - Residue sequence number
+   *
+   *   Column 6-10 represent the second atom
+   *   Column 11 contains the distance (double)
+   *   Column 12 is optionally "MIN" or "MAX". If none is specified, "MAX" is assumed.
+   *
+   **/
+
   const std::regex r("^([0-9]+)\\s+([A-Z0-9]+)\\s+([A-Z0-9]+)\\s+(.)\\s+([0-9]+"
                      ")\\s+([0-9]+)\\s+([A-Z0-9]+)\\s+([A-Z0-9]+)\\s+(.)\\s+(["
                      "0-9]+)\\s+([0-9.]+)(\\s+(MIN|MAX))?$");

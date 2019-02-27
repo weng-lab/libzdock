@@ -59,6 +59,32 @@ make -j16
 The compiler (i.e. g++-7 or clang++) can be updated in the Makefile to reflect your system.
 
 
+CONSTRAINT FILES
+----------------
+
+Constraint files are line based. Each line constains a distance constraint
+(either minimum distance, or maximum distance) between two atoms in two
+structures. For ZDOCK these represent the "receptor" and "ligand" stuctures
+and for M-ZDOCK they refer to two atoms in the same structure.
+
+The format whitespace separated and looks as follows:
+
+```
+13  OE2 GLU A   5    101  OD1 ASP b  12 7.3 MIN
+13  OE2 GLU A   5    101  OD1 ASP b  12 7.5
+```
+
+* Column 1-5 represent:
+  1. ATOM/HETATM serial (integer)
+  2. ATOM name
+  3. Residue name
+  4. Chain identifier (exactly one character)
+  5. Residue sequence number
+* Column 6-10 represent the second atom
+* Column 11 contains the distance (double)
+* Column 12 is optionally "MIN" or "MAX". If none is specified, "MAX" is assumed.
+
+
 REFERENCES
 ----------
 
