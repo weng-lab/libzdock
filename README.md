@@ -75,11 +75,11 @@ The format whitespace separated and looks as follows:
 ```
 
 * Column 1-5 represent:
-  1. ATOM/HETATM serial (integer)
-  2. ATOM name
-  3. Residue name
-  4. Chain identifier (exactly one character)
-  5. Residue sequence number
+  - ATOM/HETATM serial (integer)
+  - ATOM name
+  - Residue name
+  - Chain identifier (exactly one character)
+  - Residue sequence number
 * Column 6-10 represent the second atom
 * Column 11 contains the distance (double)
 * Column 12 is optionally "MIN" or "MAX". If none is specified, "MAX" is assumed.
