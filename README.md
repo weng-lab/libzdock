@@ -39,6 +39,21 @@ DESCRIPTION
 
 This library is based on libpdb++, obtained from RBVI (UCSF). The existing code was updated to match current PDB standard (there's still some work in progress here but the major record types are done). A wrapper class __PDB__ was created as a container of PDB records and to provide __ATOM__ and __HETATM__ as a _[Eigen](http://eigen.tuxfamily.org/)_ matrix. the __PDB__ class supports PDB files with and without __MODELs__. The second part of this library provides classes to deal with __ZDOCK__ and __M-ZDOCK__ output files as well as distance constraints. Coordinate transformations have been implemented for both __ZDOCK__ and __M-ZDOCK__ predictions. A number of executable programs are available for common tasks, such as create of transformed ligand, complexes and multimers, the application of constraints as a post-processing method, calculation of centroids, pruning, etc.
 
+BUILDING
+--------
+
+Clone this repository:
+
+```bash
+git clone 'https://github.com/weng-lab/libpdb.git'
+cd libpdb
+git submodule update --init --recursive
+make -j16
+```
+
+The compiler (i.e. g++-7 or clang++) can be updated in the Makefile to relect your system.
+
+
 REFERENCES
 ----------
 
