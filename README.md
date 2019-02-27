@@ -1,4 +1,4 @@
-# PDB and ZDOCK
+# PDB structures and ZDOCK predictions in C++
 
 SYNOPSIS
 --------
