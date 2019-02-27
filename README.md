@@ -34,9 +34,61 @@ std::cout << pdb.matrix().rowwise().mean() << std::endl;
 ....
 ```
 
+DESCRIPTION
+-----------
+
+This library is based on libpdb++, obtained from RBVI (UCSF). The existing code was updated to match current PDB standard (there's still some work in progress here but the major record types are done). A wrapper class __PDB__ was created as a container of PDB records and to provide __ATOM__ and __HETATM__ as a _Eigen_ matrix (see [Eigen](http://eigen.tuxfamily.org/). the __PDB__ class supports PDB files with and without __MODELs__. The second part of this library provides classes to deal with __ZDOCK__ and __M-ZDOCK__ output files as well as distance constraints. Coordinate transformations have been implemented for both __ZDOCK__ and __M-ZDOCK__ predictions. A number of executable programs are available for common tasks, such as create of transformed ligand, complexes and multimers, the application of constraints as a post-processing method, calculation of centroids, pruning, etc.
+
+REFERENCES
+----------
+
+**ZDOCK**
+Pierce BG, Wiehe K, Hwang H, Kim BH, Vreven T, Weng Z. (2014) ZDOCK Server: Interactive Docking Prediction of Protein-Protein Complexes and Symmetric Multimers. Bioinformatics 30(12): 1771-3.
+
+
+**Other References:**
+
+ZDOCK 3.0/3.0.2
+Pierce BG, Hourai Y, Weng Z. (2011) Accelerating Protein Docking in ZDOCK Using an Advanced 3D Convolution Library. PLoS One 6(9): e24657.
+
+
+**M-ZDOCK**
+
+Pierce B, Tong W, Weng Z. (2005) M-ZDOCK: A Grid - based Approach for Cn Symmetric Multimer Docking. Bioinformatics 21(8): 1472-1476.
+
+
+**Scoring Function**
+
+__ZDOCK 3.0/3.0.2__
+
+Mintseris J, Pierce B, Wiehe K, Anderson R, Chen R, Weng Z. (2007) Integrating Statistical Pair Potentials into Protein Complex Prediction. Proteins 69(3): 511-520.
+
+
+__ZDOCK 2.3/2.3.2__
+
+Chen R, Li L, Weng Z. (2003) ZDOCK: An Initial-stage Protein Docking Algorithm Proteins 52(1): 80-87
+
+
+**Pruning**
+
+Hwang H, Vreven T, Pierce BG, Hung JH, Weng Z. (2010) Performance of ZDOCK and ZRANK in CAPRI rounds 13-19 Proteins 78(15):3104-3110
+
+**Constraints**
+
+__Cross-linking__
+
+Vreven T, Schweppe DK, Chavez JD, Weisbrod CR, Shibata S, Zheng C, Bruce JE, Weng Z (2018) Integrating Cross-Linking Experiments with Ab Initio Protein-Protein Docking J Mol Biol. 430(12):1814-1828
+
+
+
+<br/>
+<br/>
+<br/>
 
 # libpdb++
 libpdb++ from http://www.cgl.ucsf.edu/Overview/software.html#pdbio
+
+Below is a copy of the original libpdb++ manual page. This documentation has not been updated and should still be a valid reference for the libpdb++ part of this library.
 
 PDB++
 =====
