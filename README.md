@@ -1,3 +1,37 @@
+# PDB and ZDOCK
+
+SYNOPSIS
+--------
+
+```C++
+#include "PDB.hpp"
+#include "ZDOCK.hpp"
+#include "Utils.hpp"
+
+....
+
+// read pdb file (CA only)
+PDB pdb("filename.pdb", [](const auto &r) { return Utils::trim_copy(r.atom.name) == "CA"; });
+
+// read zdock file
+ZDOCK z("zdock.out");
+
+// transform class for ZDOCK (i.e. not M-ZDOCK)
+TransformLigand txl(z);
+
+// grab a prediction and transform the PDB atom coordinatea
+const Prediction pred = z.predictions()[0];
+pdb.setMatrix(txl.txLigand(pdb.matrix(), pred));
+
+// print updated PDB contents.
+for (const auto& x : pdb.records()) {
+ std::cout << *x << '\n';
+}
+
+....
+```
+
+
 # libpdb++
 libpdb++ from http://www.cgl.ucsf.edu/Overview/software.html#pdbio
 
