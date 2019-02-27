@@ -51,7 +51,7 @@ git submodule update --init --recursive
 make -j16
 ```
 
-The compiler (i.e. g++-7 or clang++) can be updated in the Makefile to relect your system.
+The compiler (i.e. g++-7 or clang++) can be updated in the Makefile to reflect your system.
 
 
 REFERENCES
