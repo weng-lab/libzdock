@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from __future__ import print_function
-import os
+import re, os
 
 class Structure(object):
 
@@ -189,6 +189,12 @@ class ZDOCK(object):
     def ismzdock(self, m):
         self._ismzdock = m and m  # make it bool
 
+    def _procline(self, s):
+      x = re.sub("^([^#]*).*$", "\\1", s).rstrip()
+      if x:
+        return x.split('\t')
+      return []
+
     def _read(self):
         header = []
         with open(self._filename, 'r') as infile:
@@ -198,7 +204,9 @@ class ZDOCK(object):
             for line in infile:
                 p = Prediction()
                 p.ismzdock = False
-                line = line.rstrip().split('\t')
+                line = self._procline(line)
+                if not line:
+                  continue
                 if 7 == len(line):
                     if self.ismzdock:
                         # M-ZDOCK established but 7-column prediction encountered
