@@ -212,7 +212,8 @@ class ZDOCK(object):
                         # M-ZDOCK established but 7-column prediction encountered
                         raise Exception("Invalid M-ZDOCK prediction (line " + str(linenum) + ")")
                     # ZDOCK prediction
-                    (a, b, c, d, e, f, g) = [t(s) for t, s in zip((float, float, float, int, int, int, float), line)]
+                    (a, b, c, d, e, f, g) = \
+                        [t(s) for t, s in zip((float, float, float, int, int, int, float), line)]
                     p.rotation = (a, b, c)
                     p.translation = (d, e, f)
                     p.score = g
@@ -245,9 +246,8 @@ class ZDOCK(object):
                 self._version = 1  # new style has 5 header rows
                 try:
                     # string '0' to bool; str -> int -> bool
-                    (self._boxsize, self._spacing, self._isswitched) = [t(s) for t, s in
-                                                                        zip((int, float, lambda x: bool(int(x))),
-                                                                            header[0])]
+                    (self._boxsize, self._spacing, self._isswitched) = \
+                        [t(s) for t, s in zip((int, float, lambda x: bool(int(x))), header[0])]
                     self._isfixed = False
                 except Exception as e:
                     raise Exception("ZDOCK header error: " + e.message)
@@ -266,7 +266,8 @@ class ZDOCK(object):
             if 3 != len(header):
                 raise Exception("M-ZDOCK header error; M-ZDOCK header must have 3 rows")
             try:
-                (self._boxsize, self._spacing, self._symmetry) = [t(s) for t, s in zip((int, float, int), header[0])]
+                (self._boxsize, self._spacing, self._symmetry) = \
+                    [t(s) for t, s in zip((int, float, int), header[0])]
             except Exception as e:
                 raise Exception("M-ZDOCK header error: " + e.message)
             if 3 > self.symmetry:
@@ -325,10 +326,11 @@ class ZDOCK(object):
         if self.ismzdock:
             yield "%d\t%.1f\t%d" % (self.boxsize, self.spacing, self.symmetry)
             yield "%.6f\t%.6f\t%.6f" % \
-                  (self._receptor.rotation[0], self._receptor.rotation[1], self._receptor.rotation[2])
+                (self._receptor.rotation[0], self._receptor.rotation[1], self._receptor.rotation[2])
         elif self.isfixed:
             yield "%d\t%.1f" % (self.boxsize, self.spacing)
-            yield "%.6f\t%.6f\t%.6f" % (self._ligand.rotation[0], self._ligand.rotation[1], self._ligand.rotation[2])
+            yield "%.6f\t%.6f\t%.6f" % \
+                (self._ligand.rotation[0], self._ligand.rotation[1], self._ligand.rotation[2])
         else:
             yield "%d\t%.1f\t%d" % (self.boxsize, self.spacing, self.isswitched)
             yield "%.6f\t%.6f\t%.6f" % self._receptor.rotation
