@@ -119,7 +119,7 @@ class Prediction(object):
 
 class ZDOCK(object):
 
-    def __init__(self, filename):
+    def __init__(self, filename, n=None):
         self._receptor = Structure()
         self._ligand = Structure()
         self._predictions = []
@@ -131,7 +131,7 @@ class ZDOCK(object):
         self._version = 0
         self._symmetry = 0
         self._filename = os.path.expanduser(os.path.normpath(filename))
-        self._read()
+        self._read(n)
 
     @property
     def receptor(self):
@@ -182,6 +182,10 @@ class ZDOCK(object):
         return self._spacing
 
     @property
+    def lines(self):
+      return self._lines()
+
+    @property
     def isswitched(self):
         return self._isswitched
 
@@ -195,7 +199,7 @@ class ZDOCK(object):
         return x.split('\t')
       return []
 
-    def _read(self):
+    def _read(self, n=None):
         header = []
         with open(self._filename, 'r') as infile:
             self._predictions = []
@@ -238,6 +242,8 @@ class ZDOCK(object):
                     else:
                         raise Exception("Invalid prediction (line " + str(linenum) + ")")
                 linenum += 1
+                if n is not None and len(self._predictions) > n:
+                  break
 
         # figure out header
         if not self.ismzdock:
