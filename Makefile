@@ -16,6 +16,8 @@ BINS = $(BIN_DIR)/createlig $(BIN_DIR)/createmultimer $(BIN_DIR)/pruning \
        $(BIN_DIR)/zdunsplit
 LIBRARY		= zdock
 LIBARCH		= $(LIB_DIR)/lib$(LIBRARY).a
+PYTHON_DIR = python
+PYTHON_CLEAN = $(PYTHON_DIR)/build $(PYTHON_DIR)/dist $(PYTHON_DIR)/zdock.egg-info
 
 LIB_SOURCES = src/libpdb++/pdbinput.cpp src/libpdb++/pdb_read.cpp src/libpdb++/pdb++.cpp \
              src/libpdb++/pdb_sscanf.cpp src/libpdb++/pdb_type.cpp src/libpdb++/pdb_sprntf.cpp \
@@ -73,5 +75,5 @@ $(BIN_DIR)/zdunsplit: build/src/UnSplit.o $(LIBARCH)
 $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR):
 	mkdir -p $@
 
-clean:;		rm -f $(OBJ) $(LIBARCH) $(BINS)
+clean:;		rm -Rf $(OBJ) $(LIBARCH) $(BINS) $(PYTHON_CLEAN)
 
