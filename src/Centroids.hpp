@@ -28,7 +28,7 @@ private:
       "N",  // name
       '\0', // altLoc
       {
-          "ALA",       // name,
+          "HOH",       // name,
           'Z',         // chainId,
           0,           // seqNum
           '\0'         // insertCode

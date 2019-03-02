@@ -48,7 +48,7 @@ void Centroids::doCentroids() {
 
   // load ligand
   PDB lig(ligfn), out;
-  p::PDB x(p::PDB::ATOM);
+  p::PDB x(p::PDB::HETATM);
   const TransformLigand txl(z);
   const e::Vector3d v = lig.centroid();
   for (size_t i = 0; i < n_; ++i) {
@@ -56,6 +56,7 @@ void Centroids::doCentroids() {
     e::Vector3d pose = txl.txLigand(v, pred);
     x.atom = templateAtom_;
     x.atom.serialNum = static_cast<int>(i) + 1;
+    x.atom.residue.seqNum = static_cast<int>(i) + 1;
     x.atom.xyz[0] = pose(0);
     x.atom.xyz[1] = pose(1);
     x.atom.xyz[2] = pose(2);
