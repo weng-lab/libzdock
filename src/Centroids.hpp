@@ -22,6 +22,7 @@ class Centroids {
 private:
   const std::string zdockfn_;
   const std::string ligandfn_;
+  const std::string chain_;
   size_t n_;
   const libpdb::PDB::Atom templateAtom_ = {
       0,    // serialNum
@@ -48,7 +49,7 @@ private:
 
 public:
   Centroids(const std::string &zdockoutput, const std::string &ligand,
-            const size_t n);
+            const size_t n, const std::string &chain);
   void doCentroids();
 };
 
