@@ -24,8 +24,8 @@ namespace e = Eigen;
 
 namespace zdock {
 Centroids::Centroids(const std::string &zdockoutput, const std::string &ligand,
-                     const size_t n)
-    : zdockfn_(zdockoutput), ligandfn_(ligand), n_(n) {}
+                     const size_t n, const std::string &chain)
+    : zdockfn_(zdockoutput), ligandfn_(ligand), chain_(chain), n_(n) {}
 
 void Centroids::doCentroids() {
   std::string ligfn; // ligand file name
@@ -56,6 +56,7 @@ void Centroids::doCentroids() {
     e::Vector3d pose = txl.txLigand(v, pred);
     x.atom = templateAtom_;
     x.atom.serialNum = static_cast<int>(i) + 1;
+    x.atom.residue.chainId = chain_.c_str()[0];
     x.atom.residue.seqNum = static_cast<int>(i) + 1;
     x.atom.xyz[0] = pose(0);
     x.atom.xyz[1] = pose(1);
@@ -76,8 +77,8 @@ void usage(const std::string &cmd, const std::string &err = "") {
   std::cerr << "usage: " << cmd << " [options] <zdock output>\n\n"
             << "  -n <integer>    number of centroids to generate (top-n) "
                "(defaults to 1; the top prediction)\n"
-            << "  -l <filename>   ligand PDB filename; defaults to receptor in "
-               "ZDOCK output\n"
+            << "  -l <filename>   ligand PDB filename; defaults to receptor in ZDOCK output\n"
+            << "  -c <char>       chain id to use for output (defaults to 'Z')\n"
             << std::endl;
 }
 
@@ -85,10 +86,14 @@ void usage(const std::string &cmd, const std::string &err = "") {
 
 int main(int argc, char *argv[]) {
   std::string zdockfn, ligfn;
+  std::string chain("Z");
   int n = 1;
   int c;
-  while ((c = getopt(argc, argv, "hn:l:")) != -1) {
+  while ((c = getopt(argc, argv, "hn:l:c:")) != -1) {
     switch (c) {
+    case 'c':
+      chain = std::string(optarg)[0];
+      break;
     case 'n':
       n = std::stoi(optarg);
       break;
@@ -113,7 +118,7 @@ int main(int argc, char *argv[]) {
   }
   try {
     const auto t1 = zdock::Utils::tic();
-    zdock::Centroids ct(zdockfn, ligfn, n);
+    zdock::Centroids ct(zdockfn, ligfn, n, chain);
     ct.doCentroids();
     std::cerr << "duration: " << zdock::Utils::toc(t1) << " sec" << std::endl;
   } catch (const zdock::Exception &e) {
