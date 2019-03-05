@@ -1,6 +1,6 @@
 SHELL		= /bin/sh
 PREFIX  = $(HOME)/local
-CXX = clang++
+CXX = g++-7
 STRIP = strip
 BIN_DIR = bin
 OBJ_DIR := build
