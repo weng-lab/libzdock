@@ -67,7 +67,8 @@ usage: constraints [options] <zdock output> <constraints file>
 ```
 
 ## createlig
-Creates a complex or ligand for a ZDOCK prediction.
+Creates a complex or ligand for a ZDOCK prediction. Transformations are documented
+[here](https://github.com/weng-lab/libpdb/blob/master/src/zdock/TransformLigand.hpp#L74).
 
 **Usage**
 ```
@@ -81,7 +82,9 @@ usage: createlig [options] <zdock output>
 ```
 
 ## createmultimer
-Creates a multimer complex (or a single component) from a M-ZDOCK output file.
+Creates a multimer complex (or a single component) from a M-ZDOCK output file. Relevant
+transformations are documented
+[here](https://github.com/weng-lab/libpdb/blob/master/src/zdock/TransformMultimer.hpp#L87).
 
 **Usage**
 ```
