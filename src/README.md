@@ -118,7 +118,7 @@ usage: zdsplit [options] <zdock output>
 ```
 
 ## zdunsplit
-Combines a set of ZDOCK files back into on (akin to UNIX' _cat_)
+Reconstitutes a ZDOCK file from multiple _chunks_ (akin to UNIX' _cat_).
 
 **Usage**
 ```
