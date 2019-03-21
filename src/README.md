@@ -1,6 +1,6 @@
 # Programs
 
-A number of small utilities are built by default, to facilitate basic operations on ZDOCK, M-ZDOCK and PDB files. Each tool is described breifly below.
+A number of small utilities are built by default, to facilitate basic operations on ZDOCK, M-ZDOCK and PDB files. Each tool is described briefly below.
 
 
 ## centroids
@@ -48,7 +48,7 @@ constraints are specified in a constraints file, of which the format is describe
       constraint type is "MAX".
 
 For ZDOCK constraint based filtering, the two sets of columns refer to atoms in the first and
-the second structure respectively, whereas for M-ZDOCK where only only structure is operated on,
+the second structure respectively, whereas for M-ZDOCK where only one structure is operated on,
 boths sets of columns refer to the same single structure.
 
 Example constraints file:
@@ -67,7 +67,8 @@ usage: constraints [options] <zdock output> <constraints file>
 ```
 
 ## createlig
-Creates a complex or ligand for a ZDOCK prediction.
+Creates a complex or ligand for a ZDOCK prediction. Transformations are documented
+[here](https://github.com/weng-lab/libpdb/blob/master/src/zdock/TransformLigand.hpp#L74).
 
 **Usage**
 ```
@@ -81,7 +82,9 @@ usage: createlig [options] <zdock output>
 ```
 
 ## createmultimer
-Creates a multimer complex (or a single component) from a M-ZDOCK output file.
+Creates a multimer complex (or a single component) from a M-ZDOCK output file. Relevant
+transformations are documented
+[here](https://github.com/weng-lab/libpdb/blob/master/src/zdock/TransformMultimer.hpp#L87).
 
 **Usage**
 ```
