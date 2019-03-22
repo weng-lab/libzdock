@@ -97,10 +97,9 @@ usage: createmultimer [options] <zdock output>
 ```
 
 ## pruning
-Performs pruning on ZDOCK and M-ZDOCK output (using the greedy algorthm published
-[here](https://www.ncbi.nlm.nih.gov/pubmed/20936681):
+Performs pruning on ZDOCK and M-ZDOCK output (using the greedy algorthm published here:
 
-Hwang H, Vreven T, Pierce BG, Hung JH, Weng Z. (2010) Performance of ZDOCK and ZRANK in CAPRI rounds 13-19 Proteins 78(15):3104-3110
+Hwang H, Vreven T, Pierce BG, Hung JH, Weng Z. (2010) **Performance of ZDOCK and ZRANK in CAPRI rounds 13-19** _Proteins 78(15):3104-3110_
 ([pubmed](https://www.ncbi.nlm.nih.gov/pubmed/20936681))
 
 **Usage**
