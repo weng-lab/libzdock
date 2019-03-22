@@ -129,5 +129,4 @@ Reconstitutes a ZDOCK file from multiple _chunks_ (akin to UNIX' _cat_).
 **Usage**
 ```
 usage: zdunsplit <zdock output> [file] [...]
-
 ```
