@@ -101,8 +101,7 @@ Performs pruning on ZDOCK and M-ZDOCK output (using the greedy algorthm publishe
 [here](https://www.ncbi.nlm.nih.gov/pubmed/20936681):
 
 Hwang H, Vreven T, Pierce BG, Hung JH, Weng Z. (2010) Performance of ZDOCK and ZRANK in CAPRI rounds 13-19 Proteins 78(15):3104-3110
-
-[pubmed](https://www.ncbi.nlm.nih.gov/pubmed/20936681)
+([pubmed](https://www.ncbi.nlm.nih.gov/pubmed/20936681))
 
 **Usage**
 ```
