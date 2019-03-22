@@ -48,7 +48,7 @@ constraints are specified in a constraints file, of which the format is describe
       constraint type is "MAX".
 
 For ZDOCK constraint based filtering, the two sets of columns refer to atoms in the first and
-the second structure respectively, whereas for M-ZDOCK where only only structure is operated on,
+the second structure respectively, whereas for M-ZDOCK where only one structure is operated on,
 boths sets of columns refer to the same single structure.
 
 Example constraints file:
