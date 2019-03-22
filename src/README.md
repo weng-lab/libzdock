@@ -1,6 +1,6 @@
 # Programs
 
-A number of small utilities are built by default, to facilitate basic operations on ZDOCK, M-ZDOCK and PDB files. Each tool is described breifly below.
+A number of small utilities are built by default, to facilitate basic operations on ZDOCK, M-ZDOCK and PDB files. Each tool is described briefly below.
 
 
 ## centroids
