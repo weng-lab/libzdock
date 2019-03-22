@@ -67,7 +67,7 @@ usage: constraints [options] <zdock output> <constraints file>
 ```
 
 ## createlig
-Creates a complex or ligand for a ZDOCK prediction. Transformations are documented
+Creates a complex or transformed ligand for a ZDOCK prediction. Transformations are documented
 [here](https://github.com/weng-lab/libpdb/blob/master/src/zdock/TransformLigand.hpp#L74).
 
 **Usage**
@@ -97,7 +97,12 @@ usage: createmultimer [options] <zdock output>
 ```
 
 ## pruning
-Performs pruning on ZDOCK and M-ZDOCK output (using the greedy algorthm published here (TODO: add link)
+Performs pruning on ZDOCK and M-ZDOCK output (using the greedy algorthm published
+[here](https://www.ncbi.nlm.nih.gov/pubmed/20936681):
+
+Hwang H, Vreven T, Pierce BG, Hung JH, Weng Z. (2010) Performance of ZDOCK and ZRANK in CAPRI rounds 13-19 Proteins 78(15):3104-3110
+
+[pubmed](https://www.ncbi.nlm.nih.gov/pubmed/20936681)
 
 **Usage**
 ```
