@@ -1,5 +1,7 @@
 # PDB structures and ZDOCK predictions in C++
 
+Library for handling ZDOCK and M-ZDOCK output files and related transformations on PDB structures.
+
 SYNOPSIS
 --------
 
@@ -21,8 +23,11 @@ PDB pdb("filename.pdb");
 // read zdock file
 ZDOCK z("zdock.out");
 
-// transform class for ZDOCK (i.e. not M-ZDOCK)
+// transformation class for ZDOCK
 TransformLigand txl(z);
+
+// similarly, for M-ZDOCK
+TransformMultimer txm(z);
 
 // grab a prediction and transform the PDB atom coordinatea
 const Prediction pred = z.predictions()[0];
@@ -42,7 +47,7 @@ std::cout << pdb.matrix().rowwise().mean() << std::endl;
 DESCRIPTION
 -----------
 
-This library is based on libpdb++, obtained from [RBVI (UCSF)](http://www.cgl.ucsf.edu/Overview/software.html#pdbio). The existing code was updated to match the current PDB standard (there's still some work in progress here but the major record types are done). A wrapper class __PDB__ was created as a container of PDB records and to provide __ATOM__ and __HETATM__ as a _[Eigen](http://eigen.tuxfamily.org/)_ matrix. The __PDB__ class supports PDB files with and without __MODELs__. The second part of this library provides classes to deal with __ZDOCK__ and __M-ZDOCK__ output files as well as distance constraints. Coordinate transformations have been implemented for both __ZDOCK__ and __M-ZDOCK__ predictions. A number of executable programs are available for common tasks, such as create of transformed ligand, complexes and multimers, the application of constraints as a post-processing method, calculation of centroids, pruning, etc.
+This library is based on libpdb++, obtained from [RBVI (UCSF)](http://www.cgl.ucsf.edu/Overview/software.html#pdbio). The existing code was updated to match the current PDB standard (there's still some work in progress here but the major record types are done). A wrapper class __PDB__ was created as a container for PDB records and to provide collections of __ATOM__ and __HETATM__ records as a _[Eigen](http://eigen.tuxfamily.org/)_ matrix. The __PDB__ class supports PDB files with and without __MODELs__. The second part of this library provides classes to deal with __ZDOCK__ and __M-ZDOCK__ output files as well as distance constraints. Coordinate transformations have been implemented for both __ZDOCK__ and __M-ZDOCK__ predictions. A number of executable programs are available for common tasks, such as creation of transformed ligand, complexes and multimers, the application of constraints as a post-processing method, calculation of centroids, pruning, etc.
 
 BUILDING
 --------
@@ -99,7 +104,7 @@ Pierce BG, Hourai Y, Weng Z. (2011) Accelerating Protein Docking in ZDOCK Using 
 
 **M-ZDOCK**
 
-Pierce B, Tong W, Weng Z. (2005) M-ZDOCK: A Grid - based Approach for Cn Symmetric Multimer Docking. _Bioinformatics 21(8): 1472-1476_.
+Pierce B, Tong W, Weng Z. (2005) M-ZDOCK: A Grid-based Approach for Cn Symmetric Multimer Docking. _Bioinformatics 21(8): 1472-1476_.
 
 **Scoring Function**
 
