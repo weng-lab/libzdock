@@ -104,7 +104,7 @@ Pierce BG, Hourai Y, Weng Z. (2011) Accelerating Protein Docking in ZDOCK Using 
 
 **M-ZDOCK**
 
-Pierce B, Tong W, Weng Z. (2005) M-ZDOCK: A Grid - based Approach for Cn Symmetric Multimer Docking. _Bioinformatics 21(8): 1472-1476_.
+Pierce B, Tong W, Weng Z. (2005) M-ZDOCK: A Grid-based Approach for Cn Symmetric Multimer Docking. _Bioinformatics 21(8): 1472-1476_.
 
 **Scoring Function**
 
