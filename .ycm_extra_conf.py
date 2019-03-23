@@ -37,6 +37,7 @@ flags = [
 
   # zdock/libpdb
   '-I', 'contrib/eigen',
+  '-I', 'contrib/Catch2/single_include',
   '-I', 'src/libpdb++',
   '-I', 'src/zdock',
   '-I', 'src/common',
