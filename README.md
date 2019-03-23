@@ -1,5 +1,7 @@
 # PDB structures and ZDOCK predictions in C++
 
+Library for handling ZDOCK and M-ZDOCK output files and related transformations on PDB structures.
+
 SYNOPSIS
 --------
 
@@ -21,8 +23,11 @@ PDB pdb("filename.pdb");
 // read zdock file
 ZDOCK z("zdock.out");
 
-// transform class for ZDOCK (i.e. not M-ZDOCK)
+// transformation class for ZDOCK
 TransformLigand txl(z);
+
+// similarly, for M-ZDOCK
+TransformMultimer txm(z);
 
 // grab a prediction and transform the PDB atom coordinatea
 const Prediction pred = z.predictions()[0];
