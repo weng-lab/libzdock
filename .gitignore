@@ -38,3 +38,6 @@
 /bin/
 /build/
 /lib/
+
+# test binary
+/test/test

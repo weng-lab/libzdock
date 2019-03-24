@@ -6,15 +6,16 @@ BIN_DIR = bin
 OBJ_DIR := build
 LIB_DIR := lib
 TEST_DIR := test
-SRC = -Icontrib/eigen -Icontrib/Catch2/single_include
+SRC = -Icontrib/eigen
 OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic
-#OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic -funroll-loops
+TEST_SRC = -Icontrib/Catch2/single_include
+TEST_OPT = -DDATADIR=$(TEST_DIR)/data
 DEBUG		=
 CXXFLAGS		= $(OPT) $(DEBUG)
 
 BINS = $(BIN_DIR)/createlig $(BIN_DIR)/createmultimer $(BIN_DIR)/pruning \
        $(BIN_DIR)/constraints $(BIN_DIR)/centroids $(BIN_DIR)/zdsplit \
-       $(BIN_DIR)/zdunsplit $(TEST_DIR)/tests
+       $(BIN_DIR)/zdunsplit $(TEST_DIR)/test
 LIBRARY		= zdock
 LIBARCH		= $(LIB_DIR)/lib$(LIBRARY).a
 PYTHON_DIR = python
@@ -45,9 +46,13 @@ all:		Makefile $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR) $(BINS)
 $(LIBARCH): $(LIBOBJ)
 	ar cru $(LIBARCH) $(LIBOBJ)
 
-$(OBJ_DIR)/%.o: %.cpp $(HEADERS)
+$(OBJ_DIR)/src/%.o: src/%.cpp $(HEADERS)
 	@mkdir -p $(OBJ_DIR)/$(shell dirname $<)
 	$(CXX) $(CXXFLAGS) $(SRC) -c -o $@ $<
+
+$(OBJ_DIR)/test/%.o: test/%.cpp $(HEADERS)
+	@mkdir -p $(OBJ_DIR)/$(shell dirname $<)
+	$(CXX) $(CXXFLAGS) $(TEST_OPT) $(TEST_SRC) $(SRC) -c -o $@ $<
 
 $(BIN_DIR)/createlig: build/src/CreateLigand.o $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
@@ -77,9 +82,10 @@ $(BIN_DIR)/zdunsplit: build/src/UnSplit.o $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
 	$(STRIP) $@
 
-$(TEST_DIR)/tests: $(TESTOBJ) $(LIBARCH)
+$(TEST_DIR)/test: $(TESTOBJ) $(LIBARCH)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LD_FLAGS)
 	$(STRIP) $@
+	$(TEST_DIR)/test
 
 $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR):
 	mkdir -p $@
