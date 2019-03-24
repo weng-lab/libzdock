@@ -15,7 +15,7 @@ CXXFLAGS		= $(OPT) $(DEBUG)
 
 BINS = $(BIN_DIR)/createlig $(BIN_DIR)/createmultimer $(BIN_DIR)/pruning \
        $(BIN_DIR)/constraints $(BIN_DIR)/centroids $(BIN_DIR)/zdsplit \
-       $(BIN_DIR)/zdunsplit $(TEST_DIR)/test
+       $(BIN_DIR)/zdunsplit
 LIBRARY		= zdock
 LIBARCH		= $(LIB_DIR)/lib$(LIBRARY).a
 PYTHON_DIR = python
@@ -42,6 +42,8 @@ LIBOBJ = $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(LIB_SOURCES)))
 TESTOBJ = $(addprefix $(OBJ_DIR)/, $(patsubst %.cpp, %.o, $(TEST_SOURCES)))
 
 all:		Makefile $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR) $(BINS)
+
+test: Makefile $(TEST_DIR)/test
 
 $(LIBARCH): $(LIBOBJ)
 	ar cru $(LIBARCH) $(LIBOBJ)
@@ -90,5 +92,5 @@ $(TEST_DIR)/test: $(TESTOBJ) $(LIBARCH)
 $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR):
 	mkdir -p $@
 
-clean:;		rm -Rf $(OBJ) $(LIBARCH) $(BINS) $(PYTHON_CLEAN)
+clean:;		rm -Rf $(OBJ) $(LIBARCH) $(BINS) $(PYTHON_CLEAN) $(TEST_DIR)/test
 
