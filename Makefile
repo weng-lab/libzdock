@@ -9,7 +9,7 @@ TEST_DIR := test
 SRC = -Icontrib/eigen
 OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic
 TEST_SRC = -Icontrib/Catch2/single_include
-TEST_OPT = -DDATADIR=$(TEST_DIR)/data
+TEST_OPT = -DDATADIR=$(realpath $(TEST_DIR)/data)
 DEBUG		=
 CXXFLAGS		= $(OPT) $(DEBUG)
 
