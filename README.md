@@ -47,7 +47,7 @@ std::cout << pdb.matrix().rowwise().mean() << std::endl;
 DESCRIPTION
 -----------
 
-This library is partly based on libpdb++, obtained from [RBVI (UCSF)](http://www.cgl.ucsf.edu/Overview/software.html#pdbio). The existing code was updated to match the current PDB standard (there's still some work in progress here but the major record types are done). A wrapper class __PDB__ was created as a container for PDB records and to provide collections of __ATOM__ and __HETATM__ records as a _[Eigen](http://eigen.tuxfamily.org/)_ matrix. The __PDB__ class supports PDB files with and without __MODELs__. The second part of this library provides classes to deal with __ZDOCK__ and __M-ZDOCK__ output files as well as distance constraints. Coordinate transformations have been implemented for both __ZDOCK__ and __M-ZDOCK__ predictions, see [here](https://github.com/weng-lab/libpdb/blob/master/src/zdock/TransformLigand.hpp#L76-L98) and [here](https://github.com/weng-lab/libpdb/blob/master/src/zdock/TransformMultimer.hpp#L87-L98) respectively. A number of executable programs are available for common tasks, such as creation of transformed ligand, complexes and multimers, the application of constraints as a post-processing method, calculation of centroids, pruning, etc.
+This library is partly based on libpdb++, obtained from [RBVI (UCSF)](http://www.cgl.ucsf.edu/Overview/software.html#pdbio). The existing code was updated to match the current PDB standard (there's still some work in progress here but the major record types are done). A wrapper class __PDB__ was created as a container for PDB records and to provide collections of __ATOM__ and __HETATM__ records as a _[Eigen](http://eigen.tuxfamily.org/)_ matrix. The __PDB__ class supports PDB files with and without __MODELs__. The second part of this library provides classes to deal with __ZDOCK__ and __M-ZDOCK__ output files as well as distance constraints. Coordinate transformations have been implemented for both __ZDOCK__ and __M-ZDOCK__ predictions, see [here](https://github.com/weng-lab/libpdb/blob/master/src/zdock/TransformLigand.hpp#L90-L112) and [here](https://github.com/weng-lab/libpdb/blob/master/src/zdock/TransformMultimer.hpp#L99-L110) respectively. A number of executable programs are available for common tasks, such as creation of transformed ligand, complexes and multimers, the application of constraints as a post-processing method, calculation of centroids, pruning, etc.
 
 BUILDING
 --------
@@ -55,10 +55,11 @@ BUILDING
 Clone this repository:
 
 ```bash
-git clone 'https://github.com/weng-lab/libpdb.git'
-cd libpdb
+git clone 'https://github.com/weng-lab/libzdock.git'
+cd libzdock
 git submodule update --init --recursive
 make -j16
+make test
 ```
 
 The compiler (i.e. g++-7 or clang++) can be updated in the Makefile to reflect your system.
@@ -403,3 +404,5 @@ OR IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
 WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 * * * * *
+
+keywords: ZDOCK, M-ZDOCK, ZDOCK output, PDB, C++, Python, parser, rotations, affine, transformations, structures, libzdock, libpdb, libpdb++, zlab, Weng Lab, Arjan van der Velde
