@@ -59,6 +59,7 @@ git clone 'https://github.com/weng-lab/libpdb.git'
 cd libpdb
 git submodule update --init --recursive
 make -j16
+make test
 ```
 
 The compiler (i.e. g++-7 or clang++) can be updated in the Makefile to reflect your system.
