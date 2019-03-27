@@ -55,8 +55,8 @@ BUILDING
 Clone this repository:
 
 ```bash
-git clone 'https://github.com/weng-lab/libpdb.git'
-cd libpdb
+git clone 'https://github.com/weng-lab/libzdock.git'
+cd libzdock
 git submodule update --init --recursive
 make -j16
 make test
