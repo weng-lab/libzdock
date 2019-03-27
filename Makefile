@@ -11,7 +11,7 @@ OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic
 TEST_SRC = -Icontrib/Catch2/single_include
 TEST_OPT = -DDATADIR=$(realpath $(TEST_DIR)/data)
 DEBUG		=
-CXXFLAGS		= $(OPT) $(DEBUG)
+override CXXFLAGS	+= $(OPT) $(DEBUG)
 
 BINS = $(BIN_DIR)/createlig $(BIN_DIR)/createmultimer $(BIN_DIR)/pruning \
        $(BIN_DIR)/constraints $(BIN_DIR)/centroids $(BIN_DIR)/zdsplit \
