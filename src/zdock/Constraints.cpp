@@ -94,7 +94,7 @@ std::istream &operator>>(std::istream &s, Constraint &c) {
         c.distance = std::stod(cm[11]);
         c.constraintType =
             ("MIN" == std::string(cm[13]) ? Constraint::MIN : Constraint::MAX);
-      } catch (const std::invalid_argument e) {
+      } catch (const std::invalid_argument& e) {
         throw ConstraintException("Constraint format error; invalid argument");
       }
     } else {
