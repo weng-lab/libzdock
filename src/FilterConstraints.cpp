@@ -80,7 +80,7 @@ void FilterConstraints::filterMZDOCKConstraints_() {
         maxdist.push_back(std::numeric_limits<double>::max()); // big number
         mindist.push_back(x.distance);
       }
-    } catch (const AtomNotFoundException e) {
+    } catch (const AtomNotFoundException& e) {
       throw ConstraintException("Constraint Error: " + std::string(e.what()));
     }
   }
@@ -148,7 +148,7 @@ void FilterConstraints::filterZDOCKConstraints_() {
         maxdist.push_back(std::numeric_limits<double>::max()); // big number
         mindist.push_back(x.distance);
       }
-    } catch (const AtomNotFoundException e) {
+    } catch (const AtomNotFoundException& e) {
       throw ConstraintException("Constraint Error: " + std::string(e.what()));
     }
   }
