@@ -405,4 +405,4 @@ WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 * * * * *
 
-keywords: ZDOCK, M-ZDOCK, ZDOCK output, PDB, C++, Python, parser, rotations, affine, transformations, structures, Arjan van der Velde, libzdock, libpdb, libpdb++
+keywords: ZDOCK, M-ZDOCK, ZDOCK output, PDB, C++, Python, parser, rotations, affine, transformations, structures, libzdock, libpdb, libpdb++, zlab, Weng Lab, Arjan van der Velde
