@@ -1,5 +1,3 @@
-![travis](https://travis-ci.com/weng-lab/libzdock.svg?branch=master)
-
 # Programs
 
 A number of small utilities are built by default, to facilitate basic operations on ZDOCK, M-ZDOCK and PDB files. Each tool is described briefly below.
