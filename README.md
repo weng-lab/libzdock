@@ -1,5 +1,3 @@
-![travis](https://travis-ci.com/weng-lab/libzdock.svg?branch=master)
-
 # PDB structures and ZDOCK predictions in C++
 
 Library for handling ZDOCK and M-ZDOCK output files and related transformations on PDB structures.
