@@ -9,15 +9,15 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - clang-8
-      - gcc-7
+      - g++-7
 
 before_script:
   - git submodule update --init --recursive
 
 script: |
   make -e clean && \
-  CXX=/usr/bin/clang++-8 CC=/usr/bin/clang-8 CXXFLAGS=-stdlib=libc++ make -e && \
-  CXX=/usr/bin/clang++-8 CC=/usr/bin/clang-8 CXXFLAGS=-stdlib=libc++ make -e test && \
+  CXX=/usr/bin/clang++-8 CC=/usr/bin/clang-8 make -e && \
+  CXX=/usr/bin/clang++-8 CC=/usr/bin/clang-8 make -e test && \
   make -e clean && \
   CXX=/usr/bin/g++-7 CC=/usr/bin/gcc-7 make -e && \
   CXX=/usr/bin/g++-7 CC=/usr/bin/gcc-7 make -e test
