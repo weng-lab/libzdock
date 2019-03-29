@@ -15,7 +15,9 @@ SYNOPSIS
 ....
 
 // read pdb file (CA only)
-PDB pdb("filename.pdb", [](const auto &r) { return Utils::trim_copy(r.atom.name) == "CA"; });
+PDB pdb("filename.pdb", [](const auto &r) {
+  return Utils::trim_copy(r.atom.name) == "CA";
+});
 
 // or...
 
