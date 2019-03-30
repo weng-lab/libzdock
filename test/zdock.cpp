@@ -51,8 +51,16 @@ TEST_CASE("ZDOCK parser functionality", "[ZDOCK]") {
       REQUIRE(!z.iszdock());
     }
 
+    SECTION("receptor() _must_ throw exception") {
+      REQUIRE_THROWS(z.receptor());
+    }
+
     SECTION("ligand() _must_ throw exception") {
       REQUIRE_THROWS(z.ligand());
+    }
+
+    SECTION("structure() must _not_ throw exception") {
+      REQUIRE_NOTHROW(z.structure());
     }
 
     SECTION("count predictions") {
@@ -75,17 +83,17 @@ TEST_CASE("ZDOCK parser functionality", "[ZDOCK]") {
       REQUIRE(!z.isswitched());
     }
 
-    SECTION("inspect structure (receptor) definition") {
+    SECTION("inspect structure definition") {
       const std::string fn = "/tmp/structure.pdb";
       const double rotation[] = {2.380392, 2.500101, 0.0};
       const double translation[] = {12.348, 1.190, 16.040};
-      REQUIRE(fn == z.receptor().filename);
-      REQUIRE((z.receptor().translation[0] == translation[0] &&
-               z.receptor().translation[1] == translation[1] &&
-               z.receptor().translation[2] == translation[2]));
-      REQUIRE((z.receptor().rotation[0] == rotation[0] &&
-               z.receptor().rotation[1] == rotation[1] &&
-               z.receptor().rotation[2] == rotation[2]));
+      REQUIRE(fn == z.structure().filename);
+      REQUIRE((z.structure().translation[0] == translation[0] &&
+               z.structure().translation[1] == translation[1] &&
+               z.structure().translation[2] == translation[2]));
+      REQUIRE((z.structure().rotation[0] == rotation[0] &&
+               z.structure().rotation[1] == rotation[1] &&
+               z.structure().rotation[2] == rotation[2]));
     }
 
     SECTION("inspect prediction (10)") {
@@ -141,6 +149,10 @@ TEST_CASE("ZDOCK parser functionality", "[ZDOCK]") {
 
     SECTION("ligand() must _not_ throw exception") {
       REQUIRE_NOTHROW(z.ligand());
+    }
+
+    SECTION("structure() _must_ throw exception") {
+      REQUIRE_THROWS(z.structure());
     }
 
     SECTION("count predictions") {
@@ -248,6 +260,10 @@ TEST_CASE("ZDOCK parser functionality", "[ZDOCK]") {
       REQUIRE_NOTHROW(z.ligand());
     }
 
+    SECTION("structure() _must_ throw exception") {
+      REQUIRE_THROWS(z.structure());
+    }
+
     SECTION("count predictions") {
       REQUIRE(npreds == z.npredictions());
     }
@@ -351,6 +367,10 @@ TEST_CASE("ZDOCK parser functionality", "[ZDOCK]") {
 
     SECTION("ligand() must _not_ throw exception") {
       REQUIRE_NOTHROW(z.ligand());
+    }
+
+    SECTION("structure() _must_ throw exception") {
+      REQUIRE_THROWS(z.structure());
     }
 
     SECTION("count predictions") {

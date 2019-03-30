@@ -32,12 +32,30 @@
 
 namespace zdock {
 
+/**
+ * @brief calculate center of mass for top-N ZDOCK predictions
+ */
 class Centroids {
 private:
+  /**
+   * @brief ZDOCK output file name
+   */
   const std::string zdockfn_;
+  /**
+   * @brief Ligand PDB file name
+   */
   const std::string ligandfn_;
+  /**
+   * @brief Chain ID to use for output
+   */
   const std::string chain_;
+  /**
+   * @brief top-N centroids are produced
+   */
   size_t n_;
+  /**
+   * @brief Template ATOM for centroids
+   */
   const libpdb::PDB::Atom templateAtom_ = {
       0,    // serialNum
       "N",  // name
@@ -62,11 +80,25 @@ private:
   };
 
 public:
+  /**
+   * @brief Constructur
+   *
+   * @param zdockoutput ZDOCK output file name
+   * @param ligand Ligand PDB file name
+   * @param n Top-N centroids are produced
+   * @param chain Chain ID to use for output
+   */
   Centroids(const std::string &zdockoutput, const std::string &ligand,
             const size_t n, const std::string &chain);
+  /**
+   * @brief Actually perform centroids generation
+   */
   void doCentroids();
 };
 
+/**
+ * @brief General exception during centroid generation
+ */
 class CentroidsException : public Exception {
 public:
   CentroidsException(const std::string &msg) : Exception(msg) {}

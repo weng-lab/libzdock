@@ -1,10 +1,12 @@
 SHELL		= /bin/sh
 PREFIX  = $(HOME)/local
+DOXYGEN = doxygen
 CXX = g++-7
 STRIP = strip
 BIN_DIR = bin
 OBJ_DIR := build
 LIB_DIR := lib
+DOC_DIR := doc
 TEST_DIR := test
 SRC = -Icontrib/eigen
 OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic
@@ -91,6 +93,11 @@ $(TEST_DIR)/test: $(TESTOBJ) $(LIBARCH)
 
 $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR):
 	mkdir -p $@
+
+doc/doxygen/html/index.html: Makefile doc/Doxyfile $(HEADERS) $(call rwildcard, src/, *.cpp) $(call rwildcard, test/, *.cpp)
+	cd $(DOC_DIR) && $(DOXYGEN)
+
+doc: $(DOC_DIR)/doxygen/html/index.html
 
 clean:;		rm -Rf $(OBJ) $(LIBARCH) $(BINS) $(PYTHON_CLEAN) $(TEST_DIR)/test
 

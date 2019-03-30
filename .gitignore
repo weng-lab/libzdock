@@ -38,6 +38,7 @@
 /bin/
 /build/
 /lib/
+/doc/doxygen/
 
 # test binary
 /test/test
