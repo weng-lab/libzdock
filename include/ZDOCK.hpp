@@ -14,14 +14,15 @@
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  */
 
 #pragma once
@@ -122,13 +123,21 @@ private:
   std::vector<Prediction> predictions_;
 
   // metadata (i.e. from header)
-  int boxsize_;     // box size
-  double spacing_;  // grid size
+  //! box size
+  int boxsize_; // box size
+  //! grid spacing
+  double spacing_; // grid size
+  //! indicates switched receptor and ligand
   bool isswitched_; // receptor and ligand are switched
-  bool ismzdock_;   // mzdock format
-  bool isfixed_;    // -F was used (receptor fixed)
-  int version_;     // format version; (old/mzdock:0; new: 1)
-  int symmetry_;    // m-zdock symmetry
+  //! indicates file is M-ZDOCK
+  bool ismzdock_; // mzdock format
+  //! flag whether receptor was pre-rotated or fixed
+  bool isfixed_; // -F was used (receptor fixed)
+  //! ZDOCK output format 'version'
+  int version_; // format version; (old/mzdock:0; new: 1)
+  //! symmetry (M-ZDOCK only)
+  int symmetry_; // m-zdock symmetry
+  //! (M-)ZDOCK file name
   const std::string filename_;
 
   // private methods
