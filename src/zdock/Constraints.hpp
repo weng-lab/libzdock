@@ -46,16 +46,41 @@ public:
   //! Constraint distance
   double distance;
   //! Possible constraint types (MIN for mimimum and MAX for maximum distance)
-  enum {
-    MIN, /**< minimum distance constraint */
-    MAX  /**< maximum distance constraint */
+  enum ConstraintType {
+    MIN, //!< minimum distance constraint
+    MAX  //!< maximum distance constraint
   } constraintType;
   //! Constructor
   Constraint() : recCoord(), ligCoord(), distance(0.0), constraintType(MAX) {}
 };
 
 /**
- * @brief Constraints parser
+ * @brief Constraints file parser
+ *
+ * Constraint files are line based. Each line constains a distance constraint
+ * (either minimum distance, or maximum distance) between two atoms in two
+ * structures. For ZDOCK these represent the "receptor" and "ligand" stuctures
+ * and for M-ZDOCK they refer to two atoms in the same structure.
+ *
+ * The format whitespace separated and looks as follows:
+ *
+ * ```
+ * 13  OE2 GLU A   5    101  OD1 ASP b  12 7.3 MIN
+ * 13  OE2 GLU A   5    101  OD1 ASP b  12 7.5
+ * ```
+ *
+ * Column 1-5 represent:
+ *
+ *   - ATOM/HETATM serial (integer)
+ *   - ATOM name
+ *   - Residue name
+ *   - Chain identifier (exactly one character)
+ *   - Residue sequence number
+ *
+ *   Column 6-10 represent the second atom
+ *   Column 11 contains the distance (double)
+ *   Column 12 is optionally "MIN" or "MAX". If none is specified, "MAX" is assumed.
+ *
  */
 class Constraints {
 private:
@@ -83,7 +108,7 @@ public:
   const std::vector<Constraint> &constraints() const;
 };
 
-//! input stream for constraint
+//! parser of input stream for constraint (see Constraints)
 std::istream &operator>>(std::istream &s, Constraint &c);
 
 //! output stream representation of constraint
