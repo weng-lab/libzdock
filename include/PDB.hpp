@@ -88,7 +88,7 @@ protected:
   // atomic inserts...
   std::mutex lock_; //!< lock for atomic updates
   //! Atom filter function
-  const std::function<bool(const libpdb::PDB &)> filter_; 
+  const std::function<bool(const libpdb::PDB &)> filter_;
 
 public:
   PDB(); //!< Constructor
