@@ -98,7 +98,9 @@ public:
    * @param filename PDB file name to read from
    * @param filter filter function for ATOM/HETATM records
    */
-  PDB(const std::string &filename, std::function<bool(const libpdb::PDB &)> filter = [](const libpdb::PDB &) { return true; });
+  PDB(const std::string &filename,
+      std::function<bool(const libpdb::PDB &)> filter =
+          [](const libpdb::PDB &) { return true; });
   /**
    * @brief Assignement operator
    * @param p other PDB object
