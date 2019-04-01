@@ -32,12 +32,14 @@ namespace zdock {
 
 class Exception;
 class AtomNotFoundException;
+class CentroidsException;
 class ConstraintException;
 class CreateLigandException;
 class CreateMultimerException;
 class PDBOpenException;
 class PathException;
 class PruningException;
+class SplitException;
 class ZDOCKInvalidFormat;
 class ZDOCKUnsupported;
 

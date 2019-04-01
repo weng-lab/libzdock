@@ -35,6 +35,9 @@
 
 namespace zdock {
 
+/**
+ * @brief Perform RMSD based pruning on (M-)ZDOCK output
+ */
 class Pruning {
 private:
   typedef Eigen::Transform<double, 3, Eigen::Affine> Transform;
@@ -53,19 +56,47 @@ private:
   int nclusters_;             // number of clusters
 
 public:
+  /**
+   * @brief Constructor
+   *
+   * @param zdockoutput ZDOCK or M-ZDOCK output file name
+   * @param cutoff RMSD cutoff
+   * @param structurefn Structure PDB file name
+   * @param getclusters Toggle return for full (M-)ZDOCK output with cluster numbers for scores
+   */
   Pruning(
       const std::string &zdockoutput, const double cutoff,
       const std::string &structurefn = "", // or grab from zdock.out
       const bool getclusters = false // return all w/ cluster number in score
   );
 
-  // perform pruning
+  /**
+   * @brief Actually perform pruning
+   */
   void prune();
+  /**
+   * @brief Get cluster assignments
+   *
+   * @return vector of cluster numbers, one for each prediction
+   */
   const std::vector<int> &clusters() const { return clusters_; }
+  /**
+   * @brief Get number of clusters
+   *
+   * @return number of clusters found
+   */
   int nclusters() const { return nclusters_; }
+  /**
+   * @brief Get ZDOCK output with cluster numbers for scores
+   *
+   * @return ZDOCK output with cluster numbers for scores
+   */
   const ZDOCK &zdock() const { return zdock_; }
 };
 
+/**
+ * @brief General exception during pruning
+ */
 class PruningException : public Exception {
 public:
   PruningException(const std::string &msg) : Exception(msg) {}

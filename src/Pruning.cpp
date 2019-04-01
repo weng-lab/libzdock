@@ -33,6 +33,11 @@
 
 namespace zdock {
 
+/**
+ * @brief generate next character for pretty spinner
+ *
+ * @return spinner character |, /, -, \ ...
+ */
 char spinner() {
   const char s[4] = {'|', '/', '-', '\\'};
   static size_t i = 0;
@@ -53,9 +58,9 @@ Pruning::Pruning(const std::string &zdockoutput, const double cutoff,
       strucfn_ = structurefn;
     }
   } else {
-    // M-ZDOCK only has "receptor"
+    // M-ZDOCK has "structure"
     if ("" == structurefn) {
-      strucfn_ = Utils::copath(zdockoutput, zdock_.receptor().filename);
+      strucfn_ = Utils::copath(zdockoutput, zdock_.structure().filename);
     } else {
       strucfn_ = structurefn;
     }
