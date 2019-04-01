@@ -35,13 +35,13 @@ namespace p = libpdb;
 namespace zdock {
 
 CreateMultimer::CreateMultimer(const std::string &zdockoutput,
-                               const std::string &receptor, const size_t n,
+                               const std::string &structure, const size_t n,
                                const int mer, const bool allrecords)
-    : zdockfn_(zdockoutput), receptorfn_(receptor), n_(n), mer_(mer),
+    : zdockfn_(zdockoutput), structurefn_(structure), n_(n), mer_(mer),
       allrecords_(allrecords) {}
 
 void CreateMultimer::doCreate() {
-  std::string recfn; // receptor file name
+  std::string recfn; // structure file name
   ZDOCK z(zdockfn_); // zdock output parser
 
   // check n within range
@@ -60,14 +60,14 @@ void CreateMultimer::doCreate() {
   // grab prediction
   const zdock::Prediction &pred = z.predictions()[n_ - 1];
 
-  // figure out receptor file name
-  if ("" == receptorfn_) {
-    recfn = Utils::copath(zdockfn_, z.receptor().filename);
+  // figure out structure file name
+  if ("" == structurefn_) {
+    recfn = Utils::copath(zdockfn_, z.structure().filename);
   } else {
-    recfn = receptorfn_;
+    recfn = structurefn_;
   }
 
-  // load receptor
+  // load structure
   PDB rec(recfn);
   TransformMultimer t(z);
   const auto m = rec.matrix();
@@ -94,6 +94,12 @@ void CreateMultimer::doCreate() {
   }
 }
 
+/**
+ * @brief Print command usage
+ *
+ * @param cmd command name
+ * @param err error message if any
+ */
 void usage(const std::string &cmd, const std::string &err = "") {
   // print error if any
   if ("" != err) {
@@ -103,7 +109,7 @@ void usage(const std::string &cmd, const std::string &err = "") {
   std::cerr << "usage: " << cmd << " [options] <zdock output>\n\n"
             << "  -n <integer>    index of prediction in M-ZDOCK file "
                "(defaults to 1; the top prediction)\n"
-            << "  -r <filename>   receptor PDB filename; defaults to receptor "
+            << "  -r <filename>   structure PDB filename; defaults to structure "
                "in M-ZDOCK output\n"
             << "  -m <mer>        component of multimer to output (all if not "
                "specified)\n"

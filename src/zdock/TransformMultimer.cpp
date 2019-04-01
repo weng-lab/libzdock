@@ -42,7 +42,7 @@ TransformMultimer::TransformMultimer(const ZDOCK &zdock) : zdock_(zdock) {
 
   // copy relevant info from zdock file
   if (zdock_.ismzdock()) {
-    structure_ = zdock_.receptor();
+    structure_ = zdock_.structure();
     spacing_ = zdock_.spacing();
     boxsize_ = zdock_.boxsize();
     symmetry_ = (zdock_.symmetry() ? zdock_.symmetry() : 3);

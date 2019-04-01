@@ -35,6 +35,11 @@
 namespace zdock {
 class Utils {
 public:
+  /**
+   * @brief get canonical path for a given path string
+   * @param file path
+   * @return canonical path
+   */
   static std::string realpath(const std::string &file) {
     char *path = ::realpath(file.c_str(), NULL);
     if (path) {
@@ -45,6 +50,12 @@ public:
       throw PathException("realpath not found for '" + file + "'");
     }
   }
+
+  /**
+   * @brief get directory name for a given path
+   * @param path path string
+   * @return directory name for the path
+   */
   static std::string dirname(const std::string &path) {
     size_t p = path.find_last_of('/');
     if (std::string::npos != p) {
@@ -53,6 +64,13 @@ public:
       return "";
     }
   }
+
+  /**
+   * @brief get file path relative to dirname of another path
+   * @param path base path
+   * @param file path relative to dirname of path
+   * @return co path
+   */
   static std::string copath(const std::string &path, const std::string &file) {
     if ('/' == file[0]) {
       return realpath(file); // file is absuolute
@@ -62,13 +80,13 @@ public:
 
   // https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring/217605#217605
 
-  // trim from start (in place)
+  //! trim from start (in place)
   static inline void ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(),
                                     [](int ch) { return !std::isspace(ch); }));
   }
 
-  // trim from end (in place)
+  //! trim from end (in place)
   static inline void rtrim(std::string &s) {
     s.erase(std::find_if(s.rbegin(), s.rend(),
                          [](int ch) { return !std::isspace(ch); })
@@ -76,34 +94,34 @@ public:
             s.end());
   }
 
-  // trim from both ends (in place)
+  //! trim from both ends (in place)
   static inline void trim(std::string &s) {
     ltrim(s);
     rtrim(s);
   }
 
-  // trim from start (copying)
+  //! trim from start (copying)
   static inline std::string ltrim_copy(std::string s) {
     ltrim(s);
     return s;
   }
 
-  // trim from end (copying)
+  //! trim from end (copying)
   static inline std::string rtrim_copy(std::string s) {
     rtrim(s);
     return s;
   }
 
-  // trim from both ends (copying)
+  //! trim from both ends (copying)
   static inline std::string trim_copy(std::string s) {
     trim(s);
     return s;
   }
 
-  // return now
+  //! return now
   static inline auto tic() { return std::chrono::high_resolution_clock::now(); }
 
-  // return now - t1
+  //! return now - t1
   static inline auto toc(std::chrono::high_resolution_clock::time_point t1) {
     auto t2 = tic();
     return std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1)

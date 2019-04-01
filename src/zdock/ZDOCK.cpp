@@ -175,6 +175,23 @@ int ZDOCK::symmetry() const {
   return symmetry_;
 }
 
+
+// get receptor (unsupported for M-ZDOCK)
+Structure &ZDOCK::receptor() {
+  if (ismzdock_) {
+    throw ZDOCKUnsupported("receptor() not supported for M-ZDOCK output");
+  }
+  return receptor_;
+}
+
+// get receptor (unsupported for M-ZDOCK)
+const Structure &ZDOCK::receptor() const {
+  if (ismzdock_) {
+    throw ZDOCKUnsupported("receptor() not supported for M-ZDOCK output");
+  }
+  return receptor_;
+}
+
 // get ligand (unsupported for M-ZDOCK)
 Structure &ZDOCK::ligand() {
   if (ismzdock_) {
@@ -189,6 +206,22 @@ const Structure &ZDOCK::ligand() const {
     throw ZDOCKUnsupported("ligand() not supported for M-ZDOCK output");
   }
   return ligand_;
+}
+
+// get ligand (unsupported for M-ZDOCK)
+Structure &ZDOCK::structure() {
+  if (!ismzdock_) {
+    throw ZDOCKUnsupported("structure() not supported for ZDOCK output");
+  }
+  return receptor_;
+}
+
+// get ligand (unsupported for M-ZDOCK)
+const Structure &ZDOCK::structure() const {
+  if (!ismzdock_) {
+    throw ZDOCKUnsupported("structure() not supported for ZDOCK output");
+  }
+  return receptor_;
 }
 
 // text representation of structure (in (m-)zdock format)
