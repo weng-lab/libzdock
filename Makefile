@@ -9,7 +9,7 @@ LIB_DIR := lib
 DOC_DIR := doc
 TEST_DIR := test
 SRC = -Icontrib/eigen
-OPT		= -march=native -O3 -DEIGEN_USE_LAPACKE -Wall -pedantic
+OPT		= -march=native -O3 -std=c++14 -DEIGEN_USE_LAPACKE -Wall -pedantic
 TEST_SRC = -Icontrib/Catch2/single_include
 TEST_OPT = -DDATADIR=$(realpath $(TEST_DIR)/data)
 DEBUG		=
