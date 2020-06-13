@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 # Copyright (c) 2019, Arjan van der Velde, Weng Lab
 # All rights reserved.
@@ -24,8 +24,9 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function
-import re, os
+import os
+import re
+
 
 class Structure(object):
 
@@ -195,7 +196,7 @@ class ZDOCK(object):
 
     @property
     def lines(self):
-      return self._lines()
+        return self._lines()
 
     @property
     def isswitched(self):
@@ -205,11 +206,12 @@ class ZDOCK(object):
     def ismzdock(self, m):
         self._ismzdock = m and m  # make it bool
 
-    def _procline(self, s):
-      x = re.sub("^([^#]*).*$", "\\1", s).rstrip()
-      if x:
-        return x.split('\t')
-      return []
+    @staticmethod
+    def _procline(s):
+        x = re.sub("^([^#]*).*$", "\\1", s).rstrip()
+        if x:
+            return x.split('\t')
+        return []
 
     def _read(self, n=None):
         header = []
@@ -222,7 +224,7 @@ class ZDOCK(object):
                 p.ismzdock = False
                 line = self._procline(line)
                 if not line:
-                  continue
+                    continue
                 if 7 == len(line):
                     if self.ismzdock:
                         # M-ZDOCK established but 7-column prediction encountered
@@ -255,7 +257,7 @@ class ZDOCK(object):
                         raise Exception("Invalid prediction (line " + str(linenum) + ")")
                 linenum += 1
                 if n is not None and len(self._predictions) > n:
-                  break
+                    break
 
         # figure out header
         if not self.ismzdock:
@@ -268,7 +270,7 @@ class ZDOCK(object):
                         [t(s) for t, s in zip((int, float, lambda x: bool(int(x))), header[0])]
                     self._isfixed = False
                 except Exception as e:
-                    raise Exception("ZDOCK header error: " + e.message)
+                    raise Exception("ZDOCK header error: " + str(e))
             elif 4 == len(header):
                 self._version = 0  # old style has 4 header rows
                 self._isfixed = True
@@ -276,7 +278,7 @@ class ZDOCK(object):
                 try:
                     (self._boxsize, self._spacing) = [t(s) for t, s in zip((int, float), header[0])]
                 except Exception as e:
-                    raise Exception("ZDOCK header error: " + e.message)
+                    raise Exception("ZDOCK header error: " + str(e))
             else:
                 raise Exception("ZDOCK header error; ZDOCK header must have 4 or 5 rows")
         else:
@@ -287,7 +289,7 @@ class ZDOCK(object):
                 (self._boxsize, self._spacing, self._symmetry) = \
                     [t(s) for t, s in zip((int, float, int), header[0])]
             except Exception as e:
-                raise Exception("M-ZDOCK header error: " + e.message)
+                raise Exception("M-ZDOCK header error: " + str(e))
             if 3 > self.symmetry:
                 raise Exception("M-ZDOCK symmetry cannot be less than 3")
 
@@ -303,7 +305,7 @@ class ZDOCK(object):
                 else:
                     raise Exception("Unable to obtain receptor initial rotation")
             except Exception as e:
-                raise Exception("Unable to obtain receptor initial rotation: " + e.message)
+                raise Exception("Unable to obtain receptor initial rotation: " + str(e))
         try:
             if self.isswitched:
                 h = 4 - (not self.version)
@@ -313,7 +315,7 @@ class ZDOCK(object):
             self._receptor.filename = a
             self._receptor.translation = (b, c, d)
         except Exception as e:
-            raise Exception("Unable to obtain receptor initial translation: " + e.message)
+            raise Exception("Unable to obtain receptor initial translation: " + str(e))
 
         # ligand
         if not self.ismzdock:
@@ -328,7 +330,7 @@ class ZDOCK(object):
                 else:
                     raise Exception("Unable to obtain ligand initial rotation")
             except Exception as e:
-                raise Exception("Unable to obtain ligand initial rotation: " + e.message)
+                raise Exception("Unable to obtain ligand initial rotation: " + str(e))
             try:
                 if self.isswitched:
                     h = 3 - (not self.version)
@@ -338,28 +340,28 @@ class ZDOCK(object):
                 self._ligand.filename = a
                 self._ligand.translation = (b, c, d)
             except Exception as e:
-                raise Exception("Unable to obtain ligand initial translation: " + e.message)
+                raise Exception("Unable to obtain ligand initial translation: " + str(e))
 
     def _lines(self):
         if self.ismzdock:
             yield "%d\t%.1f\t%d" % (self.boxsize, self.spacing, self.symmetry)
             yield "%.6f\t%.6f\t%.6f" % \
-                (self._receptor.rotation[0], self._receptor.rotation[1], self._receptor.rotation[2])
+                  (self._receptor.rotation[0], self._receptor.rotation[1], self._receptor.rotation[2])
         elif self.isfixed:
             yield "%d\t%.1f" % (self.boxsize, self.spacing)
             yield "%.6f\t%.6f\t%.6f" % \
-                (self._ligand.rotation[0], self._ligand.rotation[1], self._ligand.rotation[2])
+                  (self._ligand.rotation[0], self._ligand.rotation[1], self._ligand.rotation[2])
         else:
             yield "%d\t%.1f\t%d" % (self.boxsize, self.spacing, self.isswitched)
             yield "%.6f\t%.6f\t%.6f" % self._receptor.rotation
             yield "%.6f\t%.6f\t%.6f" % self._ligand.rotation
         if not self.ismzdock:
-          if self.isswitched:
-              yield str(self._ligand)
-              yield str(self._receptor)
-          else:
-              yield str(self._receptor)
-              yield str(self._ligand)
+            if self.isswitched:
+                yield str(self._ligand)
+                yield str(self._receptor)
+            else:
+                yield str(self._receptor)
+                yield str(self._ligand)
         else:
             yield str(self._receptor)
         for p in self._predictions:
