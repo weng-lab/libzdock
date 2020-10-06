@@ -17,7 +17,6 @@ libzdock implements a set of utilities and library functions to work with PDB fi
   * [BUILDING](#building)
   * [CONSTRAINT FILES](#constraint-files)
   * [REFERENCES](#references)
-- [libpdb++ enchanced to support updated PDB specifications](#libpdb---enchanced-to-support-updated-pdb-specifications)
 - [PDB++](#pdb--)
   * [NAME](#name)
   * [SYNOPSIS](#synopsis-1)
