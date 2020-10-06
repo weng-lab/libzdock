@@ -1,5 +1,34 @@
 # PDB structures and ZDOCK predictions in C++
 
+- [PDB structures and ZDOCK predictions in C++](#pdb-structures-and-zdock-predictions-in-c--)
+  * [Utilities](#utilities)
+    + [centroids](#centroids)
+    + [constraints](#constraints)
+    + [createlig](#createlig)
+    + [createmultimer](#createmultimer)
+    + [pruning](#pruning)
+    + [zdsplit](#zdsplit)
+    + [zdunsplit](#zdunsplit)
+- [libzdock API](#libzdock-api)
+  * [SYNOPSIS](#synopsis)
+  * [DESCRIPTION](#description)
+  * [BUILDING](#building)
+  * [CONSTRAINT FILES](#constraint-files)
+  * [REFERENCES](#references)
+- [libpdb++ enchanced to support updated PDB specifications](#libpdb---enchanced-to-support-updated-pdb-specifications)
+- [PDB++](#pdb--)
+  * [NAME](#name)
+  * [SYNOPSIS](#synopsis-1)
+  * [DESCRIPTION](#description-1)
+  * [MEMBER CONSTANTS](#member-constants)
+  * [MEMBER TYPES](#member-types)
+  * [MEMBER FUNCTIONS](#member-functions)
+  * [I/O FUNCTIONS](#i-o-functions)
+  * [SEE ALSO](#see-also)
+  * [NOTES](#notes)
+  * [BUGS](#bugs)
+  * [COPYRIGHT](#copyright)
+
 libzdock implements a set of utilities and library functions to work with PDB files, and ZDOCK/M-ZDOCK output files. It can be used to perform transformations on PDB structures based on ZDOCK predictions, generate multimers from M-ZDOCK output, constraint based filtering, and pruning. 
 
 ## Utilities
