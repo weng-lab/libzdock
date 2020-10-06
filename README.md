@@ -1,6 +1,6 @@
 # PDB structures and ZDOCK predictions in C++
 
-libzdock implements a set of utilities and library functions to work with PDB files, and (M-)ZDOCK output files. It can be used to perform transformations on PDB structures based on ZDOCK predictions, generate multimer from M-ZDOCK output, constraint based filtering, and pruning. 
+libzdock implements a set of utilities and library functions to work with PDB files, and (M-)ZDOCK output files. It can be used to perform transformations on PDB structures based on ZDOCK predictions, generate multimers from M-ZDOCK output, constraint based filtering, and pruning. 
 
 ## Utilities
 
