@@ -1,6 +1,6 @@
-# PDB structures and ZDOCK predictions in C++
+# PDB structures and ZDOCK predictions in C++ and Python
 
-[libzdock](https://github.com/weng-lab/libzdock) implements a set of utilities and library functions to work with PDB files, and ZDOCK/M-ZDOCK output files. It can be used to perform transformations on PDB structures based on ZDOCK predictions, generate multimers from M-ZDOCK output, constraint based filtering, and pruning. 
+[libzdock](https://github.com/weng-lab/libzdock) implements a set of utilities and library functions to work with PDB files, and ZDOCK/M-ZDOCK output files. It can be used to perform transformations on PDB structures based on ZDOCK predictions, generate multimers from M-ZDOCK output, constraint based filtering, and pruning.
 
 - [PDB structures and ZDOCK predictions in C++](#pdb-structures-and-zdock-predictions-in-c)
   * [Utilities](#utilities)
