@@ -1,7 +1,7 @@
 SHELL		= /bin/sh
 PREFIX  = $(HOME)/local
 DOXYGEN = doxygen
-CXX = g++-7
+CXX = g++-12
 STRIP = strip
 BIN_DIR = bin
 OBJ_DIR := build
