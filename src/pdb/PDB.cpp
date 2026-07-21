@@ -138,6 +138,7 @@ const PDB::Matrix &PDB::setMatrix(const Matrix &m) {
       atoms_[i]->atom.xyz[1] = m(1, i);
       atoms_[i]->atom.xyz[2] = m(2, i);
     }
+    matrix_ = m;
     return matrix_;
   }
 }

@@ -73,6 +73,19 @@ TEST_CASE("PDB rotation", "[prediction]") {
       REQUIRE(ncols == p.matrix().rows());
     }
 
+    SECTION("Setting PDB coordinates updates the coordinate matrix") {
+      const zdock::PDB::Matrix updated =
+          p.matrix().colwise() + Eigen::Vector3d(1.0, 2.0, 3.0);
+
+      const zdock::PDB::Matrix &result = p.setMatrix(updated);
+
+      REQUIRE(result.isApprox(updated));
+      REQUIRE(p.matrix().isApprox(updated));
+      REQUIRE(p.atoms()[0]->atom.xyz[0] == Approx(updated(0, 0)));
+      REQUIRE(p.atoms()[0]->atom.xyz[1] == Approx(updated(1, 0)));
+      REQUIRE(p.atoms()[0]->atom.xyz[2] == Approx(updated(2, 0)));
+    }
+
     SECTION("PDB rotations") {
       const double epsilon = 1.5e-04;
       for (int i = 1; i < 11; ++i) {
