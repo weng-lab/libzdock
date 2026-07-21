@@ -24,7 +24,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define CATCH_CONFIG_MAIN
 #include "Utils.hpp"
 #include "Test.hpp"
 

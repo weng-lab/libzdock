@@ -17,6 +17,9 @@ class ZDOCKTests(unittest.TestCase):
     def test_prediction_limit_is_exact(self):
         self.assertEqual(ZDOCK(self.zdock_file, n=3).npredictions, 3)
 
+    def test_zero_prediction_limit_is_empty(self):
+        self.assertEqual(ZDOCK(self.zdock_file, n=0).npredictions, 0)
+
     def test_symmetry_error_describes_supported_format(self):
         with self.assertRaisesRegex(Exception, "only supported for M-ZDOCK"):
             ZDOCK(self.zdock_file, n=1).symmetry

@@ -256,8 +256,11 @@ class ZDOCK(object):
                     else:
                         raise Exception("Invalid prediction (line " + str(linenum) + ")")
                 linenum += 1
-                if n is not None and len(self._predictions) >= n:
+                if n is not None and n > 0 and len(self._predictions) >= n:
                     break
+
+        if n == 0:
+            self._predictions = []
 
         # figure out header
         if not self.ismzdock:
