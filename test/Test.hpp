@@ -29,7 +29,7 @@
 #define STR_EXPAND(tok) #tok
 #define STR(tok) STR_EXPAND(tok)
 #include "Utils.hpp"
-#include "catch2/catch.hpp"
+#include "catch_amalgamated.hpp"
 
 namespace test {
 const std::string getpath(const std::string &p = "");

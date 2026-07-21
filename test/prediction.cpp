@@ -81,9 +81,9 @@ TEST_CASE("PDB rotation", "[prediction]") {
 
       REQUIRE(result.isApprox(updated));
       REQUIRE(p.matrix().isApprox(updated));
-      REQUIRE(p.atoms()[0]->atom.xyz[0] == Approx(updated(0, 0)));
-      REQUIRE(p.atoms()[0]->atom.xyz[1] == Approx(updated(1, 0)));
-      REQUIRE(p.atoms()[0]->atom.xyz[2] == Approx(updated(2, 0)));
+      REQUIRE(p.atoms()[0]->atom.xyz[0] == Catch::Approx(updated(0, 0)));
+      REQUIRE(p.atoms()[0]->atom.xyz[1] == Catch::Approx(updated(1, 0)));
+      REQUIRE(p.atoms()[0]->atom.xyz[2] == Catch::Approx(updated(2, 0)));
     }
 
     SECTION("PDB rotations") {

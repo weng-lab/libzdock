@@ -7,6 +7,8 @@ AR ?= ar
 ARFLAGS := rcs
 DOXYGEN ?= doxygen
 PYTHON ?= python3
+CATCH_DIR := contrib/Catch2
+CATCH_CPP := $(CATCH_DIR)/extras/catch_amalgamated.cpp
 
 CPPFLAGS += -Icontrib/eigen -Isrc/libpdb++ -Isrc/zdock -Isrc/common \
             -Isrc/pdb -Iinclude
@@ -69,11 +71,15 @@ check-deps:
 	  echo "Eigen submodule missing; run: git submodule update --init --recursive" >&2; \
 	  exit 1; \
 	}
+	@test -f $(CATCH_CPP) || { \
+	  echo "Catch2 submodule missing; run: git submodule update --init --recursive" >&2; \
+	  exit 1; \
+	}
 
 $(LIBARCH): $(LIB_OBJECTS) | $(LIB_DIR)
 	$(AR) $(ARFLAGS) $@ $^
 
-$(OBJ_DIR)/test/%.o: CPPFLAGS += -Icontrib/Catch2/single_include \
+$(OBJ_DIR)/test/%.o: CPPFLAGS += -I$(CATCH_DIR)/extras \
   -DDATADIR=$(abspath $(TEST_DIR)/data)
 
 $(OBJ_DIR)/%.o: %.cpp
@@ -93,8 +99,13 @@ $(eval $(call LINK_TOOL,centroids,src/Centroids.cpp))
 $(eval $(call LINK_TOOL,zdsplit,src/Split.cpp))
 $(eval $(call LINK_TOOL,zdunsplit,src/UnSplit.cpp))
 
-$(TEST_BIN): $(TEST_OBJECTS) $(LIBARCH)
+$(TEST_BIN): $(TEST_OBJECTS) $(LIBARCH) $(OBJ_DIR)/catch_amalgamated.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
+$(OBJ_DIR)/catch_amalgamated.o: $(CATCH_CPP)
+	@mkdir -p $(dir $@)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXXSTANDARD) $(WARNINGS) \
+	  -I$(CATCH_DIR)/extras -c -o $@ $<
 
 cpp-test: check-deps $(TEST_BIN)
 	$(TEST_BIN)
