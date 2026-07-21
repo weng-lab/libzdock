@@ -29,6 +29,8 @@
 #include "Exception.hpp"
 #include "ZDOCK.hpp"
 
+#include <cstdint>
+
 namespace zdock {
 
 /**
