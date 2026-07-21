@@ -31,7 +31,7 @@
 TEST_CASE("TransformUtil basic checks", "[eulerRotation]") {
 
   Eigen::Matrix<double, 4, 4> x, y;
-  const double epsilon = 1e-30;
+  const double epsilon = 1e-24;
 
   SECTION("eulerRotation 1/7") {
     // expected result

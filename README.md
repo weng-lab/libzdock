@@ -225,11 +225,14 @@ Clone this repository:
 git clone 'https://github.com/weng-lab/libzdock.git'
 cd libzdock
 git submodule update --init --recursive
-make -j16
+make -j
 make test
 ```
 
-The compiler (i.e. g++-7 or clang++) can be updated in the Makefile to reflect your system.
+The build requires GNU make. On FreeBSD, install GNU make and use `gmake -j`
+and `gmake test`; Linux and macOS normally provide it as `make`. The default
+compiler is the platform's `c++`. Override tools and flags on the command line,
+for example `make CXX=clang++` or `gmake CXX=g++ CXXFLAGS='-O2 -g'`.
 
 
 CONSTRAINT FILES

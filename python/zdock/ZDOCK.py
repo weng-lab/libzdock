@@ -175,7 +175,7 @@ class ZDOCK(object):
     @property
     def symmetry(self):
         if not self.ismzdock:
-            raise Exception("symmetry() not supported for M-ZDOCK")
+            raise Exception("symmetry() only supported for M-ZDOCK")
         return self._symmetry
 
     @property
@@ -256,7 +256,7 @@ class ZDOCK(object):
                     else:
                         raise Exception("Invalid prediction (line " + str(linenum) + ")")
                 linenum += 1
-                if n is not None and len(self._predictions) > n:
+                if n is not None and len(self._predictions) >= n:
                     break
 
         # figure out header
