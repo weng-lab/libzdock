@@ -389,6 +389,7 @@ PDB::PDB(const char *buf) {
   user:
     rType = USER;
     fmt = pdbRecordFormat[rType];
+    /* fall through */
   case USER:
     if (0 > sscanf(buf, fmt, user.subtype, user.text))
       goto unknown;
