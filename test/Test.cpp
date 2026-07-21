@@ -38,6 +38,7 @@ const std::string getpath(const std::string &p) {
 
 // be sure datadir exists
 TEST_CASE("test data dir", "[pre]") {
+  // Invariant: the configured test-data directory exists and is canonicalizable.
   REQUIRE_NOTHROW(test::getpath());
 }
 

@@ -12,6 +12,7 @@ void require_bounded_record(const libpdb::PDB &record) {
 } // namespace
 
 TEST_CASE("PDBRUN v5 user records are bounded", "[pdb-format]") {
+  // Invariant: every supported v5 USER record fits in PDB's fixed output buffer.
   libpdb::PDB::PdbrunOutputVersion(5);
 
   SECTION("background color") {

@@ -29,6 +29,7 @@
 #include "Test.hpp"
 
 TEST_CASE("TransformUtil basic checks", "[eulerRotation]") {
+  // Invariant: Euler rotations match the established matrices in both directions.
 
   Eigen::Matrix<double, 4, 4> x, y;
   const double epsilon = 1e-24;

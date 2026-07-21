@@ -30,6 +30,7 @@
 #include <string>
 
 TEST_CASE("ZDOCK parser functionality", "[ZDOCK]") {
+  // Invariant: every supported ZDOCK format preserves its metadata and predictions.
   // data directory, relative to DATADIR
   const std::string _zdock = "ZDOCK";
 

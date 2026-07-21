@@ -1,0 +1,7 @@
+MODEL        1
+ATOM      1  N   GLY A   1       1.000   2.000   3.000  1.00 10.00           N
+ATOM      2  CA  GLY A   1       4.000   5.000   6.000  1.00 10.00           C
+ENDMDL
+MODEL        2
+ATOM      3  N   ALA B   2       7.000   8.000   9.000  1.00 10.00           N
+ENDMDL
