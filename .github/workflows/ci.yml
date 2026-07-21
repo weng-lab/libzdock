@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, agv/modernize]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }} / ${{ matrix.compiler }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: gcc
+            cxx: g++
+          - os: ubuntu-latest
+            compiler: clang
+            cxx: clang++
+          - os: macos-latest
+            compiler: apple-clang
+            cxx: clang++
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install GNU make on macOS
+        if: runner.os == 'macOS'
+        run: brew install make
+
+      - name: Build and run tests
+        env:
+          CXX: ${{ matrix.cxx }}
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            MAKE=gmake
+          else
+            MAKE=make
+          fi
+          "$MAKE" clean
+          "$MAKE" -j2 all
+          "$MAKE" cpp-test
+          "$MAKE" python-test

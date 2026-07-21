@@ -229,10 +229,11 @@ make -j
 make test
 ```
 
-The build requires GNU make. On FreeBSD, install GNU make and use `gmake -j`
-and `gmake test`; Linux and macOS normally provide it as `make`. The default
-compiler is the platform's `c++`. Override tools and flags on the command line,
-for example `make CXX=clang++` or `gmake CXX=g++ CXXFLAGS='-O2 -g'`.
+The build requires GNU make. On FreeBSD and macOS, install GNU make and use
+`gmake -j` and `gmake test`; Linux normally provides it as `make`. The
+default compiler is the platform's `c++`. Override tools and flags on the
+command line, for example `make CXX=clang++` or `gmake CXX=g++
+CXXFLAGS='-O2 -g'`.
 
 
 CONSTRAINT FILES
