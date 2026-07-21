@@ -51,8 +51,10 @@ void CreateMultimer::doCreate() {
   }
 
   // check m within range
-  if (mer_ >= z.symmetry() ||
-      static_cast<int>(sizeof(TransformMultimer::CHAINS)) <= mer_) {
+  constexpr int chainCount =
+      sizeof(TransformMultimer::CHAINS) / sizeof(TransformMultimer::CHAINS[0]);
+  if (mer_ < -1 || mer_ >= z.symmetry() || mer_ >= chainCount ||
+      (-1 == mer_ && z.symmetry() > chainCount)) {
     throw CreateMultimerException("Invalid component; valid range 0 - " +
                                   std::to_string(z.symmetry() - 1));
   }
@@ -126,16 +128,17 @@ int main(int argc, char *argv[]) {
   size_t n = 1;
   int m = -1;
   int c;
-  while ((c = getopt(argc, argv, "ahn:r:m:")) != -1) {
-    switch (c) {
+  try {
+    while ((c = getopt(argc, argv, "ahn:r:m:")) != -1) {
+      switch (c) {
     case 'a':
       allrecords = true;
       break;
     case 'm': // prediction index
-      m = std::stoi(optarg);
+      m = zdock::Utils::parseInt(optarg);
       break;
     case 'n': // prediction index
-      n = std::stoi(optarg);
+      n = zdock::Utils::parseInt(optarg);
       break;
     case 'r': // alternative ligand
       recfn = optarg;
@@ -148,7 +151,11 @@ int main(int argc, char *argv[]) {
       return 1;
     default:
       return 1;
+      }
     }
+  } catch (const zdock::Exception &e) {
+    zdock::usage(argv[0], e.what());
+    return 1;
   }
   if (argc > optind) {
     zdockfn = argv[optind]; // zdock file
@@ -166,4 +173,3 @@ int main(int argc, char *argv[]) {
   }
   return 0;
 }
-

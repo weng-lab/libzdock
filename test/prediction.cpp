@@ -103,3 +103,14 @@ TEST_CASE("PDB rotation", "[prediction]") {
   }
 
 }
+
+TEST_CASE("Ligand transformations reject M-ZDOCK input", "[prediction]") {
+  // Invariant: a ligand transformer cannot operate on multimer docking output.
+  const zdock::ZDOCK multimer(test::getpath("ZDOCK/mzdock.out"));
+  const zdock::TransformLigand transform(multimer);
+  zdock::PDB::Matrix input(3, 1);
+  input << 1.0, 2.0, 3.0;
+
+  REQUIRE_THROWS_AS(transform.txLigand(input, multimer.predictions()[0]),
+                    zdock::ZDOCKUnsupported);
+}

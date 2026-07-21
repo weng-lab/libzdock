@@ -135,13 +135,10 @@ void ZDOCK::read_() {
       throw ZDOCKInvalidFormat(filename_, "Unable to obtain receptor initial rotation");
     }
   }
-  try {
-    std::stringstream ss(header[(isswitched_ ? 4 : 3) - (!version_)]);
-    ss >> receptor_.filename;
-    ss >> receptor_.translation[0];
-    ss >> receptor_.translation[1];
-    ss >> receptor_.translation[2];
-  } catch (const std::exception &e) {
+  std::stringstream receptorStream(
+      header[(isswitched_ ? 4 : 3) - (!version_)]);
+  if (!(receptorStream >> receptor_.filename >> receptor_.translation[0] >>
+        receptor_.translation[1] >> receptor_.translation[2])) {
     throw ZDOCKInvalidFormat(filename_,
                              "Unable to obtain receptor initial translation");
   }
@@ -154,13 +151,10 @@ void ZDOCK::read_() {
       throw ZDOCKInvalidFormat(filename_,
                                "Unable to obtain receptor initial rotation");
     }
-    try {
-      std::stringstream ss(header[(isswitched_ ? 3 : 4) - (!version_)]);
-      ss >> ligand_.filename;
-      ss >> ligand_.translation[0];
-      ss >> ligand_.translation[1];
-      ss >> ligand_.translation[2];
-    } catch (const std::exception &e) {
+    std::stringstream ligandStream(
+        header[(isswitched_ ? 3 : 4) - (!version_)]);
+    if (!(ligandStream >> ligand_.filename >> ligand_.translation[0] >>
+          ligand_.translation[1] >> ligand_.translation[2])) {
       throw ZDOCKInvalidFormat(filename_,
                                "Unable to obtain receptor initial translation");
     }

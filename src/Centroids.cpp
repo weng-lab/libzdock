@@ -101,13 +101,14 @@ int main(int argc, char *argv[]) {
   std::string chain("Z");
   int n = 1;
   int c;
-  while ((c = getopt(argc, argv, "hn:l:c:")) != -1) {
-    switch (c) {
+  try {
+    while ((c = getopt(argc, argv, "hn:l:c:")) != -1) {
+      switch (c) {
     case 'c':
       chain = std::string(optarg)[0];
       break;
     case 'n':
-      n = std::stoi(optarg);
+      n = zdock::Utils::parseInt(optarg);
       break;
     case 'l':
       ligfn = optarg;
@@ -120,7 +121,11 @@ int main(int argc, char *argv[]) {
       return 1;
     default:
       return 1;
+      }
     }
+  } catch (const zdock::Exception &e) {
+    zdock::usage(argv[0], e.what());
+    return 1;
   }
   if (argc > optind) {
     zdockfn = argv[optind]; // zdock file

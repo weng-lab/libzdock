@@ -37,12 +37,7 @@ namespace zdock {
 
 PDB::PDB() : filter_([](const libpdb::PDB &) { return true; }) {}
 
-PDB::PDB(const PDB &p) {
-  models_ = p.models_;
-  records_ = p.records_;
-  atoms_ = p.atoms_;
-  matrix_ = p.matrix_;
-}
+PDB::PDB(const PDB &other) : filter_(other.filter_) { *this = other; }
 
 PDB::PDB(const std::string &filename,
          std::function<bool(const libpdb::PDB &)> filter)
@@ -50,11 +45,29 @@ PDB::PDB(const std::string &filename,
   read_(filename);
 }
 
-PDB &PDB::operator=(const PDB &p) {
-  models_ = p.models_;
-  records_ = p.records_;
-  atoms_ = p.atoms_;
-  matrix_ = p.matrix_;
+PDB &PDB::operator=(const PDB &other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  filter_ = other.filter_;
+  models_.clear();
+  records_.clear();
+  atoms_.clear();
+  matrix_.resize(3, 0);
+
+  size_t model = 0;
+  for (const auto &record : other.records_) {
+    if (record->type() == p::PDB::MODEL) {
+      model = record->model.num;
+      while (models_.size() < model) {
+        models_.push_back(std::make_shared<zdock::Model>());
+      }
+    } else if (record->type() == p::PDB::ENDMDL) {
+      model = 0;
+    }
+    append(*record, model);
+  }
   return *this;
 }
 
@@ -96,6 +109,9 @@ void PDB::append(const libpdb::PDB &record, const int model) {
 
 void PDB::append(const Record &r, const int model) {
   std::lock_guard<std::mutex> lock(lock_);
+  if (model < 0 || static_cast<size_t>(model) > models_.size()) {
+    throw Exception("PDB model index is out of range");
+  }
   switch (r->type()) {
   case p::PDB::UNKNOWN:
     break; // silently drop 'UNKNOWN' type records
@@ -132,7 +148,9 @@ const PDB::Matrix &PDB::setMatrix(const Matrix &m) {
     return models_[0]->setMatrix(m); // first model
   } else {                           // only model
     std::lock_guard<std::mutex> lock(lock_);
-    assert(m.cols() == static_cast<long>(atoms_.size()));
+    if (m.rows() != 3 || m.cols() != static_cast<long>(atoms_.size())) {
+      throw Exception("PDB coordinate matrix dimensions do not match its atoms");
+    }
     for (size_t i = 0; i < atoms_.size(); ++i) {
       atoms_[i]->atom.xyz[0] = m(0, i);
       atoms_[i]->atom.xyz[1] = m(1, i);
@@ -173,6 +191,9 @@ const PDB::Record &PDB::operator[](const RecordCoord &coord) const {
 }
 
 PDB::Coord PDB::centroid() const  {
+  if (matrix().cols() == 0) {
+    throw Exception("Cannot calculate the centroid of an empty PDB");
+  }
   return matrix().rowwise().mean();
 }
 

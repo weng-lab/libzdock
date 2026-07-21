@@ -30,11 +30,38 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
+#include <stdexcept>
 #include <string>
 
 namespace zdock {
 class Utils {
 public:
+  static int parseInt(const std::string &value) {
+    size_t parsed = 0;
+    try {
+      const int result = std::stoi(value, &parsed);
+      if (parsed != value.size()) {
+        throw std::invalid_argument("trailing characters");
+      }
+      return result;
+    } catch (const std::exception &) {
+      throw Exception("Invalid numeric option '" + value + "'");
+    }
+  }
+
+  static double parseDouble(const std::string &value) {
+    size_t parsed = 0;
+    try {
+      const double result = std::stod(value, &parsed);
+      if (parsed != value.size()) {
+        throw std::invalid_argument("trailing characters");
+      }
+      return result;
+    } catch (const std::exception &) {
+      throw Exception("Invalid numeric option '" + value + "'");
+    }
+  }
+
   /**
    * @brief get canonical path for a given path string
    * @param file path
@@ -72,6 +99,9 @@ public:
    * @return co path
    */
   static std::string copath(const std::string &path, const std::string &file) {
+    if (file.empty()) {
+      throw PathException("Cannot resolve an empty path");
+    }
     if ('/' == file[0]) {
       return realpath(file); // file is absuolute
     }

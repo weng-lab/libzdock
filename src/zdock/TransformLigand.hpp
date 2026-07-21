@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "Exception.hpp"
 #include "PDB.hpp"
 #include "TransformUtil.hpp"
 #include "ZDOCK.hpp"
@@ -83,7 +84,9 @@ public:
     using Eigen::Translation3d;
     using Eigen::Vector3d;
 
-    assert(isvalid_); // did we successfully load zdock data?
+    if (!isvalid_) {
+      throw ZDOCKUnsupported("Ligand transformation requires ZDOCK output");
+    }
 
     if (rev_) {
 

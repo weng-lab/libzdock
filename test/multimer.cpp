@@ -38,3 +38,35 @@ TEST_CASE("TransformMultimer accepts an M-ZDOCK filename", "[multimer]") {
   REQUIRE(fromFile.txMultimer(input, docking.predictions()[1], 2).isApprox(
       fromObject.txMultimer(input, docking.predictions()[1], 2)));
 }
+
+TEST_CASE("Multimer chain identifiers cover the complete PDB alphabet",
+          "[multimer]") {
+  // Invariant: each of the 52 supported components receives a unique chain ID.
+  std::string chains;
+  for (const auto &chain : zdock::TransformMultimer::CHAINS) {
+    chains += chain;
+  }
+
+  REQUIRE(chains == "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+}
+
+TEST_CASE("Multimer transformations reject incompatible requests",
+          "[multimer]") {
+  // Invariant: wrong formats and components outside symmetry fail explicitly.
+  const zdock::ZDOCK regular(test::getpath("ZDOCK/6GWC.zd.out"));
+  const zdock::ZDOCK multimer(test::getpath("ZDOCK/mzdock.out"));
+  const zdock::TransformMultimer wrongFormat(regular);
+  const zdock::TransformMultimer transform(multimer);
+  zdock::PDB::Matrix input(3, 1);
+  input << 1.0, 2.0, 3.0;
+
+  REQUIRE_THROWS_AS(
+      wrongFormat.txMultimer(input, regular.predictions()[0], 0),
+      zdock::ZDOCKUnsupported);
+  REQUIRE_THROWS_AS(
+      transform.txMultimer(input, multimer.predictions()[0], -1),
+      zdock::ZDOCKUnsupported);
+  REQUIRE_THROWS_AS(
+      transform.txMultimer(input, multimer.predictions()[0], 24),
+      zdock::ZDOCKUnsupported);
+}

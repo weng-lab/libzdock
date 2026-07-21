@@ -51,9 +51,9 @@ TEST_CASE("PDB filters affect atoms but preserve input records", "[pdb]") {
 }
 
 TEST_CASE("PDB value operations preserve observable coordinates", "[pdb]") {
-  // Invariant: centroid, copy construction, and assignment preserve coordinates.
-  const zdock::PDB original(test::getpath("2OOB/ligand.pdb"));
-  const zdock::PDB copied(original);
+  // Invariant: copies preserve values without sharing mutable record ownership.
+  zdock::PDB original(test::getpath("2OOB/ligand.pdb"));
+  zdock::PDB copied(original);
   zdock::PDB assigned;
   assigned = original;
 
@@ -62,6 +62,13 @@ TEST_CASE("PDB value operations preserve observable coordinates", "[pdb]") {
   REQUIRE(copied.atoms().size() == original.atoms().size());
   REQUIRE(assigned.matrix().isApprox(original.matrix()));
   REQUIRE(assigned.records().size() == original.records().size());
+
+  const double originalX = original.atoms()[0]->atom.xyz[0];
+  copied.atoms()[0]->atom.xyz[0] += 10.0;
+  assigned.atoms()[0]->atom.xyz[0] += 20.0;
+  REQUIRE(original.atoms()[0]->atom.xyz[0] == originalX);
+  REQUIRE(copied.atoms()[0] != original.atoms()[0]);
+  REQUIRE(assigned.atoms()[0] != original.atoms()[0]);
 }
 
 TEST_CASE("PDB reports files that cannot be opened", "[pdb]") {
@@ -85,4 +92,19 @@ TEST_CASE("PDB models expose and update the first model", "[pdb]") {
   REQUIRE(pdb.setMatrix(updated).isApprox(updated));
   REQUIRE(pdb.matrix().isApprox(updated));
   REQUIRE(pdb.models()[1]->matrix()(0, 0) == Catch::Approx(7.0));
+}
+
+TEST_CASE("PDB rejects invalid matrix and model operations", "[pdb]") {
+  // Invariant: public mutations validate dimensions and model indices at runtime.
+  zdock::PDB pdb(test::getpath("2OOB/ligand.pdb"));
+  zdock::PDB::Matrix wrongColumns(3, pdb.matrix().cols() - 1);
+
+  REQUIRE_THROWS_AS(pdb.setMatrix(wrongColumns), zdock::Exception);
+  REQUIRE_THROWS_AS(pdb.append(pdb.atoms()[0], 1), zdock::Exception);
+}
+
+TEST_CASE("Empty PDB structures have no centroid", "[pdb]") {
+  // Invariant: centroid calculation rejects an empty coordinate collection.
+  const zdock::PDB empty;
+  REQUIRE_THROWS_AS(empty.centroid(), zdock::Exception);
 }

@@ -116,8 +116,9 @@ int main(int argc, char *argv[]) {
   int c;
   bool cmplx = false;
   bool allrecords = false;
-  while ((c = getopt(argc, argv, "achn:l:r:")) != -1) {
-    switch (c) {
+  try {
+    while ((c = getopt(argc, argv, "achn:l:r:")) != -1) {
+      switch (c) {
     case 'a':
       allrecords = true;
       break;
@@ -125,7 +126,7 @@ int main(int argc, char *argv[]) {
       cmplx = true;
       break;
     case 'n': // prediction index
-      n = std::stoi(optarg);
+      n = zdock::Utils::parseInt(optarg);
       break;
     case 'l': // alternative ligand
       ligfn = optarg;
@@ -141,7 +142,11 @@ int main(int argc, char *argv[]) {
       return 1;
     default:
       return 1;
+      }
     }
+  } catch (const zdock::Exception &e) {
+    zdock::usage(argv[0], e.what());
+    return 1;
   }
   if (argc > optind) {
     zdockfn = argv[optind]; // zdock file
@@ -159,4 +164,3 @@ int main(int argc, char *argv[]) {
   }
   return 0;
 }
-

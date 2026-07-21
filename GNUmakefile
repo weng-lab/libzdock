@@ -53,7 +53,7 @@ TOOL_SOURCES := \
   src/UnSplit.cpp
 TEST_SOURCES := test/Test.cpp test/constraints.cpp test/formatting.cpp \
   test/multimer.cpp test/pdb.cpp test/prediction.cpp test/rotation.cpp \
-  test/zdock.cpp test/zdock_errors.cpp
+  test/utils.cpp test/zdock.cpp test/zdock_errors.cpp
 
 LIB_OBJECTS := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(LIB_SOURCES))
 TOOL_OBJECTS := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(TOOL_SOURCES))
@@ -111,7 +111,7 @@ $(OBJ_DIR)/catch_amalgamated.o: $(CATCH_CPP)
 cpp-test: check-deps $(TEST_BIN)
 	$(TEST_BIN)
 
-python-test:
+python-test: all
 	$(PYTHON) -m unittest discover -s $(PYTHON_DIR) -p 'test_*.py' -v
 
 test: cpp-test python-test
