@@ -15,6 +15,16 @@ TEST_CASE("M-ZDOCK transformations are rigid", "[multimer]") {
   const auto first = transform.txMultimer(input, docking.predictions()[0], 0);
   const auto second = transform.txMultimer(input, docking.predictions()[0], 1);
 
+  zdock::PDB::Matrix expected(3, 3);
+  expected << -19.855310217231672, -20.543392706773322,
+      -20.711382348244648, 17.358073888770218, 17.338265216204988,
+      18.994614060996650, 0.666941280683854, 1.392303331026556,
+      -0.100441786103513;
+
+  // Invariant: the documented M-ZDOCK rotations and translations produce this
+  // independently composed reference pose, including their order and direction.
+  REQUIRE(first.isApprox(expected, 1e-12));
+
   for (int left = 0; left < input.cols(); ++left) {
     for (int right = 0; right < input.cols(); ++right) {
       REQUIRE((first.col(left) - first.col(right)).norm() ==

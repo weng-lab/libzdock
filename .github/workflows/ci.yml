@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, agv/modernize]
+    branches: [master, agv/modernize]
   pull_request:
 
 permissions:
