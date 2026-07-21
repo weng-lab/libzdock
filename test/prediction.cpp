@@ -33,6 +33,7 @@
 #include <string>
 
 TEST_CASE("PDB rotation", "[prediction]") {
+  // Invariant: parsed docking transforms reproduce the reference ligand poses.
   const std::string _zdock = "2OOB/zdock.out.pruned";
   const std::string _ligand = "2OOB/ligand.pdb";
   const std::string _prefix = "2OOB/ligand.";

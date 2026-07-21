@@ -15,12 +15,15 @@ class ZDOCKTests(unittest.TestCase):
         )
 
     def test_prediction_limit_is_exact(self):
+        # Invariant: requesting n predictions returns exactly n predictions.
         self.assertEqual(ZDOCK(self.zdock_file, n=3).npredictions, 3)
 
     def test_zero_prediction_limit_is_empty(self):
+        # Invariant: requesting zero predictions still parses metadata but no poses.
         self.assertEqual(ZDOCK(self.zdock_file, n=0).npredictions, 0)
 
     def test_symmetry_error_describes_supported_format(self):
+        # Invariant: symmetry errors identify M-ZDOCK as the supported format.
         with self.assertRaisesRegex(Exception, "only supported for M-ZDOCK"):
             ZDOCK(self.zdock_file, n=1).symmetry
 
