@@ -49,7 +49,8 @@ TOOL_SOURCES := \
   src/Centroids.cpp \
   src/Split.cpp \
   src/UnSplit.cpp
-TEST_SOURCES := test/Test.cpp test/prediction.cpp test/rotation.cpp test/zdock.cpp
+TEST_SOURCES := test/Test.cpp test/formatting.cpp test/prediction.cpp \
+  test/rotation.cpp test/zdock.cpp
 
 LIB_OBJECTS := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(LIB_SOURCES))
 TOOL_OBJECTS := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(TOOL_SOURCES))

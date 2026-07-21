@@ -23,10 +23,9 @@
 extern "C" {
 #include <ctype.h>
 }
+#include <cstdio>
 
 namespace libpdb {
-
-extern "C" int sprintf(char *, const char *, ...);
 
 static char const *const pdbRecordFormat[PDB::NUM_TYPES] = {
 #include "write_format.i"
@@ -365,8 +364,8 @@ const char *PDB::chars(void) const {
 
   case USER_BGCOLOR:
     if (pdbrunOutputVersion < 6)
-      count = ::sprintf(buf, fmt, userBgColor.rgb[0], userBgColor.rgb[1],
-                        userBgColor.rgb[2]);
+      count = std::snprintf(buf, BufLen, fmt, userBgColor.rgb[0],
+                            userBgColor.rgb[1], userBgColor.rgb[2]);
     else
       count = sprintf(buf, fmt, userBgColor.rgb[0], userBgColor.rgb[1],
                       userBgColor.rgb[2]);
@@ -414,8 +413,9 @@ const char *PDB::chars(void) const {
 
   case USER_CNAME:
     if (pdbrunOutputVersion < 6)
-      count = ::sprintf(buf, fmt, userCName.name, userCName.rgb[0],
-                        userCName.rgb[1], userCName.rgb[2]);
+      count = std::snprintf(buf, BufLen, fmt, userCName.name,
+                            userCName.rgb[0], userCName.rgb[1],
+                            userCName.rgb[2]);
     else
       count = sprintf(buf, fmt, userCName.rgb[0], userCName.rgb[1],
                       userCName.rgb[2], userCName.name);
@@ -423,8 +423,9 @@ const char *PDB::chars(void) const {
 
   case USER_COLOR:
     if (pdbrunOutputVersion < 6)
-      count = ::sprintf(buf, fmt, userColor.spec, userColor.rgb[0],
-                        userColor.rgb[1], userColor.rgb[2]);
+      count = std::snprintf(buf, BufLen, fmt, userColor.spec,
+                            userColor.rgb[0], userColor.rgb[1],
+                            userColor.rgb[2]);
     else
       count = sprintf(buf, fmt, userColor.rgb[0], userColor.rgb[1],
                       userColor.rgb[2], userColor.spec);
@@ -444,7 +445,8 @@ const char *PDB::chars(void) const {
 
   case USER_CHAIN:
     if (pdbrunOutputVersion < 6)
-      count = ::sprintf(buf, fmt, userChain.atom0, userChain.atom1);
+      count = std::snprintf(buf, BufLen, fmt, userChain.atom0,
+                            userChain.atom1);
     else
       count = sprintf(buf, fmt, userChain.atom0, userChain.atom1);
     break;
@@ -467,8 +469,9 @@ const char *PDB::chars(void) const {
 
   case USER_GFX_COLOR:
     if (pdbrunOutputVersion < 6)
-      count = ::sprintf(buf, fmt, userGfxColor.spec, userGfxColor.rgb[0],
-                        userGfxColor.rgb[1], userGfxColor.rgb[2]);
+      count = std::snprintf(buf, BufLen, fmt, userGfxColor.spec,
+                            userGfxColor.rgb[0], userGfxColor.rgb[1],
+                            userGfxColor.rgb[2]);
     else
       count = sprintf(buf, fmt, userGfxColor.rgb[0], userGfxColor.rgb[1],
                       userGfxColor.rgb[2], userGfxColor.spec);
@@ -492,7 +495,8 @@ const char *PDB::chars(void) const {
 
   case USER_GFX_FONT:
     if (pdbrunOutputVersion < 6)
-      count = ::sprintf(buf, fmt, userGfxFont.name, userGfxFont.size);
+      count = std::snprintf(buf, BufLen, fmt, userGfxFont.name,
+                            userGfxFont.size);
     else
       count = sprintf(buf, fmt, userGfxFont.size, userGfxFont.name);
     break;
@@ -507,8 +511,9 @@ const char *PDB::chars(void) const {
 
   case USER_GFX_LABEL:
     if (pdbrunOutputVersion < 6)
-      count = ::sprintf(buf, fmt, userGfxLabel.xyz[0], userGfxLabel.xyz[1],
-                        userGfxLabel.xyz[2], userGfxLabel.text);
+      count = std::snprintf(buf, BufLen, fmt, userGfxLabel.xyz[0],
+                            userGfxLabel.xyz[1], userGfxLabel.xyz[2],
+                            userGfxLabel.text);
     else
       count = sprintf(buf, fmt, userGfxLabel.text);
     break;
@@ -549,6 +554,13 @@ const char *PDB::chars(void) const {
     count = sprintf(buf, "unknown pdb record #%d", rType);
     break;
   }
+
+  // Bounded system formatting reports the required size, so clamp before
+  // scanning the buffer. The legacy formatter is addressed separately.
+  if (count < 0)
+    count = 0;
+  else if (count >= BufLen)
+    count = BufLen - 1;
 
   // find last non-blank in buf, and shorten it
   while (count > 1 && isspace(buf[count - 1]))
