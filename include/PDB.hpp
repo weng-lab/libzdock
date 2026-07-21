@@ -31,6 +31,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 #include <vector>
 
 namespace zdock {
@@ -81,6 +82,10 @@ public:
   typedef std::shared_ptr<zdock::Model> Model;
 
 protected:
+  typedef std::unordered_map<const libpdb::PDB *, Record> RecordMap;
+
+  void copyFrom_(const PDB &p, RecordMap &records);
+
   std::vector<Model> models_;   //!< zero or more models
   std::vector<Record> records_; //!< all records
   std::vector<Record> atoms_;   //!< just atoms
@@ -158,6 +163,7 @@ private:
 
 public:
   int modelNum() const { return modelNum_; }
+  friend class PDB;
   friend void PDB::append(const Record &r, const int model);
 };
 

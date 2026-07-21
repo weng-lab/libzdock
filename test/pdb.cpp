@@ -2,6 +2,7 @@
 #include "PDB.hpp"
 #include "Test.hpp"
 
+#include <algorithm>
 #include <string>
 
 TEST_CASE("PDB atoms can be located by stable identity", "[pdb]") {
@@ -57,7 +58,6 @@ TEST_CASE("PDB value operations preserve observable coordinates", "[pdb]") {
   zdock::PDB assigned;
   assigned = original;
 
-  REQUIRE(original.centroid().isApprox(original.matrix().rowwise().mean()));
   REQUIRE(copied.matrix().isApprox(original.matrix()));
   REQUIRE(copied.atoms().size() == original.atoms().size());
   REQUIRE(assigned.matrix().isApprox(original.matrix()));
@@ -69,6 +69,39 @@ TEST_CASE("PDB value operations preserve observable coordinates", "[pdb]") {
   REQUIRE(original.atoms()[0]->atom.xyz[0] == originalX);
   REQUIRE(copied.atoms()[0] != original.atoms()[0]);
   REQUIRE(assigned.atoms()[0] != original.atoms()[0]);
+}
+
+TEST_CASE("PDB copies preserve a filter's selected record graph", "[pdb]") {
+  // Invariant: copies preserve prior selections without running the filter again.
+  auto firstAtomOnly = [seen = size_t{0}](const libpdb::PDB &) mutable {
+    return seen++ == 0;
+  };
+  const zdock::PDB original(test::getpath("2OOB/ligand.pdb"), firstAtomOnly);
+  const zdock::PDB copied(original);
+  zdock::PDB assigned;
+  assigned = original;
+
+  REQUIRE(original.atoms().size() == 1);
+  REQUIRE(copied.atoms().size() == original.atoms().size());
+  REQUIRE(assigned.atoms().size() == original.atoms().size());
+  REQUIRE(copied.records().size() == original.records().size());
+  REQUIRE(assigned.records().size() == original.records().size());
+  REQUIRE(std::find(copied.records().begin(), copied.records().end(),
+                    copied.atoms()[0]) != copied.records().end());
+  REQUIRE(std::find(assigned.records().begin(), assigned.records().end(),
+                    assigned.atoms()[0]) != assigned.records().end());
+}
+
+TEST_CASE("PDB copies preserve model record identity", "[pdb]") {
+  // Invariant: a copied model and its parent refer to the same cloned atom.
+  const zdock::PDB original(test::getpath("PDB/models.pdb"));
+  const zdock::PDB copied(original);
+
+  REQUIRE(copied.nmodels() == original.nmodels());
+  REQUIRE(copied.matrix().isApprox(original.matrix()));
+  REQUIRE(std::find(copied.records().begin(), copied.records().end(),
+                    copied.models()[0]->atoms()[0]) != copied.records().end());
+  REQUIRE(copied.models()[0]->atoms()[0] != original.models()[0]->atoms()[0]);
 }
 
 TEST_CASE("PDB reports files that cannot be opened", "[pdb]") {
@@ -86,6 +119,7 @@ TEST_CASE("PDB models expose and update the first model", "[pdb]") {
   REQUIRE(pdb.models()[1]->modelNum() == 2);
   REQUIRE(pdb.matrix().cols() == 2);
   REQUIRE(pdb.matrix()(0, 0) == Catch::Approx(1.0));
+  REQUIRE(pdb.centroid().isApprox(zdock::PDB::Coord(2.5, 3.5, 4.5)));
 
   zdock::PDB::Matrix updated = pdb.matrix();
   updated.array() += 5.0;

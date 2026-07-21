@@ -37,7 +37,10 @@ namespace zdock {
 
 PDB::PDB() : filter_([](const libpdb::PDB &) { return true; }) {}
 
-PDB::PDB(const PDB &other) : filter_(other.filter_) { *this = other; }
+PDB::PDB(const PDB &other) {
+  RecordMap records;
+  copyFrom_(other, records);
+}
 
 PDB::PDB(const std::string &filename,
          std::function<bool(const libpdb::PDB &)> filter)
@@ -50,25 +53,49 @@ PDB &PDB::operator=(const PDB &other) {
     return *this;
   }
 
+  RecordMap records;
+  copyFrom_(other, records);
+  return *this;
+}
+
+void PDB::copyFrom_(const PDB &other, RecordMap &clonedRecords) {
+  const auto cloneRecord = [&clonedRecords](const Record &record) {
+    if (!record) {
+      return Record();
+    }
+
+    const auto existing = clonedRecords.find(record.get());
+    if (existing != clonedRecords.end()) {
+      return existing->second;
+    }
+
+    const Record clone = std::make_shared<libpdb::PDB>(*record);
+    clonedRecords.emplace(record.get(), clone);
+    return clone;
+  };
+
   filter_ = other.filter_;
   models_.clear();
   records_.clear();
   atoms_.clear();
-  matrix_.resize(3, 0);
-
-  size_t model = 0;
+  records_.reserve(other.records_.size());
   for (const auto &record : other.records_) {
-    if (record->type() == p::PDB::MODEL) {
-      model = record->model.num;
-      while (models_.size() < model) {
-        models_.push_back(std::make_shared<zdock::Model>());
-      }
-    } else if (record->type() == p::PDB::ENDMDL) {
-      model = 0;
-    }
-    append(*record, model);
+    records_.push_back(cloneRecord(record));
   }
-  return *this;
+
+  atoms_.reserve(other.atoms_.size());
+  for (const auto &atom : other.atoms_) {
+    atoms_.push_back(cloneRecord(atom));
+  }
+  matrix_ = other.matrix_;
+
+  models_.reserve(other.models_.size());
+  for (const auto &sourceModel : other.models_) {
+    const auto targetModel = std::make_shared<zdock::Model>();
+    targetModel->copyFrom_(*sourceModel, clonedRecords);
+    targetModel->modelNum_ = sourceModel->modelNum_;
+    models_.push_back(targetModel);
+  }
 }
 
 void PDB::read_(const std::string &fn) {
