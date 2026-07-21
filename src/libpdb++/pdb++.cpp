@@ -19,9 +19,7 @@
 
 #include "pdb++.h"
 
-extern "C" {
-#include <string.h>
-}
+#include <cstring>
 
 namespace libpdb {
 
@@ -32,7 +30,7 @@ void PDB::type(RecordType t) {
     unknown.junk[0] = '\0';
     return;
   }
-  memset(this, 0, sizeof *this);
+  std::memset(reinterpret_cast<unsigned char *>(this), 0, sizeof *this);
   rType = t;
   switch (t) {
   default:
@@ -48,7 +46,7 @@ bool PDB::isalpha() const {
 }
 
 int PDB::byteCmp(const PDB &l, const PDB &r) {
-  return memcmp(&l, &r, sizeof(PDB));
+  return std::memcmp(&l, &r, sizeof(PDB));
 }
 
 } // namespace libpdb
