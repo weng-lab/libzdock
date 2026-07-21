@@ -20,7 +20,7 @@
 //
 
 #include "pdb++.h"
-#include <string.h>
+#include <cstring>
 
 #ifndef NULL
 #define NULL 0
@@ -58,7 +58,7 @@ PDB::PDB(const char *buf) {
 
   // convert pdb record to C structure
 
-  memset(this, 0, sizeof *this);
+  std::memset(reinterpret_cast<unsigned char *>(this), 0, sizeof *this);
   rType = getType(buf);
   if (rType < USER_PDBRUN)
     fmt = pdbRecordFormat[rType];
