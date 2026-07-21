@@ -34,7 +34,9 @@ namespace zdock {
 TransformLigand::TransformLigand(const std::string &zdock)
     : TransformLigand(ZDOCK(zdock)) {}
 
-TransformLigand::TransformLigand(const ZDOCK &zdock) : zdock_(zdock) {
+TransformLigand::TransformLigand(const ZDOCK &zdock)
+    : zdock_(zdock), spacing_(0.0), boxsize_(0), rev_(false), fixed_(false),
+      isvalid_(false) {
 
   using e::Translation3d;
   using e::Vector3d;

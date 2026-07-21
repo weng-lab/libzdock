@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "Exception.hpp"
 #include "PDB.hpp"
 #include "TransformUtil.hpp"
 #include "ZDOCK.hpp"
@@ -93,8 +94,12 @@ public:
     using Eigen::Translation3d;
     using Eigen::Vector3d;
 
-    assert(isvalid_); // did we successfully load m-zdock data?
-    assert(n >= 0 && n < symmetry_);
+    if (!isvalid_) {
+      throw ZDOCKUnsupported("Multimer transformation requires M-ZDOCK output");
+    }
+    if (n < 0 || n >= symmetry_) {
+      throw ZDOCKUnsupported("Multimer component is outside the symmetry range");
+    }
 
     /* Transformation; M-ZDOCK (one of n-mer)
      *

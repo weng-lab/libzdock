@@ -34,7 +34,9 @@ namespace zdock {
 TransformMultimer::TransformMultimer(const std::string &zdock)
     : TransformMultimer(ZDOCK(zdock)) {}
 
-TransformMultimer::TransformMultimer(const ZDOCK &zdock) : zdock_(zdock) {
+TransformMultimer::TransformMultimer(const ZDOCK &zdock)
+    : zdock_(zdock), spacing_(0.0), boxsize_(0), symmetry_(0), alpha_(0.0),
+      beta_(0.0), factor_(0.0), isvalid_(false) {
 
   using e::Translation3d;
   using e::Vector3d;
@@ -62,6 +64,6 @@ const std::string TransformMultimer::CHAINS[52] = {
     "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
     "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
     "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
-    "n", "o", "p", "q", "r", "s", "r", "u", "v", "w", "x", "y", "z"};
+    "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"};
 
 } // namespace zdock

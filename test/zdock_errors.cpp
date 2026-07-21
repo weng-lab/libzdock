@@ -12,6 +12,9 @@ TEST_CASE("ZDOCK rejects unavailable and malformed input", "[ZDOCK]") {
   REQUIRE_THROWS_AS(
       zdock::ZDOCK(test::getpath("ZDOCK/invalid_header.out")),
       zdock::ZDOCKInvalidFormat);
+  REQUIRE_THROWS_AS(
+      zdock::ZDOCK(test::getpath("ZDOCK/incomplete_translation.out")),
+      zdock::ZDOCKInvalidFormat);
 }
 
 TEST_CASE("ZDOCK rejects mixed prediction formats", "[ZDOCK]") {

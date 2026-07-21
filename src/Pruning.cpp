@@ -190,10 +190,11 @@ int main(int argc, char *argv[]) {
   double cutoff = 16.00;
   bool getclusters = false;
   int c;
-  while ((c = getopt(argc, argv, "hc:l:C")) != -1) {
-    switch (c) {
+  try {
+    while ((c = getopt(argc, argv, "hc:l:C")) != -1) {
+      switch (c) {
     case 'c':
-      cutoff = std::stod(optarg);
+      cutoff = zdock::Utils::parseDouble(optarg);
       break;
     case 'l':
       ligfn = optarg;
@@ -209,7 +210,11 @@ int main(int argc, char *argv[]) {
       return 1;
     default:
       return 1;
+      }
     }
+  } catch (const zdock::Exception &e) {
+    zdock::usage(argv[0], e.what());
+    return 1;
   }
   if (argc > optind) {
     zdockfn = argv[optind]; // zdock file
@@ -229,4 +234,3 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 }
-
