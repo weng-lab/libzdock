@@ -1,6 +1,11 @@
 ---
 name: git-commit-hygiene
 description: Create, validate, and perform focused Git commits and pushes in libzdock, including staged-diff review, commit-message structure, hook installation, unrelated-change protection, and post-push verification. Use whenever staging, committing, tagging, pushing, or preparing commit text.
+license: BSD-2-Clause
+metadata:
+  author: Arjan van der Velde, Weng Lab
+  copyright: Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+  version: 1.0.0
 ---
 
 # Git Commit Hygiene

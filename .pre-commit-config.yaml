@@ -90,6 +90,13 @@ repos:
 
   - repo: local
     hooks:
+      - id: codex-skill-metadata
+        name: Codex skill metadata
+        entry: uv run --project python python tools/update_codex_skill_metadata.py --check
+        language: system
+        pass_filenames: false
+        files: ^\.codex/skills/[^/]+/SKILL\.md$
+
       - id: commit-message-format
         name: commit message format
         entry: python3 tools/check_commit_message.py

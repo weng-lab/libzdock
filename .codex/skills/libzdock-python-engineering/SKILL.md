@@ -1,6 +1,11 @@
 ---
 name: libzdock-python-engineering
 description: Engineering rules for libzdock's uv-managed Python package, including packaging, layout, typing, tests, tooling, documentation, Make integration, and CI. Use for changes under python/ or any workflow that installs, builds, validates, or publishes the zdock Python distribution.
+license: BSD-2-Clause
+metadata:
+  author: Arjan van der Velde, Weng Lab
+  copyright: Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+  version: 1.0.0
 ---
 
 # libzdock Python Engineering
