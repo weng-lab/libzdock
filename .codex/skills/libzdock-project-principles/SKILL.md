@@ -1,6 +1,11 @@
 ---
 name: libzdock-project-principles
 description: Project-specific engineering rules for libzdock native code, GNU Make portability, dependencies, licensing, CI, tests, and repository structure. Use for any C++ change, build or workflow change, dependency update, source branding change, native test work, or cross-language repository maintenance.
+license: BSD-2-Clause
+metadata:
+  author: Arjan van der Velde, Weng Lab
+  copyright: Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+  version: 1.0.0
 ---
 
 # libzdock Project Principles
