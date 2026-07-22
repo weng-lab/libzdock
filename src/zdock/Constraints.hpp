@@ -1,28 +1,5 @@
-/**
- * Copyright (c) 2019, Arjan van der Velde, Weng Lab
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * * Redistributions of source code must retain the above copyright notice, this
- *   list of conditions and the following disclaimer.
- *
- * * Redistributions in binary form must reproduce the above copyright notice,
- *   this list of conditions and the following disclaimer in the documentation
- *   and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+// Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+// SPDX-License-Identifier: BSD-2-Clause
 
 #pragma once
 
@@ -45,7 +22,7 @@ public:
   RecordCoord ligCoord;
   //! Constraint distance
   double distance;
-  //! Possible constraint types (MIN for mimimum and MAX for maximum distance)
+  //! Possible constraint types (MIN for minimum and MAX for maximum distance)
   enum ConstraintType {
     MIN, //!< minimum distance constraint
     MAX  //!< maximum distance constraint
@@ -57,9 +34,9 @@ public:
 /**
  * @brief Constraints file parser
  *
- * Constraint files are line based. Each line constains a distance constraint
+ * Constraint files are line based. Each line contains a distance constraint
  * (either minimum distance, or maximum distance) between two atoms in two
- * structures. For ZDOCK these represent the "receptor" and "ligand" stuctures
+ * structures. For ZDOCK these represent the "receptor" and "ligand" structures
  * and for M-ZDOCK they refer to two atoms in the same structure.
  *
  * The format whitespace separated and looks as follows:

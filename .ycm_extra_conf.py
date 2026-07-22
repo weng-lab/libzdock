@@ -1,3 +1,6 @@
+# Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+# SPDX-License-Identifier: BSD-2-Clause
+
 import os
 
 def abspath(x):
@@ -72,4 +75,3 @@ def FlagsForFile(filename, *args, **kwargs):
     'do_cache': True
   }
   return ret
-

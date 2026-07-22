@@ -1,0 +1,4 @@
+interface:
+  display_name: "libzdock Project Principles"
+  short_description: "Build, licensing, and C++ project rules"
+  default_prompt: "Use $libzdock-project-principles when changing libzdock build, native code, licensing, CI, or repository structure."

@@ -1,2 +1,15 @@
+# Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+# SPDX-License-Identifier: BSD-2-Clause
+
+.idea/
+.mypy_cache/
+.pylint.d/
+.pytest_cache/
+.ruff_cache/
+.uv-cache/
+.venv/
+__pycache__/
+build/
+dist/
+*.egg-info/
 *.pyc
-/.idea/

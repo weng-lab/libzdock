@@ -1,3 +1,6 @@
+// Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+// SPDX-License-Identifier: BSD-2-Clause
+
 #include "Exception.hpp"
 #include "PDB.hpp"
 #include "Test.hpp"

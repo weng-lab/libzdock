@@ -1,3 +1,6 @@
+# Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+# SPDX-License-Identifier: BSD-2-Clause
+
 # Portable GNU make build for Linux, macOS, and BSD.
 
 SHELL := /bin/sh
@@ -6,7 +9,7 @@ CXX ?= c++
 AR ?= ar
 ARFLAGS := rcs
 DOXYGEN ?= doxygen
-PYTHON ?= python3
+UV ?= uv
 CATCH_DIR := contrib/Catch2
 CATCH_CPP := $(CATCH_DIR)/extras/catch_amalgamated.cpp
 
@@ -63,7 +66,7 @@ DEPS := $(OBJECTS:.o=.d)
 BINS := $(addprefix $(BIN_DIR)/,$(TOOL_NAMES))
 TEST_BIN := $(TEST_DIR)/test
 
-.PHONY: all check-deps test cpp-test python-test doc clean
+.PHONY: all check-deps test cpp-test python-check python-test doc clean
 
 all: check-deps $(BINS)
 
@@ -112,7 +115,14 @@ cpp-test: check-deps $(TEST_BIN)
 	$(TEST_BIN)
 
 python-test: all
-	$(PYTHON) -m unittest discover -s $(PYTHON_DIR) -p 'test_*.py' -v
+	$(UV) --directory $(PYTHON_DIR) run python -m unittest discover -s tests -v
+
+python-check:
+	$(UV) --directory $(PYTHON_DIR) run isort --check-only src tests
+	$(UV) --directory $(PYTHON_DIR) run black --check src tests
+	$(UV) --directory $(PYTHON_DIR) run mypy src tests
+	PYLINTHOME=$(abspath $(PYTHON_DIR)/.pylint.d) \
+		$(UV) --directory $(PYTHON_DIR) run pylint src tests
 
 test: cpp-test python-test
 
@@ -124,7 +134,8 @@ $(BIN_DIR) $(LIB_DIR):
 
 clean:
 	rm -rf $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR) $(TEST_BIN) \
-	  $(PYTHON_DIR)/build $(PYTHON_DIR)/dist $(PYTHON_DIR)/zdock.egg-info \
-	  $(PYTHON_DIR)/__pycache__ $(PYTHON_DIR)/zdock/__pycache__
+	  $(PYTHON_DIR)/build $(PYTHON_DIR)/dist $(PYTHON_DIR)/src/*.egg-info \
+	  $(PYTHON_DIR)/.mypy_cache $(PYTHON_DIR)/.pylint.d \
+	  $(PYTHON_DIR)/src/zdock/__pycache__ $(PYTHON_DIR)/tests/__pycache__
 
 -include $(DEPS)
