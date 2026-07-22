@@ -1,0 +1,125 @@
+# Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+# SPDX-License-Identifier: BSD-2-Clause
+
+default_stages: [pre-commit, manual]
+exclude: ^contrib/|^src/libpdb\+\+/|^include/pdb\+\+\.h$|^doc/man/pdb\+\+\.3$|^test/data/
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-case-conflict
+      - id: check-ast
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: "v2.4.1"
+    hooks:
+      - id: codespell
+        exclude: ^tags$|(^|/)uv\.lock$|(^|/)pyproject\.toml$
+        args: ["-L", "sur,nd,iif,ther,TRE,merchantibility"]
+
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.6
+    hooks:
+      - id: remove-crlf
+      - id: insert-license
+        files: copyright.txt$
+        args:
+          ["--license-filepath", "copyright.txt", "--comment-style", "", "--use-current-year"]
+      - id: insert-license
+        files: .*\.py$
+        args:
+          ["--license-filepath", "copyright.txt", "--use-current-year", "--allow-past-years"]
+      - id: insert-license
+        files: .*\.(cpp|hpp|h)$
+        exclude: ^src/libpdb\+\+/|^include/pdb\+\+\.h$
+        args:
+          [
+            "--license-filepath",
+            "copyright.txt",
+            "--comment-style",
+            "//",
+            "--use-current-year",
+            "--allow-past-years",
+          ]
+      - id: insert-license
+        files: .*\.md$
+        exclude: ^\.codex/
+        args:
+          [
+            "--license-filepath",
+            "copyright.txt",
+            "--comment-style",
+            "<!--||-->",
+            "--no-space-in-comment-prefix",
+            "--use-current-year",
+            "--allow-past-years",
+          ]
+      - id: insert-license
+        files: .*\.ya?ml$|.*\.toml$|^GNUmakefile$|^Makefile$|^doc/Doxyfile$|(^|/)\.gitignore$|^\.gitmodules$
+        exclude: ^\.codex/|(^|/)uv\.lock$
+        args:
+          [
+            "--license-filepath",
+            "copyright.txt",
+            "--comment-style",
+            "#",
+            "--use-current-year",
+            "--allow-past-years",
+          ]
+      - id: insert-license
+        files: ^_vimrc_local\.vim$
+        args:
+          [
+            "--license-filepath",
+            "copyright.txt",
+            "--comment-style",
+            '"',
+            "--use-current-year",
+            "--allow-past-years",
+          ]
+
+  - repo: local
+    hooks:
+      - id: commit-message-format
+        name: commit message format
+        entry: python3 tools/check_commit_message.py
+        language: system
+        stages: [commit-msg]
+
+      - id: isort-python
+        name: isort (python)
+        entry: uv --directory python run isort --check-only src tests
+        language: system
+        pass_filenames: false
+        files: ^python/(src|tests)/.*\.py$|^python/pyproject\.toml$
+
+      - id: black-python
+        name: black (python)
+        entry: uv --directory python run black --check src tests
+        language: system
+        pass_filenames: false
+        files: ^python/(src|tests)/.*\.py$|^python/pyproject\.toml$
+
+      - id: mypy-python
+        name: mypy (python)
+        entry: uv --directory python run mypy src tests
+        language: system
+        pass_filenames: false
+        files: ^python/(src|tests)/.*\.py$|^python/pyproject\.toml$
+
+      - id: pylint-python
+        name: pylint (python)
+        entry: env PYLINTHOME=python/.pylint.d uv --directory python run pylint src tests
+        language: system
+        pass_filenames: false
+        files: ^python/(src|tests)/.*\.py$|^python/pyproject\.toml$

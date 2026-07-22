@@ -1,0 +1,76 @@
+# Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+# SPDX-License-Identifier: BSD-2-Clause
+
+[build-system]
+requires = ["hatchling>=1.28,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "zdock"
+version = "1.1.2"
+description = "Parser for ZDOCK and M-ZDOCK output files"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "BSD-2-Clause"
+authors = [
+    { name = "Arjan van der Velde", email = "vandervelde.ag@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: BSD :: FreeBSD",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/weng-lab/libzdock"
+Repository = "https://github.com/weng-lab/libzdock.git"
+
+[dependency-groups]
+dev = [
+    "black>=26.1.0,<27",
+    "isort>=8.0.0,<9",
+    "mypy>=1.19.1,<2",
+    "pylint>=4.0.5,<5",
+]
+
+[tool.uv]
+cache-dir = ".uv-cache"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/zdock"]
+
+[tool.isort]
+profile = "black"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.pylint.main]
+persistent = false
+source-roots = ["src"]
+
+[tool.pylint."messages control"]
+disable = ["missing-module-docstring"]
+
+[tool.pylint.design]
+max-args = 8
+max-positional-arguments = 8
+max-attributes = 12
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.mypy]
+strict = true
+mypy_path = "src/"
+ignore_missing_imports = true
+no_strict_optional = true
+check_untyped_defs = true

@@ -1,37 +1,50 @@
-ZDOCK
-=====
+<!--
+Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+SPDX-License-Identifier: BSD-2-Clause
+-->
+
+# ZDOCK Python package
 
 Parser for ZDOCK and M-ZDOCK output. Reads output from all available versions in all variants. This module is part of the [Wenglab](https://zlab.umassmed.edu) [libzdock](https://github.com/weng-lab/libzdock.git) project.
 
-To install this Python package, run the following while in this directory:
+## Development
 
+Install the package and its development tools into uv's managed environment:
 
-system wide:
-
-```
-pip install .
-```
-
-or, if you'd like to install this for the current user only:
-
-```
-pip install --user .
+```console
+uv sync --dev
 ```
 
-This code could be used as follows:
+Run the tests and quality checks from this directory:
+
+```console
+uv run python -m unittest discover -s tests -v
+uv run isort --check-only src tests
+uv run black --check src tests
+uv run mypy src tests
+uv run pylint src tests
+```
+
+Build source and wheel distributions:
+
+```console
+uv build
+```
+
+## Usage
 
 ```python
-import ZDOCK
+from zdock import ZDOCK
 
-# load a ZDOCK output file
-myfile = ZDOCK("/path/to/zdock.out")
+docking = ZDOCK("/path/to/zdock.out")
 
-# figure out whether or not receptor and ligand were swapped
-print(myfile.isswitched)
+print(docking.isswitched)
+print(docking.receptor)
+print(docking.predictions)
+```
 
-# print receptor
-print(myfile.receptor)
+The root GNU Make workflow builds the native command-line tools before running the Python integration tests:
 
-# get all predictions
-print(myfile)
+```console
+make python-test
 ```

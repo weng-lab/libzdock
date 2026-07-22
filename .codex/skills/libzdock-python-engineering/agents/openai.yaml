@@ -1,0 +1,4 @@
+interface:
+  display_name: "libzdock Python Engineering"
+  short_description: "uv packaging and Python quality rules"
+  default_prompt: "Use $libzdock-python-engineering when changing the uv-managed Python package, tests, metadata, or tooling."

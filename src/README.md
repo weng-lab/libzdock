@@ -1,3 +1,8 @@
+<!--
+Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+SPDX-License-Identifier: BSD-2-Clause
+-->
+
 # Programs
 
 A number of small utilities are built by default, to facilitate basic operations on ZDOCK, M-ZDOCK and PDB files. Each tool is described briefly below.
@@ -49,7 +54,7 @@ constraints are specified in a constraints file, of which the format is describe
 
 For ZDOCK constraint based filtering, the two sets of columns refer to atoms in the first and
 the second structure respectively, whereas for M-ZDOCK where only one structure is operated on,
-boths sets of columns refer to the same single structure.
+both sets of columns refer to the same single structure.
 
 Example constraints file:
 ```
@@ -97,7 +102,7 @@ usage: createmultimer [options] <zdock output>
 ```
 
 ## pruning
-Performs pruning on ZDOCK and M-ZDOCK output (using the greedy algorthm published here:
+Performs pruning on ZDOCK and M-ZDOCK output (using the greedy algorithm published here:
 
 Hwang H, Vreven T, Pierce BG, Hung JH, Weng Z. (2010) **Performance of ZDOCK and ZRANK in CAPRI rounds 13-19** _Proteins 78(15):3104-3110_
 ([pubmed](https://www.ncbi.nlm.nih.gov/pubmed/20936681))

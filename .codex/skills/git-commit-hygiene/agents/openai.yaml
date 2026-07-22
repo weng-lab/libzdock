@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Commit Hygiene"
+  short_description: "Validate focused commits and messages"
+  default_prompt: "Use $git-commit-hygiene to stage, validate, commit, and push focused repository changes safely."

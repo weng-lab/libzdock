@@ -1,6 +1,11 @@
+<!--
+Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
+SPDX-License-Identifier: BSD-2-Clause
+-->
+
 # PDB structures and ZDOCK predictions in C++ and Python
 
-[libzdock](https://github.com/weng-lab/libzdock) implements a set of utilities and library functions to work with PDB files, and ZDOCK/M-ZDOCK output files. It can be used to perform transformations on PDB structures based on ZDOCK predictions, generate multimers from M-ZDOCK output, constraint based filtering, and pruning. 
+[libzdock](https://github.com/weng-lab/libzdock) implements a set of utilities and library functions to work with PDB files, and ZDOCK/M-ZDOCK output files. It can be used to perform transformations on PDB structures based on ZDOCK predictions, generate multimers from M-ZDOCK output, constraint based filtering, and pruning.
 
 - [PDB structures and ZDOCK predictions in C++](#pdb-structures-and-zdock-predictions-in-c)
   * [Utilities](#utilities)
@@ -17,7 +22,7 @@
   * [BUILDING](#building)
   * [CONSTRAINT FILES](#constraint-files)
   * [REFERENCES](#references)
-- [libpdb++ enchanced to support updated PDB specifications](#libpdb-enchanced-to-support-updated-pdb-specifications)
+- [libpdb++ enhanced to support updated PDB specifications](#libpdb-enhanced-to-support-updated-pdb-specifications)
 - [PDB++](#pdb)
   * [NAME](#name)
   * [SYNOPSIS](#synopsis-1)
@@ -83,7 +88,7 @@ constraints are specified in a constraints file, of which the format is describe
 
 For ZDOCK constraint based filtering, the two sets of columns refer to atoms in the first and
 the second structure respectively, whereas for M-ZDOCK where only one structure is operated on,
-boths sets of columns refer to the same single structure.
+both sets of columns refer to the same single structure.
 
 Example constraints file:
 ```
@@ -131,7 +136,7 @@ usage: createmultimer [options] <zdock output>
 ```
 
 ### pruning
-Performs pruning on ZDOCK and M-ZDOCK output (using the greedy algorthm published here:
+Performs pruning on ZDOCK and M-ZDOCK output (using the greedy algorithm published here:
 
 Hwang H, Vreven T, Pierce BG, Hung JH, Weng Z. (2010) **Performance of ZDOCK and ZRANK in CAPRI rounds 13-19** _Proteins 78(15):3104-3110_
 ([pubmed](https://www.ncbi.nlm.nih.gov/pubmed/20936681))
@@ -196,7 +201,7 @@ TransformLigand txl(z);
 // similarly, for M-ZDOCK
 TransformMultimer txm(z);
 
-// grab a prediction and transform the PDB atom coordinatea
+// grab a prediction and transform the PDB atom coordinates
 const Prediction pred = z.predictions()[0];
 pdb.setMatrix(txl.txLigand(pdb.matrix(), pred));
 
@@ -225,11 +230,13 @@ Clone this repository:
 git clone 'https://github.com/weng-lab/libzdock.git'
 cd libzdock
 git submodule update --init --recursive
-make -j16
+make -j
 make test
 ```
 
-The compiler (i.e. g++-7 or clang++) can be updated in the Makefile to reflect your system.
+The build requires GNU make. On FreeBSD and macOS, install GNU make and use `gmake -j` and `gmake test`; Linux normally provides it as `make`. The default compiler is the platform's `c++`. Override tools and flags on the command line, for example `make CXX=clang++` or `gmake CXX=g++ CXXFLAGS='-O2 -g'`.
+
+The Python package and integration tests use [uv](https://docs.astral.sh/uv/). `make test` creates the environment from `python/uv.lock`; use `make python-check` to run isort, Black, mypy, and pylint. The Python package can also be developed independently with `uv --directory python sync --dev`.
 
 
 CONSTRAINT FILES
@@ -237,7 +244,7 @@ CONSTRAINT FILES
 
 Constraint files are line based. Each line contains a distance constraint
 (either minimum distance, or maximum distance) between two atoms in two
-structures. For ZDOCK these represent the "receptor" and "ligand" stuctures
+structures. For ZDOCK these represent the "receptor" and "ligand" structures
 and for M-ZDOCK they refer to two atoms in the same structure.
 
 The format whitespace separated and looks as follows:
@@ -300,7 +307,7 @@ Vreven T, Schweppe DK, Chavez JD, Weisbrod CR, Shibata S, Zheng C, Bruce JE, Wen
 <br/>
 <br/>
 
-# libpdb++ enchanced to support updated PDB specifications 
+# libpdb++ enhanced to support updated PDB specifications
 libpdb++ from http://www.cgl.ucsf.edu/Overview/software.html#pdbio
 
 Below is a copy of the original libpdb++ manual page. This documentation has not been updated but should still be a valid reference for the libpdb++ part of this library.
@@ -528,7 +535,7 @@ SEE ALSO
 --------
 
 ‘‘Protein Data Bank Atomic Coordinate and Bibliographic Entry Format
-Description,’’ Febuary 1992, Brookhaven National Laboratory, the January
+Description,’’ February 1992, Brookhaven National Laboratory, the January
 1993 Protein Data Bank Quarterly Newsletter, ‘‘Annotating PDB Files with
 Scene Information,’’ Gregory S. Couch, *et. al.*, (submitted for
 publication).
@@ -556,7 +563,7 @@ new record types have appeared since 1994, that currently show up as
 COPYRIGHT
 ---------
 
-Copyright (c) 2019-2022, Arjan van der Velde, Weng Lab
+Copyright (c) 2019-2026 Arjan van der Velde, Weng Lab
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
