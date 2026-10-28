@@ -88,6 +88,23 @@ class CLITests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("Invalid component", result.stderr)
 
+    def test_multimer_builds_a_c2_dimer(self) -> None:
+        """Symmetry-two M-ZDOCK output yields exactly two equal-sized chains."""
+        source = DATA / "ZDOCK" / "mzdock_c2.out"
+        atoms = (
+            "ATOM      1  N   GLY A   1       1.000   2.000   3.000  1.00 10.00           N\n"
+            "ATOM      2  CA  GLY A   1       4.000   5.000   6.000  1.00 10.00           C\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            receptor = Path(directory) / "monomer.pdb"
+            receptor.write_text(atoms, encoding="utf-8")
+            result = self.run_tool("createmultimer", "-r", str(receptor), str(source))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        chains = [line[21] for line in result.stdout.splitlines() if line.startswith("ATOM")]
+        self.assertEqual(sorted(set(chains)), ["A", "B"])
+        self.assertEqual(chains.count("A"), chains.count("B"))
+
     def test_multimer_rejects_symmetry_above_chain_capacity(self) -> None:
         """Generating all components requires one chain ID per component."""
         source = DATA / "ZDOCK" / "symmetry_53.out"

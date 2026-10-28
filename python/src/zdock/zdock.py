@@ -262,7 +262,13 @@ class ZDOCK:
             raise ZDOCKError("Invalid ZDOCK grid metadata") from error
 
     def _parse_mzdock_header(self, header: list[list[str]]) -> None:
-        """Parse M-ZDOCK grid and symmetry metadata."""
+        """Parse M-ZDOCK grid and symmetry metadata.
+
+        M-ZDOCK docks Cn cyclic multimers for any n >= 2, including C2
+        homodimers (Pierce, Tong & Weng 2005, Bioinformatics 21(8):1472-1478,
+        doi:10.1093/bioinformatics/bti229), so symmetry values below two are
+        rejected.
+        """
         if len(header) != 3 or len(header[0]) != 3:
             raise ZDOCKError("M-ZDOCK header must have 3 rows")
         try:
@@ -271,8 +277,8 @@ class ZDOCK:
             self._symmetry = int(header[0][2])
         except ValueError as error:
             raise ZDOCKError("Invalid M-ZDOCK grid metadata") from error
-        if self._symmetry < 3:
-            raise ZDOCKError("M-ZDOCK symmetry cannot be less than 3")
+        if self._symmetry < 2:
+            raise ZDOCKError("M-ZDOCK symmetry cannot be less than 2")
 
     def _parse_structures(self, header: list[list[str]]) -> None:
         """Parse initial rotations and translations for each structure."""
