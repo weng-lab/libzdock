@@ -39,6 +39,34 @@ TEST_CASE("M-ZDOCK transformations are rigid", "[multimer]") {
   REQUIRE_FALSE(first.isApprox(second));
 }
 
+TEST_CASE("C2 multimer subunits are related by a twofold axis", "[multimer]") {
+  // Invariant: for symmetry two, the rigid operator mapping subunit A onto
+  // subunit B is a 180 degree rotation: symmetric, self-inverse, trace -1.
+  const zdock::ZDOCK docking(test::getpath("ZDOCK/mzdock_c2.out"));
+  const zdock::TransformMultimer transform(docking);
+  zdock::PDB::Matrix input(3, 4);
+  input << 0.0, 4.0, 0.0, 1.0,
+           0.0, 0.0, 3.0, 2.0,
+           0.0, 0.0, 0.0, 5.0;
+
+  const auto a = transform.txMultimer(input, docking.predictions()[0], 0);
+  const auto b = transform.txMultimer(input, docking.predictions()[0], 1);
+
+  // Solve b - b0 = R (a - a0) exactly from three independent edge vectors.
+  Eigen::Matrix3d edgesA;
+  Eigen::Matrix3d edgesB;
+  for (int i = 0; i < 3; ++i) {
+    edgesA.col(i) = a.col(i + 1) - a.col(0);
+    edgesB.col(i) = b.col(i + 1) - b.col(0);
+  }
+  const Eigen::Matrix3d rotation = edgesB * edgesA.inverse();
+
+  REQUIRE(rotation.isApprox(rotation.transpose(), 1e-9));
+  REQUIRE((rotation * rotation).isApprox(Eigen::Matrix3d::Identity(), 1e-9));
+  REQUIRE(rotation.trace() == Catch::Approx(-1.0).margin(1e-9));
+  REQUIRE(rotation.determinant() == Catch::Approx(1.0).margin(1e-9));
+}
+
 TEST_CASE("TransformMultimer accepts an M-ZDOCK filename", "[multimer]") {
   // Invariant: filename and parsed-object constructors produce identical poses.
   const std::string filename = test::getpath("ZDOCK/mzdock.out");

@@ -37,12 +37,23 @@ TEST_CASE("ZDOCK rejects malformed prediction rows", "[ZDOCK]") {
       zdock::ZDOCKInvalidFormat);
 }
 
-TEST_CASE("M-ZDOCK requires at least threefold symmetry", "[ZDOCK]") {
-  // Invariant: M-ZDOCK symmetry values below three are rejected during parsing.
+TEST_CASE("M-ZDOCK requires at least twofold symmetry", "[ZDOCK]") {
+  // Invariant: M-ZDOCK symmetry values below two (no cyclic multimer) are
+  // rejected during parsing.
   REQUIRE_THROWS_WITH(
       zdock::ZDOCK(test::getpath("ZDOCK/invalid_symmetry.out")),
       Catch::Matchers::ContainsSubstring(
-          "M-ZDOCK symmetry cannot be less than 3"));
+          "M-ZDOCK symmetry cannot be less than 2"));
+}
+
+TEST_CASE("M-ZDOCK accepts twofold symmetry", "[ZDOCK]") {
+  // Invariant: C2 homodimers, which the M-ZDOCK engine produces with -N 2,
+  // parse as M-ZDOCK output with symmetry two.
+  const zdock::ZDOCK dimer(test::getpath("ZDOCK/mzdock_c2.out"));
+
+  REQUIRE(dimer.ismzdock());
+  REQUIRE(dimer.symmetry() == 2);
+  REQUIRE(dimer.predictions().size() == 1);
 }
 
 TEST_CASE("Const ZDOCK accessors enforce format boundaries", "[ZDOCK]") {

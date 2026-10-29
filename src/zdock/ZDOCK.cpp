@@ -96,9 +96,13 @@ void ZDOCK::read_() {
                          &symmetry_)) {
       throw ZDOCKInvalidFormat(filename_, "M-ZDOCK header error");
     }
-    if (3 > symmetry_) {
+    // M-ZDOCK docks Cn cyclic multimers for any n >= 2, C2 homodimers included
+    // (Pierce, Tong & Weng 2005, Bioinformatics 21(8):1472-1478,
+    // doi:10.1093/bioinformatics/bti229): beta = 360/n, alpha = (180 - beta)/2
+    // and |d| = |L| / (2 cos alpha) are well defined at n = 2 (alpha = 0).
+    if (2 > symmetry_) {
       throw ZDOCKInvalidFormat(filename_,
-                               "M-ZDOCK symmetry cannot be less than 3");
+                               "M-ZDOCK symmetry cannot be less than 2");
     }
   }
 

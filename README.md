@@ -125,6 +125,8 @@ Creates a multimer complex (or a single component) from a M-ZDOCK output file. R
 transformations are documented
 [here](https://github.com/weng-lab/libpdb/blob/master/src/zdock/TransformMultimer.hpp#L87).
 
+M-ZDOCK models C*n* cyclic multimers for any *n* ≥ 2, including C2 homodimers (the engine's `-N 2`); see Pierce, Tong & Weng (2005), cited under [REFERENCES](#references). Adjacent subunits are related by a rotation of β = 360°/*n* about the symmetry axis, and the axis lies at distance |*d*| = |*L*| / (2 cos α) from a subunit, with α = (180° − β)/2 and *L* the displacement between adjacent subunits. For *n* = 2 this gives β = 180°, α = 0 and |*d*| = |*L*|/2: the axis passes through the midpoint between the two monomers, and the two subunits are related by a twofold rotation. Symmetry values below 2 are rejected.
+
 **Usage**
 ```
 usage: createmultimer [options] <zdock output>
@@ -283,7 +285,7 @@ Pierce BG, Hourai Y, Weng Z. (2011) Accelerating Protein Docking in ZDOCK Using 
 
 **M-ZDOCK**
 
-Pierce B, Tong W, Weng Z. (2005) M-ZDOCK: A Grid-based Approach for Cn Symmetric Multimer Docking. _Bioinformatics 21(8): 1472-1476_.
+Pierce B, Tong W, Weng Z. (2005) M-ZDOCK: A Grid-based Approach for Cn Symmetric Multimer Docking. _Bioinformatics 21(8): 1472-1478_. [doi:10.1093/bioinformatics/bti229](https://doi.org/10.1093/bioinformatics/bti229)
 
 **Scoring Function**
 
