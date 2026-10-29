@@ -32,14 +32,17 @@ repos:
     hooks:
       - id: remove-crlf
       - id: insert-license
+        name: License headers (copyright text)
         files: copyright.txt$
         args:
           ["--license-filepath", "copyright.txt", "--comment-style", "", "--use-current-year"]
       - id: insert-license
+        name: License headers (Python)
         files: .*\.py$
         args:
           ["--license-filepath", "copyright.txt", "--use-current-year", "--allow-past-years"]
       - id: insert-license
+        name: License headers (C/C++)
         files: .*\.(cpp|hpp|h)$
         exclude: ^src/libpdb\+\+/|^include/pdb\+\+\.h$
         args:
@@ -52,6 +55,7 @@ repos:
             "--allow-past-years",
           ]
       - id: insert-license
+        name: License headers (Markdown)
         files: .*\.md$
         exclude: ^\.codex/
         args:
@@ -65,6 +69,7 @@ repos:
             "--allow-past-years",
           ]
       - id: insert-license
+        name: License headers (configuration)
         files: .*\.ya?ml$|.*\.toml$|^GNUmakefile$|^Makefile$|^doc/Doxyfile$|(^|/)\.gitignore$|^\.gitmodules$
         exclude: ^\.codex/|(^|/)uv\.lock$
         args:
@@ -77,6 +82,7 @@ repos:
             "--allow-past-years",
           ]
       - id: insert-license
+        name: License headers (Vim)
         files: ^_vimrc_local\.vim$
         args:
           [
