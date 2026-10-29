@@ -37,6 +37,19 @@ class ZDOCKTests(unittest.TestCase):
         with self.assertRaisesRegex(ZDOCKError, "only supported for M-ZDOCK"):
             _ = ZDOCK(self.zdock_file, n=1).symmetry
 
+    def test_twofold_mzdock_symmetry_is_accepted(self) -> None:
+        """C2 homodimer output (M-ZDOCK -N 2) parses with symmetry two."""
+        docking = ZDOCK(DATA / "ZDOCK" / "mzdock_c2.out")
+
+        self.assertTrue(docking.ismzdock)
+        self.assertEqual(docking.symmetry, 2)
+        self.assertEqual(docking.npredictions, 1)
+
+    def test_symmetry_below_two_is_rejected(self) -> None:
+        """M-ZDOCK output without a cyclic multimer (symmetry one) is invalid."""
+        with self.assertRaisesRegex(ZDOCKError, "cannot be less than 2"):
+            ZDOCK(DATA / "ZDOCK" / "invalid_symmetry.out")
+
     def test_mzdock_metadata_is_parsed(self) -> None:
         """M-ZDOCK metadata exposes symmetry and its sole structure."""
         docking = ZDOCK(DATA / "ZDOCK" / "mzdock.out", n=1)
