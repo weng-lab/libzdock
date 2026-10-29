@@ -14,20 +14,20 @@ permissions:
 jobs:
   pre-commit:
     name: pre-commit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Set up uv and Python
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           python-version: '3.11'
           enable-cache: true
           cache-dependency-glob: python/uv.lock
 
       - name: Cache pre-commit environments
-        uses: actions/cache@v4
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-py3.11-4.6.1-${{ hashFiles('.pre-commit-config.yaml') }}
@@ -42,10 +42,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             compiler: gcc
             cxx: g++
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             compiler: clang
             cxx: clang++
           - os: macos-latest
@@ -54,12 +54,12 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
         with:
           submodules: recursive
 
       - name: Set up uv and Python
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           python-version: '3.11'
           enable-cache: true
