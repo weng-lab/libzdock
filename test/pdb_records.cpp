@@ -341,13 +341,11 @@ TEST_CASE("ZDOCK atom records fall back to the marksur layout",
   // Quirk: the failed standard-layout attempt already wrote occupancy from
   // its first %6f field, and the ZDATOM layout never resets it.
   REQUIRE(record.atom.occupancy == 1.0);
-  // Defect (pinned): the ZDATOM write layout is 82 columns but chars()
-  // formats into an 81-byte static buffer, overflowing it by two bytes
-  // before the result is clamped and truncated to 80 characters. The new
-  // record class must keep records bounded instead.
+  // The ZDATOM layout keeps all 82 columns on output; the charge renders
+  // in full at columns 78-82.
   REQUIRE(std::string(record.chars()) ==
           "ATOM      1  CA  ALA A   1       1.000   2.000   3.000  1     1"
-          " 1.23     ALA  1.");
+          " 1.23     ALA  1.50");
 }
 
 TEST_CASE("MODEL records tolerate the non-standard column layout",
@@ -362,8 +360,8 @@ TEST_CASE("MODEL records tolerate the non-standard column layout",
 TEST_CASE("Full-width ZDATOM record stays within the record buffer",
           "[pdb-records]") {
   // Invariant: a ZDATOM record whose layout renders 82 columns writes no
-  // byte past the record buffer, and its text is truncated to exactly the
-  // 80-character record length (dropping the last two charge columns).
+  // byte past the record buffer, and its text keeps all 82 columns
+  // including the full charge field at columns 78-82.
   const std::string line = "ATOM      1  CA  ALA A   1      12.345  -6.789"
                            "  10.000  1     1 1.23     ALA  1.50";
   REQUIRE(line.size() == 82);
@@ -372,9 +370,47 @@ TEST_CASE("Full-width ZDATOM record stays within the record buffer",
   REQUIRE(record.atom.iszdatom);
   REQUIRE(record.atom.chg == 1.5);
   const std::string text = record.chars();
-  REQUIRE(text.size() == 80);
+  REQUIRE(text.size() == 82);
   REQUIRE(text == "ATOM      1  CA  ALA A   1      12.345  -6.789  10.000 "
-                  " 1     1 1.23     ALA  1.");
+                  " 1     1 1.23     ALA  1.50");
+}
+
+TEST_CASE("ZDATOM charges survive a write and re-read", "[pdb-records]") {
+  // Invariant: full-width ZDATOM records render the charge across all
+  // five columns 78-82 of the 82-column layout and the rendered text
+  // parses back to the same charge; a charge too wide for the field
+  // degrades to the formatter's asterisk convention and the line no
+  // longer parses (the zero-less "-.15" input form normalizes to "-0.15").
+  const std::string base = "ATOM      1  CA  ALA A   1       1.000   2.000"
+                           "   3.000  1     1 1.23     ALA ";
+  REQUIRE(base.size() == 77);
+  struct ChargeCase {
+    std::string line;
+    std::string rendered;
+    double charge;
+    bool parses;
+  };
+  const std::vector<ChargeCase> cases = {
+      {base + " 1.50", base + " 1.50", 1.5, true},
+      {base + " 0.25", base + " 0.25", 0.25, true},
+      {base + "-0.45", base + "-0.45", -0.45, true},
+      {base + " -.15", base + "-0.15", -0.15, true},
+      {base + "-12.3", base + "*****", 0.0, false},
+  };
+  for (const auto &c : cases) {
+    CAPTURE(c.line);
+    REQUIRE(c.line.size() == 82);
+    PDB record(c.line.c_str());
+    REQUIRE(record.type() == PDB::ATOM);
+    REQUIRE(record.atom.iszdatom);
+    REQUIRE(std::string(record.chars()) == c.rendered);
+    PDB reread(record.chars());
+    REQUIRE(reread.type() == (c.parses ? PDB::ATOM : PDB::UNKNOWN));
+    if (c.parses) {
+      REQUIRE(reread.atom.iszdatom);
+      REQUIRE(reread.atom.chg == c.charge);
+    }
+  }
 }
 
 TEST_CASE("PDBRUN versions are global mutable parse state", "[pdb-records]") {

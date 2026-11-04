@@ -235,33 +235,29 @@ Progress log (branch `pdbcpprewrite`):
   fixed by sizing the `chars()` record buffer for the widest legacy layout
   while keeping the 80-character output and the shared-static-buffer
   behavior unchanged.
-- Open defect (ZDATOM charge truncation on rewrite). Verified: the
-  80-column clamp in `chars()` is a repository addition — the upstream UCSF
-  import (30a2eac) and the ZDATOM-era commit (eb3f5cb) end `chars()` with
-  only the trailing-blank trim, and a pre-clamp build emits the full
-  82-column ZDATOM render (charge `-0.15` intact at columns 78-82); the
-  clamp arrived with fcfa96c ("Bound PDBRUN v5 record formatting"). Verified
-  with real data: `createmultimer` at bb0032c regenerates
-  `zdock-legacy-www/www/results/example_mzdock_1POA/complex.3.pdb`'s
-  structure exactly (2742 records, identical coordinates and chain ids) but
-  byte-differs on every record's charge tail (`-0.` instead of the stored
-  charge), so files rewritten by libzdock tools lose charge precision
-  (e.g. -0.15 re-parses as -0.0); the read path itself is lossless (nothing
-  cuts input at 80 columns). Verified: the stored example complexes were
-  produced by a different legacy writer, not by libpdb — they restart atom
-  serials per symmetry copy, tag per-copy segment ids (blank/MZDB/MZDC),
-  and render charges zero-less (`-.15`), which libpdb's `%5.2f` never
-  emits; the current web server also post-processes libzdock output into
-  standard 80-column records, so no libpdb-formatted ZDATOM text matches
-  the stored files byte-for-byte. Inferred (not verifiable here): ZDOCK/
-  ZRANK-class scoring consumers read these charge columns and would see
-  zeroed charges in structures rewritten by libzdock tools. Leading fix
-  option (a deliberate Phase 2 change, not part of this rewrite): keep the
-  82-column ZDATOM layout end-to-end on write, as the pre-clamp code did —
-  the fixed record buffer already accommodates it — while keeping a bound
-  for the libc-formatted v5 USER paths, whose counts are would-be lengths
-  rather than written lengths. The clamp-as-truncation deviates from
-  upstream and from the stored legacy artifacts.
+- Resolved defect (ZDATOM charge truncation on rewrite). Verified: the
+  80-column clamp in `chars()` was introduced by this repository's fcfa96c
+  ("Bound PDBRUN v5 record formatting", 2026-07-21; first in tag v1.1.2) —
+  the upstream UCSF import (30a2eac) and the ZDATOM-era commit (eb3f5cb)
+  end `chars()` with only the trailing-blank trim and emit the full
+  82-column render, and `createlig`/`createmultimer` (2023-12-31) predate
+  the clamp, so builds through v1.1.1 wrote 82-column ZDATOM records while
+  v1.1.2 and later truncated them to 80 columns, dropping the last two
+  charge digits (e.g. -0.15 re-parsed as -0.0); the read path was and is
+  lossless. Fixed: `chars()` now exempts the ZDATOM layout from the
+  80-column clamp, restoring the 82-column output for ZDATOM records only;
+  every other path keeps the fcfa96c bounds, including the seven v5 USER
+  libc paths, whose would-be lengths still clamp to 80 before the trim
+  scan, and the buffer sized in this rewrite still bounds every write.
+  Files generated while the clamp was in place (fcfa96c through this fix)
+  may hold truncated charges. Also verified: the stored
+  `zdock-legacy-www` example complexes were produced by a different legacy
+  writer (per-copy serial restarts, MZD* segment ids, zero-less `-.15`
+  charges) and both servers post-process libzdock output into standard
+  80-column records, so no libpdb-formatted ZDATOM text matches them
+  byte-for-byte. Inferred (unverified here): ZDOCK/ZRANK-class scoring
+  consumers read these charge columns; whether they read to end-of-line
+  or cut at 80 columns could not be checked from this repository.
 
 The parse/format switches currently live inside the `PDB` constructor and
 `chars()`. Extract them into internal, project-owned classes while keeping the
