@@ -18,14 +18,21 @@
 //
 
 #include "pdb++.h"
+#include <cstring>
 
 namespace libpdb {
 std::istream &operator>>(std::istream &s, PDB &p) {
   char buf[4 * PDB::BufLen];
 
   s.getline(buf, 4 * PDB::BufLen);
-  if (s)
+  if (s) {
+    // getline keeps a Windows-style trailing carriage return; strip one so
+    // the record sees the same line a text editor would.
+    const std::size_t len = std::strlen(buf);
+    if (len > 0 && buf[len - 1] == '\r')
+      buf[len - 1] = '\0';
     p = PDB(buf);
+  }
   return s;
 }
 

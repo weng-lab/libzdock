@@ -596,13 +596,33 @@ TEST_CASE("CRLF line endings", "[pdb-records]") {
   REQUIRE(junk.type() == PDB::UNKNOWN);
   REQUIRE(std::string(junk.chars()) == "UNKNOWN:  ??      ??");
 
-  // operator>> keeps the \r as well (Windows uploads read identically).
+  // operator>> strips one trailing \r (Windows uploads read identically).
   std::istringstream in("AUTHOR   1VELDE, A.V.D.\r\n");
   PDB streamed;
   in >> streamed;
   REQUIRE(in);
   REQUIRE(streamed.type() == PDB::AUTHOR);
   REQUIRE(std::string(streamed.chars()) == "AUTHOR   1VELDE, A.V.D.");
+
+  // The strip changes what a stream-fed short record sees: the \r no
+  // longer lands on a format literal, so a short ATOM stays an ATOM and a
+  // TER no longer captures a carriage return in its insert-code field.
+  std::istringstream shortIn("ATOM      1  CA  ALA A   1       1.000   2.000"
+                             "   3.000  1.00 10.00\r\n");
+  PDB streamedAtom;
+  shortIn >> streamedAtom;
+  REQUIRE(shortIn);
+  REQUIRE(streamedAtom.type() == PDB::ATOM);
+  REQUIRE(streamedAtom.atom.serialNum == 1);
+  REQUIRE(streamedAtom.atom.occupancy == 1.0);
+  REQUIRE(streamedAtom.atom.tempFactor == 10.0);
+
+  std::istringstream terIn("TER       1      ALA A  10\r\n");
+  PDB streamedTer;
+  terIn >> streamedTer;
+  REQUIRE(terIn);
+  REQUIRE(streamedTer.type() == PDB::TER);
+  REQUIRE(streamedTer.ter.residue.insertCode == ' ');
 }
 
 TEST_CASE("Real mark_sur charge written as -.15", "[pdb-records]") {
