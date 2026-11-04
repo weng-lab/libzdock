@@ -21,7 +21,7 @@ work log for that effort.
 | Phase | State |
 | ----- | ----- |
 | 0 — Document and pin current behavior | Characterization suite complete: `test/pdb_records.cpp` (20 test cases, 324 assertions) plus extended `test/formatting.cpp`; full suite 764 assertions / 54 test cases green; sanitizer run pending |
-| 1 — Restructure legacy code into classes | Not started |
+| 1 — Restructure legacy code into classes | In progress: `FieldReader` (cbcd7aa), `FieldWriter` (a6968fc), `RecordClassifier` (fd078d3), and the `PdbFormat` read side are extracted and committed; write side pending |
 | 2 — New modern record class (C++17) | Not started |
 | 3 — Adapter shim and consumer migration | Not started |
 | 4 — Cleanup, documentation, deprecation | Not started |
@@ -67,6 +67,11 @@ Characterization findings log (updated as batches complete):
 - Quirk (pinned): a failed standard ATOM parse partially writes occupancy
   from its first `%6f` field before the ZDATOM fallback runs, so ZDATOM
   records surface a leaked occupancy value.
+- Quirk (pinned): the UNKNOWN junk fallback calls `sprintf(junk, "%72s", buf)`
+  from inside a member function, so unqualified lookup resolves it to the
+  custom `PDB::sprintf`, not libc — `%72s` right-aligns short lines and
+  renders overlong lines as 72 overflow `*` characters (see the overlong-line
+  test). The table-driven parser must keep calling `PDB::sprintf` here.
 - `isalpha()` returns true for parsed CA atoms: parsed names are
   right-trimmed to `" CA"`, which matches the 5-byte comparison. Only
   hand-built blank-padded names fail it. (An earlier draft of this document
@@ -184,6 +189,25 @@ malformed/overlong-line tests, and no UNKNOWN-fallback tests.
 builds; quirks documented; no production code changed.
 
 ## 3. Phase 1 — Restructure legacy code into cohesive classes (no behavior change)
+
+Progress log (branch `pdbcpprewrite`):
+
+- FieldReader extracted from `pdb_sscanf.cpp`; `PDB::sscanf` is now a thin
+  format-string walker over the field primitives (commit cbcd7aa).
+- FieldWriter extracted from `pdb_sprntf.cpp`, including the transient digit
+  scratch; `PDB::sprintf` is now a thin format-string walker (commit a6968fc).
+- RecordClassifier extracted from `pdb_type.cpp`; the PDBRUN input version is
+  passed per call and the pinned globals stay on `PDB` (commit fd078d3).
+- PdbFormat read side (complete): the `.i` format strings remain the single
+  source of widths and literals, and per-record field lists (kind + offset)
+  replace the varargs argument bindings. The seven v5 USER paths that use
+  libc `sscanf` conversions (BGCOLOR, CNAME, COLOR, CHAIN, GFX COLOR,
+  GFX FONT, GFX LABEL) keep explicit bindings because libc `va_list` calls
+  cannot be table-driven. Tables were added one record family at a time with
+  a build after each batch; a dev-time structural check verified that every
+  field list pairs one-to-one with the value conversions of its format
+  string before `pdb_read.cpp` switched over. The characterization suite
+  passed unmodified.
 
 The parse/format switches currently live inside the `PDB` constructor and
 `chars()`. Extract them into internal, project-owned classes while keeping the
