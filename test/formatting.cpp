@@ -89,3 +89,56 @@ TEST_CASE("PDBRUN v5 user records are bounded", "[pdb-format]") {
     require_truncated_record(record);
   }
 }
+
+TEST_CASE("Standard records are bounded at maximum width", "[pdb-format]") {
+  // Invariant: full-width standard records fit the buffer exactly, and
+  // overflowing numeric fields degrade to asterisks without exceeding it.
+  libpdb::PDB::PdbrunOutputVersion(6);
+
+  SECTION("full-width remark") {
+    libpdb::PDB record(libpdb::PDB::REMARK);
+    record.agrdes.num = 1;
+    fill_field(record.agrdes.text);
+    require_bounded_record(record);
+    REQUIRE(std::strlen(record.chars()) == 79);
+  }
+
+  SECTION("anisou overflow") {
+    libpdb::PDB record(libpdb::PDB::ANISOU);
+    record.anisou.serialNum = 1;
+    for (int &u : record.anisou.u) {
+      u = 99999999;
+    }
+    require_bounded_record(record);
+    REQUIRE(std::strstr(record.chars(), "*******") != nullptr);
+  }
+
+  SECTION("atom coordinate overflow") {
+    libpdb::PDB record(libpdb::PDB::ATOM);
+    record.atom.serialNum = 1;
+    record.atom.xyz[0] = 99999.999;
+    record.atom.xyz[1] = 99999.999;
+    record.atom.xyz[2] = 99999.999;
+    record.atom.occupancy = 99999.999;
+    record.atom.tempFactor = 99999.999;
+    require_bounded_record(record);
+    REQUIRE(std::strstr(record.chars(), "********") != nullptr);
+    REQUIRE(std::strstr(record.chars(), "******") != nullptr);
+  }
+
+  SECTION("master count overflow") {
+    libpdb::PDB record(libpdb::PDB::MASTER);
+    record.master.numCoordinate = 100000;
+    require_bounded_record(record);
+    REQUIRE(std::strstr(record.chars(), "*****") != nullptr);
+  }
+
+  SECTION("v6 background color overflow") {
+    libpdb::PDB record(libpdb::PDB::USER_BGCOLOR);
+    record.userBgColor.rgb[0] = 99999.999;
+    record.userBgColor.rgb[1] = 99999.999;
+    record.userBgColor.rgb[2] = 99999.999;
+    require_bounded_record(record);
+    REQUIRE(std::strstr(record.chars(), "*****") != nullptr);
+  }
+}
