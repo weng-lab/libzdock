@@ -487,7 +487,7 @@ TEST_CASE("isalpha() matches parsed CA atoms", "[pdb-records]") {
   REQUIRE(parsed.isalpha());
 
   PDB padded(PDB::ATOM);
-  std::strncpy(padded.atom.name, " CA ", 4);
+  std::memcpy(padded.atom.name, " CA ", 4);
   REQUIRE_FALSE(padded.isalpha());
 }
 
