@@ -47,7 +47,8 @@ LIB_SOURCES := \
   src/zdock/TransformLigand.cpp \
   src/zdock/TransformUtil.cpp \
   src/zdock/ZDOCK.cpp \
-  src/pdb/PDB.cpp
+  src/pdb/PDB.cpp \
+  src/record/Record.cpp
 
 TOOL_NAMES := createlig createmultimer pruning constraints centroids zdsplit zdunsplit
 TOOL_SOURCES := \
@@ -60,7 +61,8 @@ TOOL_SOURCES := \
   src/UnSplit.cpp
 TEST_SOURCES := test/Test.cpp test/constraints.cpp test/formatting.cpp \
   test/multimer.cpp test/pdb.cpp test/pdb_records.cpp test/prediction.cpp \
-  test/rotation.cpp test/utils.cpp test/zdock.cpp test/zdock_errors.cpp
+  test/record.cpp test/rotation.cpp test/utils.cpp test/zdock.cpp \
+  test/zdock_errors.cpp
 
 LIB_OBJECTS := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(LIB_SOURCES))
 TOOL_OBJECTS := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(TOOL_SOURCES))
