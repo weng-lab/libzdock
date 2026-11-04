@@ -392,10 +392,11 @@ existing `zdock::PDB` home):
 - **Toolchain**: the development toolchain is the host g++ **13.3.0**
   (Ubuntu 24.04). It supports everything Phase 2 needs: `std::variant`,
   `std::string_view`, and `std::from_chars` for `double` (verified by a
-  feature probe; `__cpp_lib_to_chars = 201611`). **macOS is out of scope
-  and unsupported**: the CI macOS job has been removed (Apple Clang's
-  libc++ lacks floating-point `from_chars` before LLVM 20, and no
-  fallback parser is planned), so no target in this repository needs one.
+  feature probe; `__cpp_lib_to_chars = 201611`). One flagged target: the
+  CI matrix's macOS job (Apple Clang/libc++) lacks floating-point
+  `from_chars` before LLVM 20 — a decision (brewed LLVM for that job or a
+  narrowly scoped fallback) is needed when the parse code lands, before
+  that job can pass Phase 2.
 - **Language standard**: the whole tree now builds as C++17 — the switch
   (GNUmakefile `CXXSTANDARD ?= -std=c++17`) is the first commit of this
   phase, with no other changes. It built warning-free (including the
@@ -482,7 +483,7 @@ the static buffer — if the benchmark shows it matters, offer a
 The new class and its tests must be ASan/UBSan clean with zero findings
 (no pinned UB survives in the new code). Exit criteria: parity harness
 green for every record type and both PDBRUN versions; warning-free build
-on GCC and Clang (Linux); legacy suite untouched and green; benchmark
+on GCC/Clang/Apple Clang; legacy suite untouched and green; benchmark
 within budget.
 
 ## 5. Phase 3 — Adapter shim and consumer migration
@@ -532,5 +533,5 @@ the serving path; `libpdb::PDB` still compiles untouched for external users.
 | `from_chars` double support varies by standard library | Isolated bounded fallback helper with a portability test |
 | Removing global PDBRUN state changes multi-file behavior (currently leaks) | Pin current behavior in Phase 0; make the fix an explicit, tested change in Phase 2 (`ParseContext` per file) |
 | Static-buffer `chars()` removal can expose latent double-use bugs | Shim keeps legacy signature; consumers already stream immediately |
-| C++17 default bump vs macOS/FreeBSD toolchains | macOS is unsupported and removed from CI; FreeBSD has no CI target and is unverified; the standard flag stays overridable |
+| C++17 default bump vs macOS/FreeBSD toolchains | Flag stays overridable; C++17 is supported by all CI compilers; document minimum versions |
 | Upstream license/notice rules on vendored code | New code lives in new project-owned files; upstream files untouched |
