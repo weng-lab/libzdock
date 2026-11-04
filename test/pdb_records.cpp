@@ -505,6 +505,26 @@ TEST_CASE("Overlong input lines fail the record stream", "[pdb-records]") {
   REQUIRE(std::string(parsed.chars()) == "UNKNOWN:  ??******??");
 }
 
+TEST_CASE("Far-overlong unknown lines stay bounded", "[pdb-records]") {
+  // Invariant: an unknown record line far beyond the field width (the
+  // closed stack-overflow todo's 300-character case) writes nothing past
+  // the record buffer — the junk field renders 72 overflow characters
+  // and the text is the bounded "UNKNOWN:  ??******??" form.
+  PDB parsed((std::string(300, 'X')).c_str());
+  REQUIRE(parsed.type() == PDB::UNKNOWN);
+  const std::string text = parsed.chars();
+  REQUIRE(text.size() == 20);
+  REQUIRE(text == "UNKNOWN:  ??******??");
+
+  // The same line through operator>> (an upload path) is bounded too.
+  std::istringstream in((std::string(300, 'X')) + "\n");
+  PDB streamed;
+  in >> streamed;
+  REQUIRE(in);
+  REQUIRE(streamed.type() == PDB::UNKNOWN);
+  REQUIRE(std::string(streamed.chars()) == "UNKNOWN:  ??******??");
+}
+
 TEST_CASE("Fixed-width sscanf semantics", "[pdb-records]") {
   // Invariant: the custom sscanf reads exact-width fields, yields zero
   // defaults past end-of-line, and reports -1 only on hard mismatches.
