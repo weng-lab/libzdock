@@ -4,6 +4,7 @@
 #include "PdbFormat.hpp"
 
 #include "FieldReader.hpp"
+#include "FieldWriter.hpp"
 #include "RecordClassifier.hpp"
 
 #include <cstddef>
@@ -741,6 +742,18 @@ char const *const pdbrun6Read[PDB::NUM_USER] = {
 #include "pdbrun6_read.i"
 };
 
+char const *const pdbWriteFormat[PDB::NUM_TYPES] = {
+#include "write_format.i"
+};
+
+char const *const pdbrun5Write[PDB::NUM_USER] = {
+#include "pdbrun5_write.i"
+};
+
+char const *const pdbrun6Write[PDB::NUM_USER] = {
+#include "pdbrun6_write.i"
+};
+
 // Field lists per standard record type; records without a reader carry
 // nullptr (UNKNOWN junk, END, and ENDMDL are handled without parsing).
 const Field *const kStandardFields[PDB::NUM_TYPES] = {
@@ -872,6 +885,152 @@ const UserReadSpec kPdbrun6Read[PDB::NUM_USER] = {
     /* GFX POINT */ {false, true, nullptr},
 };
 
+// Write-side field lists per standard record type. All lists pair with
+// the value conversions of the record's write format; END and ENDMDL
+// have no fields and UNKNOWN formats the junk field.
+
+const Field kUnknownWriteFields[] = {
+    {Kind::Str, offsetof(PDB::Unknown, junk)},
+    endField(),
+};
+
+// AUTHOR is the only record whose continuation is a char member; the
+// write side loads it as one byte while the read side keeps the pinned
+// misaligned int store.
+const Field kAuthorWriteFields[] = {
+    {Kind::Char, offsetof(PDB::Author, continuation)},
+    {Kind::Str, offsetof(PDB::Author, authors)},
+    endField(),
+};
+
+const Field *const kStandardWriteFields[PDB::NUM_TYPES] = {
+    /* UNKNOWN */ kUnknownWriteFields,
+    /* ANISOU */ kAnisouFields,
+    /* ATOM */ kAtomFields,
+    /* AUTHOR */ kAuthorWriteFields,
+    /* CAVEAT */ kCaveatFields,
+    /* COMPND */ kCompndFields,
+    /* CONECT */ kConectFields,
+    /* CRYST1 */ kCryst1Fields,
+    /* END */ nullptr,
+    /* FORMUL */ kFormulFields,
+    /* FTNOTE */ kAgrdesFields,
+    /* HEADER */ kHeaderFields,
+    /* HELIX */ kHelixFields,
+    /* HET */ kHetFields,
+    /* HETATM */ kAtomFields,
+    /* JRNL */ kJrnlFields,
+    /* KEYWDS */ kKeywdsFields,
+    /* MASTER */ kMasterFields,
+    /* MDLTYP */ kMdltypFields,
+    /* MTRIX */ kMtrixFields,
+    /* NUMMDL */ kNummdlFields,
+    /* OBSLTE */ kObslteFields,
+    /* ORIGX */ kOrigxFields,
+    /* REMARK */ kAgrdesFields,
+    /* REVDAT */ kRevdatFields,
+    /* SCALE */ kScaleFields,
+    /* SEQRES */ kSeqresFields,
+    /* SHEET */ kSheetFields,
+    /* SIGATM */ kAtomFields,
+    /* SIGUIJ */ kAnisouFields,
+    /* SITE */ kSiteFields,
+    /* SOURCE */ kSourceFields,
+    /* SPLIT */ kSplitFields,
+    /* SPRSDE */ kSprsdeFields,
+    /* SSBOND */ kSsbondFields,
+    /* TER */ kTerFields,
+    /* TITLE */ kTitleFields,
+    /* TURN */ kTurnFields,
+    /* TVECT */ kTvectFields,
+    /* USER */ kUserFields,
+    /* MODEL */ kModelFields,
+    /* ENDMDL */ nullptr,
+    /* EXPDTA */ kExpdtaFields,
+    /* SYMDES */ kAgrdesFields,
+    /* SYMOP */ kSymopFields,
+    /* MTXDES */ kAgrdesFields,
+    /* CMPDES */ kAgrdesFields,
+    /* CMPONT */ kCmpontFields,
+    /* TRNSFM */ kTrnsfmFields,
+    /* AGRDES */ kAgrdesFields,
+    /* AGGRGT */ kAggrgtFields,
+    /* ZDATOM */ kZdatomFields,
+};
+
+// PDBRUN 5/6 USER write paths. Entries whose format is nullptr (or that
+// use the libc snprintf backend) carry no field list.
+struct UserWriteSpec {
+  bool libcBackend;
+  const Field *fields;
+};
+
+const UserWriteSpec kPdbrun5Write[PDB::NUM_USER] = {
+    /* PDBRUN */ {false, kUserPdbrunFields},
+    /* EYEPOS */ {false, kUserEyePosFields},
+    /* ATPOS */ {false, kUserAtPosFields},
+    /* WINDOW */ {false, kUserWindowFields},
+    /* FOCUS */ {false, kUserFocusFields},
+    /* VIEWPORT */ {false, kUserViewportFields},
+    /* BGCOLOR */ {true, nullptr},
+    /* ANGLE */ {false, kUserAngle5Fields},
+    /* DISTANCE */ {false, kUserDistance5Fields},
+    /* FILE */ {false, kUserFile5Fields},
+    /* MARKNAME */ {false, nullptr},
+    /* MARK */ {false, nullptr},
+    /* CNAME */ {true, nullptr},
+    /* COLOR */ {true, nullptr},
+    /* RADIUS */ {false, kUserRadiusFields},
+    /* OBJECT */ {false, kUserObjectFields},
+    /* ENDOBJ */ {false, kUserEndObjFields},
+    /* CHAIN */ {true, nullptr},
+    /* GFX BEGIN */ {false, nullptr},
+    /* GFX END */ {false, nullptr},
+    /* GFX COLOR */ {true, nullptr},
+    /* GFX NORMAL */ {false, nullptr},
+    /* GFX VERTEX */ {false, nullptr},
+    /* GFX FONT */ {true, nullptr},
+    /* GFX TEXTPOS */ {false, nullptr},
+    /* GFX LABEL */ {true, nullptr},
+    /* GFX MOVE */ {false, kUserGfxMoveFields},
+    /* GFX DRAW */ {false, kUserGfxDrawFields},
+    /* GFX MARKER */ {false, kUserGfxMarkerFields},
+    /* GFX POINT */ {false, kUserGfxPointFields},
+};
+
+const UserWriteSpec kPdbrun6Write[PDB::NUM_USER] = {
+    /* PDBRUN */ {false, kUserPdbrunFields},
+    /* EYEPOS */ {false, kUserEyePosFields},
+    /* ATPOS */ {false, kUserAtPosFields},
+    /* WINDOW */ {false, kUserWindowFields},
+    /* FOCUS */ {false, kUserFocusFields},
+    /* VIEWPORT */ {false, kUserViewportFields},
+    /* BGCOLOR */ {false, kUserBgColorFields},
+    /* ANGLE */ {false, kUserAngle6Fields},
+    /* DISTANCE */ {false, kUserDistance6Fields},
+    /* FILE */ {false, kUserFile6Fields},
+    /* MARKNAME */ {false, kUserMarknameFields},
+    /* MARK */ {false, kUserMarkFields},
+    /* CNAME */ {false, kUserCName6Fields},
+    /* COLOR */ {false, kUserColor6Fields},
+    /* RADIUS */ {false, kUserRadiusFields},
+    /* OBJECT */ {false, nullptr},
+    /* ENDOBJ */ {false, nullptr},
+    /* CHAIN */ {false, kUserChainFields},
+    /* GFX BEGIN */ {false, kUserGfxBeginFields},
+    /* GFX END */ {false, nullptr},
+    /* GFX COLOR */ {false, kUserGfxColor6Fields},
+    /* GFX NORMAL */ {false, kUserGfxNormalFields},
+    /* GFX VERTEX */ {false, kUserGfxVertexFields},
+    /* GFX FONT */ {false, kUserGfxFont6Fields},
+    /* GFX TEXTPOS */ {false, kUserGfxTextPosFields},
+    /* GFX LABEL */ {false, kUserGfxLabel6Fields},
+    /* GFX MOVE */ {false, nullptr},
+    /* GFX DRAW */ {false, nullptr},
+    /* GFX MARKER */ {false, nullptr},
+    /* GFX POINT */ {false, nullptr},
+};
+
 enum class RunResult { Parsed, Skipped, Failed };
 
 template <typename T>
@@ -991,6 +1150,204 @@ void setUnknown(PDB &record, const char *buf) {
   (void)PDB::sprintf(record.unknown.junk, "%72s", buf);
 }
 
+// Loads the value a write conversion consumes. Char fields load one byte
+// (the legacy code passes char members through varargs promotion); Int
+// fields load four bytes.
+int writeIntAt(const char *base, const Field &field) {
+  if (field.kind == Kind::Char)
+    return *reinterpret_cast<const char *>(base + field.offset);
+  return *reinterpret_cast<const int *>(base + field.offset);
+}
+
+double writeRealAt(const char *base, const Field &field) {
+  return *reinterpret_cast<const double *>(base + field.offset);
+}
+
+const char *writeStrAt(const char *base, const Field &field) {
+  return reinterpret_cast<const char *>(base + field.offset);
+}
+
+char writeCharAt(const char *base, const Field &field) {
+  return *reinterpret_cast<const char *>(base + field.offset);
+}
+
+// Custom fixed-width backend for writing: pairs the format's value
+// conversions with the spec's field list, with the PDB::sprintf field
+// semantics. The base is the record storage, or an external string for
+// the single-conversion USER GFX BEGIN primitive path.
+int runCustomWrite(char *buf, const char *fmt, const Field *fields,
+                   const char *base) {
+  FieldWriter writer(buf);
+  while (*fmt != '\0') {
+    if (*fmt == '%') {
+      fmt++;
+      bool left_justify = false;
+      if (*fmt == '-') {
+        left_justify = true;
+        fmt++;
+      }
+      char fill_char = ' ';
+      if (*fmt == '0') {
+        fill_char = '0';
+        fmt++;
+      }
+      int field1;
+      if (isdigit(static_cast<unsigned char>(*fmt))) {
+        field1 = *fmt++ - '0';
+        while (isdigit(static_cast<unsigned char>(*fmt)))
+          field1 = field1 * 10 + *fmt++ - '0';
+      } else
+        field1 = -1;
+      int field2;
+      if (*fmt == '.') {
+        fmt++;
+        field2 = 0;
+        while (isdigit(static_cast<unsigned char>(*fmt)))
+          field2 = field2 * 10 + *fmt++ - '0';
+      } else
+        field2 = -1;
+      if (*fmt == 'l' || *fmt == 'h')
+        fmt++;
+      while (isspace(static_cast<unsigned char>(*fmt)))
+        fmt++;
+      switch (*fmt) {
+      case 'c': {
+        char c = writeCharAt(base, *fields++);
+        if (c == '\0')
+          c = ' ';
+        writer.writePaddedChar(c, field1, fill_char, left_justify);
+        break;
+      }
+      case 'd':
+      case 'D':
+        writer.writeInt(writeIntAt(base, *fields++), field1, 10, fill_char,
+                        'a', left_justify, (*fmt == 'D') ? ' ' : '0');
+        break;
+      case 'e': {
+        double value = writeRealAt(base, *fields++);
+        if (field2 < 0)
+          field2 = 6;
+        writer.writeExp(value, field1, field2, fill_char, left_justify);
+        break;
+      }
+      case 'f': {
+        double value = writeRealAt(base, *fields++);
+        if (field2 < 0)
+          field2 = 6;
+        writer.writeFloat(value, field1, field2, fill_char, left_justify);
+        break;
+      }
+      case 'o':
+        writer.writeInt(writeIntAt(base, *fields++), field1, 8, fill_char, 'a',
+                        left_justify, '0');
+        break;
+      case 's':
+        writer.writeString(writeStrAt(base, *fields++), field1, field2,
+                           fill_char, left_justify);
+        break;
+      case 'u':
+        writer.writeUnsigned((unsigned)writeIntAt(base, *fields++), field1,
+                             fill_char, left_justify);
+        break;
+      case 'x':
+        writer.writeInt(writeIntAt(base, *fields++), field1, 16, fill_char,
+                        'a', left_justify, '0');
+        break;
+      case 'X':
+        writer.writeInt(writeIntAt(base, *fields++), field1, 16, fill_char,
+                        'A', left_justify, '0');
+        break;
+      default:
+        writer.writePaddedChar(*fmt, field1, fill_char, left_justify);
+        break;
+      }
+      fmt++;
+    } else if (*fmt == '\\') { /* Special character */
+      switch (*++fmt) {
+      case 'n':
+        writer.writeChar('\n');
+        break;
+      case 'r':
+        writer.writeChar('\r');
+        break;
+      case 'b':
+        writer.writeChar('\b');
+        break;
+      case 't':
+        writer.writeChar('\t');
+        break;
+      case 'f':
+        writer.writeChar('\f');
+        break;
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7': {
+        int inum = *fmt++ - '0';
+        if (*fmt >= '0' && *fmt <= '7') {
+          inum = inum * 8 + *fmt++ - '0';
+          if (*fmt >= '0' && *fmt <= '7')
+            inum = inum * 8 + *fmt++ - '0';
+        }
+        fmt--;
+        writer.writeChar((char)inum);
+        break;
+      }
+      default:
+        writer.writeChar(*fmt);
+      }
+      fmt++;
+    } else /* Normal character */
+      writer.writeChar(*fmt++);
+  }
+  writer.terminate();
+  return writer.count();
+}
+
+int runCustomWrite(const PDB &record, char *buf, const char *fmt,
+                   const Field *fields) {
+  return runCustomWrite(buf, fmt, fields,
+                        reinterpret_cast<const char *>(&record.unknown));
+}
+
+// v5 USER paths whose format strings use libc printf conversions.
+int runLibcWrite(const PDB &record, char *buf, const char *fmt,
+                 PDB::RecordType type) {
+  switch (type) {
+  case PDB::USER_BGCOLOR:
+    return std::snprintf(buf, PDB::BufLen, fmt, record.userBgColor.rgb[0],
+                         record.userBgColor.rgb[1], record.userBgColor.rgb[2]);
+  case PDB::USER_CNAME:
+    return std::snprintf(buf, PDB::BufLen, fmt, record.userCName.name,
+                         record.userCName.rgb[0], record.userCName.rgb[1],
+                         record.userCName.rgb[2]);
+  case PDB::USER_COLOR:
+    return std::snprintf(buf, PDB::BufLen, fmt, record.userColor.spec,
+                         record.userColor.rgb[0], record.userColor.rgb[1],
+                         record.userColor.rgb[2]);
+  case PDB::USER_CHAIN:
+    return std::snprintf(buf, PDB::BufLen, fmt, record.userChain.atom0,
+                         record.userChain.atom1);
+  case PDB::USER_GFX_COLOR:
+    return std::snprintf(buf, PDB::BufLen, fmt, record.userGfxColor.spec,
+                         record.userGfxColor.rgb[0], record.userGfxColor.rgb[1],
+                         record.userGfxColor.rgb[2]);
+  case PDB::USER_GFX_FONT:
+    return std::snprintf(buf, PDB::BufLen, fmt, record.userGfxFont.name,
+                         record.userGfxFont.size);
+  case PDB::USER_GFX_LABEL:
+    return std::snprintf(buf, PDB::BufLen, fmt, record.userGfxLabel.xyz[0],
+                         record.userGfxLabel.xyz[1], record.userGfxLabel.xyz[2],
+                         record.userGfxLabel.text);
+  default:
+    return 0;
+  }
+}
+
 } // namespace
 
 PdbFormat::ReadSpec PdbFormat::readSpec(PDB::RecordType type,
@@ -1043,6 +1400,61 @@ PDB::RecordType PdbFormat::parse(PDB &record, const char *buf,
           RecordClassifier::getGfxType(record.userGfxBegin.unknown);
   }
   return type;
+}
+
+PdbFormat::WriteSpec PdbFormat::writeSpec(PDB::RecordType type,
+                                          int pdbrunOutputVersion) {
+  if (type < PDB::USER_PDBRUN)
+    return {pdbWriteFormat[type], false, kStandardWriteFields[type]};
+  const int index = type - PDB::USER_PDBRUN;
+  const bool v5 = pdbrunOutputVersion < 6;
+  const UserWriteSpec &spec = (v5 ? kPdbrun5Write : kPdbrun6Write)[index];
+  return {(v5 ? pdbrun5Write : pdbrun6Write)[index], spec.libcBackend,
+          spec.fields};
+}
+
+int PdbFormat::formatRecord(const PDB &record, char *buf, PDB::RecordType type,
+                            int pdbrunOutputVersion) {
+  if (type < PDB::UNKNOWN || type > PDB::USER_GFX_POINT)
+    return PDB::sprintf(buf, "unknown pdb record #%d", (int)type);
+
+  if (type == PDB::ATOM || type == PDB::HETATM || type == PDB::SIGATM) {
+    if (record.atom.iszdatom)
+      return runCustomWrite(record, buf, pdbWriteFormat[PDB::ZDATOM],
+                            kZdatomFields);
+    return runCustomWrite(record, buf, pdbWriteFormat[type], kAtomFields);
+  }
+
+  if (type >= PDB::USER_PDBRUN) {
+    const WriteSpec spec = writeSpec(type, pdbrunOutputVersion);
+
+    if (type == PDB::USER_GFX_BEGIN && spec.fmt != nullptr) {
+      // A known primitive formats its name in place of the captured text;
+      // the single-conversion format reads the name through an external
+      // base instead of the record storage.
+      if (record.userGfxBegin.primitive != PDB::GFX_UNKNOWN) {
+        static const Field kGfxNameFields[] = {{Kind::Str, 0}, endField()};
+        return runCustomWrite(
+            buf, spec.fmt, kGfxNameFields,
+            RecordClassifier::gfxChars(record.userGfxBegin.primitive));
+      }
+      return runCustomWrite(record, buf, spec.fmt, spec.fields);
+    }
+
+    int count = 0;
+    if (spec.fmt != nullptr) {
+      if (spec.libcBackend)
+        count = runLibcWrite(record, buf, spec.fmt, type);
+      else
+        count = runCustomWrite(record, buf, spec.fmt, spec.fields);
+    }
+    if (type == PDB::USER_PDBRUN)
+      PDB::PdbrunOutputVersion(record.userPdbrun.version);
+    return count;
+  }
+
+  return runCustomWrite(record, buf, pdbWriteFormat[type],
+                        kStandardWriteFields[type]);
 }
 
 } // namespace libpdb

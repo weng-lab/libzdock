@@ -31,6 +31,12 @@ public:
     const Field *fields;  // End-terminated, pairs with the value conversions
   };
 
+  struct WriteSpec {
+    const char *fmt;     // nullptr: the record formats as empty (count 0)
+    bool libcBackend;    // v5 USER paths consumed by libc snprintf
+    const Field *fields; // End-terminated, pairs with the value conversions
+  };
+
   // Parses buf into record according to the read spec for `type` and
   // returns the final record type (the type itself, USER after the USER
   // fallback, or UNKNOWN for junk records). Applies the pinned side
@@ -40,6 +46,16 @@ public:
                                PDB::RecordType type, int pdbrunInputVersion);
 
   static ReadSpec readSpec(PDB::RecordType type, int pdbrunInputVersion);
+
+  // Formats record into buf according to the write spec for `type` and
+  // returns the produced length. Preserves the pinned static-buffer and
+  // global-version behaviors of PDB::chars: the ZDATOM layout still
+  // overruns BufLen before the caller clamps, and formatting USER PDBRUN
+  // updates the process-global output version.
+  static int formatRecord(const PDB &record, char *buf, PDB::RecordType type,
+                          int pdbrunOutputVersion);
+
+  static WriteSpec writeSpec(PDB::RecordType type, int pdbrunOutputVersion);
 };
 
 } // namespace libpdb
