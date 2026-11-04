@@ -16,7 +16,7 @@ CATCH_CPP := $(CATCH_DIR)/extras/catch_amalgamated.cpp
 CPPFLAGS += -Icontrib/eigen -Isrc/libpdb++ -Isrc/zdock -Isrc/common \
             -Isrc/pdb -Iinclude
 CXXFLAGS ?= -O3
-CXXSTANDARD ?= -std=c++14
+CXXSTANDARD ?= -std=c++17
 WARNINGS ?= -Wall -Wextra -pedantic
 LDFLAGS ?=
 LDLIBS ?=

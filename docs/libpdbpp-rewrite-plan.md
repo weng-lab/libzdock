@@ -20,11 +20,26 @@ work log for that effort.
 
 | Phase | State |
 | ----- | ----- |
-| 0 — Document and pin current behavior | Characterization suite complete: `test/pdb_records.cpp` (21 test cases, 330 assertions) plus extended `test/formatting.cpp`; full suite 770 assertions / 55 test cases green. Sanitizer baseline complete: the only remaining finding is the pinned AUTHOR misaligned `%2d` store; see the findings log |
-| 1 — Restructure legacy code into classes | Complete: `FieldReader` (cbcd7aa), `FieldWriter` (a6968fc), `RecordClassifier` (fd078d3), and the `PdbFormat` read (97303e4) and write (b274b94) sides are extracted and committed; `PDB` is a thin shell over them and the varargs `PDB::sscanf`/`PDB::sprintf` remain as compatibility wrappers. Table mutations were verified to fail the suite, and parse/write throughput on a 172k-record replay stays within 20% of the pre-refactor baseline |
-| 2 — New modern record class (C++17) | Not started |
+| 0 — Document and pin current behavior | Characterization suite complete: `test/pdb_records.cpp` (24 test cases; CRLF, zero-less charge, and continued-String behavior pinned) plus extended `test/formatting.cpp`; full suite green. Sanitizer baseline complete: the only remaining finding is the pinned AUTHOR misaligned `%2d` store; see the findings log |
+| 1 — Restructure legacy code into classes | Complete: `FieldReader` (cbcd7aa), `FieldWriter` (a6968fc), `RecordClassifier` (fd078d3), and the `PdbFormat` read (97303e4) and write (b274b94) sides are extracted and committed; `PDB` is a thin shell over them and the varargs `PDB::sscanf`/`PDB::sprintf` remain as compatibility wrappers. Table mutations were verified to fail the suite, and parse/write throughput on a 172k-record replay stays within 20% of the pre-refactor baseline. The ZDATOM overrun and truncation were fixed on this branch (df7ab1d, fb720ad); see the release status below |
+| 2 — New modern record class (C++17) | Planned (§4); not started |
 | 3 — Adapter shim and consumer migration | Not started |
 | 4 — Cleanup, documentation, deprecation | Not started |
+
+## Release and merge status
+
+- **Unreleased fixes**: `master`, `v1.1.2`, and `v1.1.3` still carry both the
+  ZDATOM record-buffer overrun (fixed here in df7ab1d) and the 80-column
+  ZDATOM charge truncation (restored here in fb720ad). No backport to
+  `master` for now: the old ZDOCK server is down.
+- **Merge gates for this branch**: the full replay on the z012 harness
+  (`harness/make-bundle.sh` → install → `replay-fixed replay-raw
+  replay-prepped compare collect`, plus `tests/regression`) and the Python
+  pre-commit hooks (`uv`-based isort/black/mypy/pylint) must pass before
+  merging; neither has run against the final state of this branch yet.
+- **Pinned limit**: a charge too wide for the ZDATOM `%5.2f` field (input
+  `-12.3`) renders as `*****` and the rendered line re-parses as UNKNOWN —
+  the formatter's asterisk convention, pinned by the charge test.
 
 Tooling notes:
 
@@ -283,10 +298,13 @@ public `libpdb::PDB` API byte-for-byte compatible:
 **Exit criteria:** clean build; characterization suite unchanged and green;
 no new behavior; each extraction is a separate reviewable commit.
 
-## 4. Phase 2 — New modern record class (C++17)
+## 4. Phase 2 — New modern record class (C++17): typed fields, bounded column access
 
 **Goal: a clean-room class with the same observable record text and parsed
-values, no C-style string manipulation.**
+values as the legacy `libpdb::PDB` — no union, no raw offsets, no varargs,
+no format-string parsing, no fixed buffers.** The legacy class stays in
+place, untouched and still serving every consumer, until Phase 3 migrates
+them; this phase adds the new class and proves it, changing nothing else.
 
 New public header `include/Record.hpp`, namespace `zdock::pdb` (mirrors the
 existing `zdock::PDB` home):
@@ -294,9 +312,12 @@ existing `zdock::PDB` home):
 1. `enum class RecordType` — same record names as the legacy enum, plus
    `to_string(RecordType)`.
 2. `struct Residue` and per-kind payloads (`AtomRecord`, `HetAtomRecord`,
-   `ConnectRecord`, `Cryst1Record`, `ModelRecord`, `UserRecord`, …) with real
-   types: `std::string` names, `std::optional` for spec-optional columns
-   (element, charge, segment id, symmetry ops, ZDATOM extensions).
+   `ConnectRecord`, `Cryst1Record`, `ModelRecord`, `UserRecord`, …) with
+   **typed fields**: `std::string` names and ids, `int` continuation
+   numbers, `double` reals, `char` codes, `std::optional` for
+   spec-optional columns. This deletes the union and every raw-offset
+   table: the AUTHOR misaligned `%2d` store and the CAVEAT `%4s` NUL
+   one-past become unrepresentable.
 3. `class Record` holding `RecordType type_` and a
    `std::variant<Monostate, AtomRecord, …>` payload, with `isAtom()`,
    `asAtom()` accessors and `operator<<`.
@@ -304,32 +325,166 @@ existing `zdock::PDB` home):
      runtime-typed error instead of a silent union misread. (Alternative
      considered: one aggregate with optionals — simpler but reintroduces
      "wrong-record field" bugs.)
-4. Parsing:
-   - `static std::optional<Record> parse(std::string_view line, const
-     ParseContext&)` — no exceptions in the hot path; `std::nullopt` only for
-     hard mismatches, matching legacy fallback behavior.
+4. **Bounded column access replaces format strings.** One layout table per
+   record type (per PDBRUN version for USER records): an array of column
+   descriptors `{ std::uint16_t offset; std::uint8_t width; ColumnKind }`
+   with `ColumnKind ∈ {Int, Real, Str, Char, Skip}` — including the literal
+   columns as `Skip`. Parsing walks the table over a
+   `std::string_view line`: slice, then convert (`std::from_chars` for
+   integers; a bounded `strtod` fallback helper for reals where the
+   standard library lacks floating-point `from_chars`), applying the
+   pinned field semantics (defaults at end-of-line, trailing-blank strip,
+   hard-mismatch detection). Writing walks the same table into a
+   `std::string` with the pinned emitter semantics (right/left
+   justification, blank/zero fill, overflow `*`, trailing-blank trim).
+   Every access is bounded by the descriptor widths and the declared
+   record length; there is no buffer to overrun and no format string to
+   misparse. The v5 USER paths that legacy routes through libc
+   (`sscanf`/`snprintf`) get explicit column descriptors with small
+   dedicated parsers (whitespace-delimited token, fixed scanset) — no
+   `va_list`, no libc format strings.
+5. Parsing API:
+   - `static std::optional<Record> parse(std::string_view line,
+     ParseContext&)` — no exceptions in the hot path; `std::nullopt` only
+     for hard mismatches, matching legacy fallback behavior.
    - `ParseContext` carries the PDBRUN input version (replaces the global);
      parsing `USER PDBRUN` updates the context owned by the caller, never
      process-global state.
-   - Field extraction via `std::string_view` slicing + `std::from_chars`;
-     bounded `strtod` fallback where libc++ lacks floating-point
-     `from_chars` (portability guard, isolated in one helper).
-5. Formatting:
-   - `std::string chars() const` — thread-safe by construction; identical
-     field layout, overflow `*`, and trailing-space trim, validated against the
-     Phase 0 golden lines for every record type and both PDBRUN versions.
-   - Documented deviation (reviewed when reached): overlong unknown records are
-     preserved verbatim instead of right-aligned junk, and `chars()` no longer
-     aliases a static buffer. Golden tests updated deliberately, not silently.
-6. Column layouts live in one data table per record type (column ranges +
-   kind), replacing format strings entirely — no varargs, no format/argument
-   mismatch class of bugs.
-7. Unit tests for the new class in `test/record.cpp` mirroring the
-   characterization table, plus adversarial cases (empty lines, NUL bytes,
-   80-column overflow, negative coordinates at field width).
+6. Formatting API:
+   - `std::string chars() const` (plus a `chars(const WriteContext&)` that
+     takes the PDBRUN output version explicitly) — thread-safe by
+     construction; identical field layout, overflow `*`, and
+     trailing-blank trim, validated against the Phase 0 golden lines for
+     every record type and both PDBRUN versions.
+7. **ZDATOM stays a distinct 82-column format.** `AtomRecord` carries the
+   ZDATOM extension as a nested `struct Zdatom { int type, surface; double
+   rad; std::string segid; double chg; }` behind `std::optional`, never
+   overloading the standard ATOM fields. ZDATOM's layout table declares
+   length 82 (all other records declare 80), so the writer emits all 82
+   columns exactly as the restored legacy behavior (fb720ad) does,
+   including the `*****` overflow convention for charges too wide for
+   `%5.2f` and the parse-time `ATOM → ZDATOM → UNKNOWN` fallback chain.
+8. **What happens to the pinned quirks.** Text-level behavior is
+   reproduced byte-for-byte; struct-level quirks die with the union and
+   are documented as deliberate, tested deviations of the new class:
+   - the AUTHOR misaligned store disappears (typed `int`); rendered text
+     is identical, so no golden line changes — only the sanitizer finding
+     disappears;
+   - the CAVEAT NUL clobber disappears (`std::string` id); the clobbered
+     byte was always overwritten by the following text field, so no
+     golden line changes;
+   - the ZDATOM leaked-occupancy quirk disappears (a clean ZDATOM parse
+     leaves `occupancy` unset rather than carrying the failed standard
+     parse's partial write); record text never renders occupancy for
+     ZDATOM, so no golden line changes — the new class's tests pin the
+     clean value instead;
+   - `chars()` returns `std::string` instead of aliasing a static buffer,
+     and the PDBRUN version state stops being process-global. Both are
+     pinned legacy quirks whose removal is the point of Phase 3; legacy
+     keeps them until then.
 
-**Exit criteria:** new class builds warning-free; golden-line parity suite
-green for every record; ASan/UBSan clean; legacy code untouched.
+### 4.0 Scope and toolchain
+
+- **Scope**: Phase 2 work is limited to the libpdb++ layer — the new
+  `zdock::pdb::Record` class, its column tables, and its tests. Docker
+  images, the servers, and other components are out of scope; no changes
+  to them are planned here.
+- **Toolchain**: the development toolchain is the host g++ **13.3.0**
+  (Ubuntu 24.04). It supports everything Phase 2 needs: `std::variant`,
+  `std::string_view`, and `std::from_chars` for `double` (verified by a
+  feature probe; `__cpp_lib_to_chars = 201611`). One flagged target: the
+  CI matrix's macOS job (Apple Clang/libc++) lacks floating-point
+  `from_chars` before LLVM 20 — a decision (brewed LLVM for that job or a
+  narrowly scoped fallback) is needed when the parse code lands, before
+  that job can pass Phase 2.
+- **Language standard**: the whole tree now builds as C++17 — the switch
+  (GNUmakefile `CXXSTANDARD ?= -std=c++17`) is the first commit of this
+  phase, with no other changes. It built warning-free (including the
+  pinned Eigen and Catch2), left every golden test unchanged (846
+  assertions / 59 cases green unmodified), and stayed sanitizer-clean
+  except the pinned AUTHOR finding.
+- **Deployment note**: the Docker images already run `ubuntu:26.04`
+  (GCC 15.2.0) but pin libzdock at a master commit (d3e3c78). Moving that
+  pin to the rewritten code is required before deployment and will need
+  its own validation on the GCC 15 toolchain; it is not part of this
+  work.
+
+### 4.1 Commit sequence (each commit small, reviewable, suite green)
+
+0. **Language standard switch (landed first)**: the whole tree builds as
+   C++17 with the golden tests unchanged; timings recorded as the
+   comparison point (§4.3).
+1. `RecordType` (enum class + `to_string`) + `test/record.cpp` skeleton —
+   types only, no parsing.
+2. Column-table infrastructure: `ColumnSpec` arrays and the bounded
+   reader/writer primitives (`string_view` slicing, defaults, mismatch,
+   fill/justify/overflow) + unit tests on synthetic lines. This is the
+   heart — reviewed on its own before any record uses it.
+3. `Residue`, the payload structs, and `Record` (variant + accessors) —
+   data types only.
+4. Parse + write for the simple families (UNKNOWN, END/ENDMDL,
+   continuation + text: AUTHOR, TITLE, COMPND, KEYWDS, …) with golden
+   parity tests against the characterization fixtures.
+5. ATOM family + ZDATOM's distinct 82-column table, fallback chain, and
+   the charge cases (1.50, 0.25, −0.45, −.15 normalization, `*****`
+   overflow → unparsable).
+6. Residue-heavy families (HELIX, SHEET, SITE, SSBOND, TER, TURN, CMPONT,
+   CONECT, CRYST1, MTRIX/ORIGX/SCALE/SYMOP, REVDAT, SEQRES, SPLIT,
+   SPRSDE, OBSLTE, MASTER, AGGRGT, TRNSFM, TVECT, HET, FORMUL, HEADER,
+   CAVEAT, JRNL, MODEL, NUMMDL, EXPDTA, AGRDES family).
+7. USER records: v6 tables, then v5 (including the libc-equivalent token
+   and scanset parsers), PDBRUN version handling via `ParseContext`,
+   `USER → ` fallbacks, and the count-zero suppressions.
+8. `test/record.cpp` parity harness: for every characterization fixture ×
+   PDBRUN version, `Record::parse(...).chars()` must equal
+   `libpdb::PDB(line).chars()` byte-for-byte — committed as a standing
+   differential test so Phase 3 can re-run it after the consumer switch.
+
+Each commit touches only `include/Record.hpp`, new files under
+`src/pdb/` (or a new `src/record/`), and `test/record.cpp`; the legacy
+class, its tables, and its tests are not modified after commit 1 lands.
+
+### 4.2 Public API and callers
+
+`libpdb::PDB` is untouched: all consumers (`zdock::PDB`, the CLI tools,
+the tests) keep compiling and behaving identically throughout Phase 2.
+The new class is additive and consumed only by its own tests. The only
+compatibility surface to respect is text: `Record::chars()` must equal
+`PDB::chars()` byte-for-byte on every input both accept (the commit-8
+harness enforces it continuously).
+
+### 4.3 Performance budget
+
+Target: parse and write within 20% of the bb0032c baseline, measured on
+the Phase 2 toolchain (host g++ 13.3.0). Recorded best-of-runs on the
+172,200-record replay (`-O3`, matched standard per row):
+
+| Build | parse (ms) | write (ms) |
+| ----- | ---------- | ---------- |
+| bb0032c, C++14 (as-was) | 128.5 | 44.9 |
+| **bb0032c, C++17 — budget baseline** | **126.9** | **45.0** |
+| current branch, C++14 (pre-switch) | 142.1 | 50.9 |
+| current branch, C++17 (after the switch) | 143.2 | 51.3 |
+
+The Phase 1 table-driven implementation sits at **+12.9% parse / +14.0%
+write** over the budget baseline — within the 20% budget. Phase 2 is
+expected to do better: the format-string walk (the dominant Phase 1
+overhead) disappears because column tables are read directly. Gate:
+after commits 4, 5, 6, and 7, re-run the recorded benchmark methodology
+(`/tmp` bench over a 172k-record replay, `-O3`, current standard) and
+compare against the C++17 baseline row; if any commit exceeds 20% over
+the baseline, stop and rework that commit before proceeding.
+`std::string` return in `chars()` adds one allocation per call versus
+the static buffer — if the benchmark shows it matters, offer a
+`write_into(char(&)[83])` overload before optimizing anything else.
+
+### 4.4 Sanitizer and exit criteria
+
+The new class and its tests must be ASan/UBSan clean with zero findings
+(no pinned UB survives in the new code). Exit criteria: parity harness
+green for every record type and both PDBRUN versions; warning-free build
+on GCC/Clang/Apple Clang; legacy suite untouched and green; benchmark
+within budget.
 
 ## 5. Phase 3 — Adapter shim and consumer migration
 
@@ -366,7 +521,7 @@ the serving path; `libpdb::PDB` still compiles untouched for external users.
 | ----- | ----------- | ---- |
 | 0 | Characterization suite + documented semantics + sanitizer baseline | Suite green; quirks documented; zero prod changes |
 | 1 | `PdbFormat`/`FieldReader`/`FieldWriter`/`RecordClassifier` classes | Suite unchanged and green after every commit |
-| 2 | `zdock::pdb::Record` (C++17) + golden parity tests | Byte-identical record text; sanitizers clean |
+| 2 | `zdock::pdb::Record` (C++17) + golden parity tests | Byte-identical record text; sanitizers clean with zero findings; parse/write within 20% of bb0032c on the Phase 2 toolchain (§4.3) |
 | 3 | `zdock::PDB` on new class + shims | Tools/tests pass unchanged |
 | 4 | Deprecation notes, README, full validation | All repo checks green |
 
