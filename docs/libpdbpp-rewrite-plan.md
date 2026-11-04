@@ -91,6 +91,14 @@ Characterization findings log (updated as batches complete):
   custom `PDB::sprintf`, not libc — `%72s` right-aligns short lines and
   renders overlong lines as 72 overflow `*` characters (see the overlong-line
   test). The table-driven parser must keep calling `PDB::sprintf` here.
+  Recorded for the closed TODOS.md stack-overflow item: the exact call path
+  is `zdock::PDB::read_` → `libpdb::operator>>(std::istream&, PDB&)` →
+  `PDB(const char*)` → `PdbFormat::parse` → `PdbFormat::setUnknown` →
+  `PDB::sprintf` (the static member, `FieldWriter::writeString` at width 72
+  → `overflow()` stars); `sprintf` resolves to `libpdb::PDB::sprintf` and
+  never to libc `::sprintf`. A 300-character UNKNOWN line renders
+  `UNKNOWN:  ??******??` and stays in bounds (verified by probe); the
+  committed regression pin is sequence commit 0b in §4.2.
 - `isalpha()` returns true for parsed CA atoms: parsed names are
   right-trimmed to `" CA"`, which matches the 5-byte comparison. Only
   hand-built blank-padded names fail it. (An earlier draft of this document
@@ -330,9 +338,9 @@ existing `zdock::PDB` home):
    descriptors `{ std::uint16_t offset; std::uint8_t width; ColumnKind }`
    with `ColumnKind ∈ {Int, Real, Str, Char, Skip}` — including the literal
    columns as `Skip`. Parsing walks the table over a
-   `std::string_view line`: slice, then convert (`std::from_chars` for
-   integers; a bounded `strtod` fallback helper for reals where the
-   standard library lacks floating-point `from_chars`), applying the
+   `std::string_view line`: slice, then convert with the shared
+   fixed-format parser (§4.1 — digit accumulation for both integer and
+   real columns, no `std::from_chars` anywhere), applying the
    pinned field semantics (defaults at end-of-line, trailing-blank strip,
    hard-mismatch detection). Writing walks the same table into a
    `std::string` with the pinned emitter semantics (right/left
@@ -390,13 +398,12 @@ existing `zdock::PDB` home):
   images, the servers, and other components are out of scope; no changes
   to them are planned here.
 - **Toolchain**: the development toolchain is the host g++ **13.3.0**
-  (Ubuntu 24.04). It supports everything Phase 2 needs: `std::variant`,
-  `std::string_view`, and `std::from_chars` for `double` (verified by a
-  feature probe; `__cpp_lib_to_chars = 201611`). One flagged target: the
-  CI matrix's macOS job (Apple Clang/libc++) lacks floating-point
-  `from_chars` before LLVM 20 — a decision (brewed LLVM for that job or a
-  narrowly scoped fallback) is needed when the parse code lands, before
-  that job can pass Phase 2.
+  (Ubuntu 24.04). Phase 2's field conversion does not use
+  `std::from_chars` at all: a shared fixed-format parser (§4.1) converts
+  integer and real columns by digit accumulation, so **Apple Clang and
+  libc++ are supported as-is** — no fallback parser, no per-platform
+  decision, and no `std::variant`/`std::string_view` concerns on any
+  CI target.
 - **Language standard**: the whole tree now builds as C++17 — the switch
   (GNUmakefile `CXXSTANDARD ?= -std=c++17`) is the first commit of this
   phase, with no other changes. It built warning-free (including the
@@ -409,11 +416,116 @@ existing `zdock::PDB` home):
   its own validation on the GCC 15 toolchain; it is not part of this
   work.
 
-### 4.1 Commit sequence (each commit small, reviewable, suite green)
+### 4.1 Shared fixed-format field parsing (no `from_chars`, one parser, every platform)
 
-0. **Language standard switch (landed first)**: the whole tree builds as
-   C++17 with the golden tests unchanged; timings recorded as the
-   comparison point (§4.3).
+Phase 2 converts numeric columns with **one small shared parser** for
+fixed-format fields, used by every record on every platform. There is no
+floating-point `std::from_chars` dependency and no platform-specific
+fallback path.
+
+**Supported form** (everything else is rejected, never guessed):
+`[space*] [sign] digits [ '.' digits ]` with at least one digit total.
+The value is the exact decimal `±D / 10^m`, where `D` is the digit string
+read into a 64-bit integer and `m` is the number of fraction digits in
+the data (the layouts are width-only, so the scale comes from the field
+itself, exactly as legacy `strtod` saw it).
+
+Defined behavior, matched to legacy `strtod` semantics:
+
+- **Blanks**: leading spaces are skipped, trailing spaces are stripped
+  (as `FieldReader` does today), and an all-blank field parses as `0.0`
+  with the field counted as started — exactly what legacy `strtod("")`
+  produced. Any other whitespace (tab, CR) inside a numeric field is
+  rejected; legacy `strtod` happened to accept leading tabs, fixed-format
+  PDB never contains them, and the rejection is deliberate and pinned.
+- **`-.15`**: the sign is taken, no leading digit is required before the
+  point; `-0.15` results. `-0` and `-0.00` produce negative zero, as
+  `strtod` does.
+- **Overflow**: cannot occur — the layout tables cap real fields at ten
+  digits, so `D < 10^10 < 2^63` always fits; a descriptor claiming a
+  wider numeric field is a table-definition error (static assertion), not
+  a runtime case. This replaces the legacy `(int)` truncation hazards by
+  construction.
+- **Invalid input**: anything outside the supported form is a hard
+  mismatch driving the same fallback chain legacy used (for atoms,
+  ATOM → ZDATOM → UNKNOWN): exponents (`1e5`), `inf`/`nan`, hex, inner
+  blanks, a lone sign, a lone point. Legacy `strtod` accepted exponent
+  forms that fixed-format PDB never emits; rejecting them is deliberate,
+  documented here, and pinned by tests rather than silently divergent.
+- **Exactness**: `D` and `10^m` are exactly representable doubles for
+  every field the tables define (`m ≤ 10`, `D < 2^53`), so one
+  correctly-rounded division by a static table of exact powers of ten
+  yields the same bits as `strtod` for every input in the supported form
+  (verified over 2,000,000 randomized field values during planning:
+  zero bit mismatches). No second conversion path exists or is needed.
+
+**Differential test** (in `test/record.cpp`): **three-way**, for every
+real and integer field of every line in `test/data/`, the real mark_sur
+ZDATOM fixtures, and every characterization fixture — plus randomized
+values (random signs, digit runs, point positions, blank runs, all-blank):
+
+1. primary: the shared parser must agree **bit-for-bit on the type the
+   field stores** (`double` / `int64_t`) with **the current legacy parse
+   path** — the value the legacy `PdbFormat`/`FieldReader` path stores in
+   the record — so a parser change can never silently alter stored data;
+2. secondary: the same equality against `strtod`/`strtol` on the field
+   text;
+3. any disagreement between the three is reported as a test failure with
+   the field, the line, and all three values.
+
+The rejection cases (exponents, tabs, lone signs, `inf`/`nan`, hex) are
+pinned as mismatches.
+
+**Corpus scan** (planning-time, reported): every `*.pdb` under the
+zdock-legacy tree — 135 files, 358,287 lines — checked against the
+strict form with numeric columns derived from the real read-format
+tables (both ATOM layout variants) and the actual legacy parse used to
+distinguish true classification changes: **0** tab characters, **0**
+lines longer than 82 columns, **0** exponent/`inf`/`nan`/hex forms in
+numeric fields, and **0** lines whose classification would change (every
+line the legacy parser accepts satisfies the strict form). The rejection
+rules therefore change no classification in any available data. (An
+initial scan pass misread mark_sur ZDATOM tails with the standard ATOM
+columns and mis-encoded `-.15` as invalid; both were probe errors,
+corrected above.)
+
+**Fixtures**: real 82-column mark_sur ZDATOM lines from
+`zdock-legacy-www` (stored example results: chains with `1UDH`/`1POH`
+segment ids, blank segment ids, `-.15` and `-0.15` charge forms) join
+`test/data/` as fixtures and are included in both the round-trip tests
+(added with the ZDATOM commit) and the differential harness (§4.2
+commit 8).
+
+The parser is included in the performance budget (§4.5); digit
+accumulation plus one division is expected to be cheaper than `strtod`.
+
+### 4.2 Commit sequence (each commit small, reviewable, suite green)
+
+0. **Language standard switch (landed first, 93a3db6)**: the whole tree
+   builds as C++17 with the golden tests unchanged; timings recorded as
+   the comparison point (§4.5).
+0a. **CRLF input fix (legacy, separate)**: strip exactly one trailing
+   `\r` in `libpdb::operator>>` after the line read — this covers both
+   file input (`zdock::PDB::read_` reads through `operator>>`) and
+   stream input; direct `PDB(const char*)` construction is unchanged and
+   stays pinned as-is. **Direct `PDB(const char*)` callers** (enumerated:
+   the only production caller is `libpdb::operator>>` itself at
+   `pdbinput.cpp:28`; every other caller is a `test/pdb_records.cpp`
+   construction, whose fixtures are LF-only except the deliberate CRLF
+   pins; tools and `zdock::PDB` reach records only through `operator>>`)
+   — so the only caller that can receive a raw `\r` is `operator>>`
+   (CRLF files and streams), which is exactly the one the fix covers.
+   Expectations changed: none of the existing golden texts change (the
+   stream CRLF case renders identically); the struct-level change is
+   that a CRLF TER read from a file now yields insert code `' '` instead
+   of `'\r'`, a short ATOM read from a stream parses as ATOM instead of
+   falling back to UNKNOWN, and new characterization cases pin the
+   stripped behavior. Falls before Phase 2 so the parity harness
+   enforces the fixed behavior.
+0b. **300-character unknown-line pin (test-only)**: commit the bounded
+   junk regression backing the closed TODOS.md item — a 300-character
+   UNKNOWN line renders `UNKNOWN:  ??******??` and writes nothing past
+   the record buffer.
 1. `RecordType` (enum class + `to_string`) + `test/record.cpp` skeleton —
    types only, no parsing.
 2. Column-table infrastructure: `ColumnSpec` arrays and the bounded
@@ -444,7 +556,24 @@ Each commit touches only `include/Record.hpp`, new files under
 `src/pdb/` (or a new `src/record/`), and `test/record.cpp`; the legacy
 class, its tables, and its tests are not modified after commit 1 lands.
 
-### 4.2 Public API and callers
+### 4.3 Quirk dispositions (keep, fix, or drop)
+
+| Pinned quirk | Decision | Where |
+| ------------ | -------- | ----- |
+| `chars()` returns a shared static buffer | drop (new class returns `std::string`); legacy keeps it until retirement | Phase 2 |
+| Global PDBRUN input/output version state (leaks across files and instances) | drop for the new class (`ParseContext` per file, output version per call); legacy keeps the globals until retirement, so multi-file callers become order-independent at Phase 3 | Phase 2/3 |
+| AUTHOR misaligned `%2d` store (the only sanitizer finding) | fix in the new class (typed `int` continuation); legacy keeps it pinned — the finding leaves the serving path at Phase 3 and the sanitizer baseline at Phase 4 retirement (§5, §6) | Phase 2 fix, Phase 4 removal |
+| CAVEAT `%4s` NUL clobber | fix in the new class (`std::string` id); text was never affected | Phase 2 |
+| ZDATOM leaked occupancy from the failed standard parse | drop (clean ZDATOM parse leaves occupancy unset); record text never renders ZDATOM occupancy | Phase 2 |
+| `*****` charge renders and re-parses as UNKNOWN | keep through parity, then **follow-up defect: fail loudly after parity** — a charge too wide for `%5.2f` silently loses its value when the rendered line is re-read; after the parity harness exists, surface the overflow as an error/diagnostic instead of silent degradation (tracked as §6.4 follow-up) | follow-up defect |
+| UNKNOWN junk right-aligned in 72 columns with `*` overflow | keep; enforced by the parity harness | kept |
+| `%D` zero-as-blanks and right-justified continuations | keep; enforced by the parity harness | kept |
+| `-.15` normalizes to `-0.15` on rewrite | keep; pinned by the charge test | kept |
+| CRLF `` quirks (junk fallback on short records, `` captured by `%c`) | fix the input path (one trailing `` stripped in `operator>>`, commit 0a); direct-construction behavior stays pinned | commit 0a |
+| MODEL reads `%8d` at columns 7-14, writes `%5d` at 11-15 | keep (round-trips); enforced by the parity harness | kept |
+| v5/v6 USER format differences and count-zero suppressions | keep; enforced by the parity harness | kept |
+
+### 4.4 Public API and callers
 
 `libpdb::PDB` is untouched: all consumers (`zdock::PDB`, the CLI tools,
 the tests) keep compiling and behaving identically throughout Phase 2.
@@ -453,7 +582,7 @@ compatibility surface to respect is text: `Record::chars()` must equal
 `PDB::chars()` byte-for-byte on every input both accept (the commit-8
 harness enforces it continuously).
 
-### 4.3 Performance budget
+### 4.5 Performance budget
 
 Target: parse and write within 20% of the bb0032c baseline, measured on
 the Phase 2 toolchain (host g++ 13.3.0). Recorded best-of-runs on the
@@ -469,16 +598,25 @@ the Phase 2 toolchain (host g++ 13.3.0). Recorded best-of-runs on the
 The Phase 1 table-driven implementation sits at **+12.9% parse / +14.0%
 write** over the budget baseline — within the 20% budget. Phase 2 is
 expected to do better: the format-string walk (the dominant Phase 1
-overhead) disappears because column tables are read directly. Gate:
-after commits 4, 5, 6, and 7, re-run the recorded benchmark methodology
-(`/tmp` bench over a 172k-record replay, `-O3`, current standard) and
-compare against the C++17 baseline row; if any commit exceeds 20% over
-the baseline, stop and rework that commit before proceeding.
-`std::string` return in `chars()` adds one allocation per call versus
-the static buffer — if the benchmark shows it matters, offer a
-`write_into(char(&)[83])` overload before optimizing anything else.
+overhead) disappears because column tables are read directly, and the
+shared fixed-format parser (§4.1) replaces `strtod` with digit
+accumulation plus one division.
 
-### 4.4 Sanitizer and exit criteria
+**Reporting**: after **every commit that adds or changes parsing or
+writing**, run the recorded benchmark methodology (172,200-record
+replay, `-O3`, current standard; at least three interleaved runs, best
+per side) and append the numbers to this table as a performance report
+against the C++17 baseline row above.
+
+**Trigger**: if the write time crosses **54 ms** (the baseline 45.0 ms
+plus the 20% allowance) or parse exceeds 152.3 ms (126.9 + 20%), stop:
+do not start the next commit, rework the offending commit, and report
+the numbers before proceeding. `std::string` return in `chars()` adds
+one allocation per call versus the static buffer — if the benchmark
+shows it matters, offer a `write_into(char(&)[83])` overload before
+optimizing anything else.
+
+### 4.6 Sanitizer and exit criteria
 
 The new class and its tests must be ASan/UBSan clean with zero findings
 (no pinned UB survives in the new code). Exit criteria: parity harness
@@ -488,32 +626,55 @@ within budget.
 
 ## 5. Phase 3 — Adapter shim and consumer migration
 
-1. Add conversion shims: `zdock::pdb::Record::fromLegacy(const libpdb::PDB&)`
-   and `toLegacy()` (temporary, tested both directions).
-2. Switch `zdock::PDB` internals to `zdock::pdb::Record` while keeping its
-   public API (records/attempts/matrix accessors) source-compatible for the
-   tools; `Record` becomes the shared-pointer payload type.
-3. Migrate `test/pdb.cpp` expectations to the new payload accessors; keep a
-   bridge test asserting legacy↔modern round-trips.
-4. Tools should require no changes (they only use `zdock::PDB` and
-   `operator<<`); verify by running the full tool-level tests.
+Sequenced commits (each small and reviewable; the suite stays green):
 
-**Exit criteria:** all tools and tests build and pass with the new class in
-the serving path; `libpdb::PDB` still compiles untouched for external users.
+1. **Shims**: `zdock::pdb::Record::fromLegacy(const libpdb::PDB&)` and
+   `toLegacy()` (temporary, tested both directions).
+2. **Caller move**: switch `zdock::PDB` internals to `zdock::pdb::Record`
+   while keeping its public API (records/attempts/matrix accessors)
+   source-compatible for the tools; `Record` becomes the shared-pointer
+   payload type. Migrate `test/pdb.cpp` expectations to the new payload
+   accessors; keep a bridge test asserting legacy↔modern round-trips.
+   Tools should require no changes (they only use `zdock::PDB` and
+   `operator<<`); verify by running the full tool-level tests. **At this
+   commit the legacy parser stops serving any caller** — the pinned
+   AUTHOR finding no longer affects any real code path (it survives only
+   inside the legacy characterization tests, which continue to pin the
+   legacy class).
+3. **Parity-harness retirement**: once every consumer is on the new
+   class and the bridge test covers legacy↔modern conversion, retire the
+   §4.2 commit-8 differential harness (its byte-equality guarantee is
+   carried by the bridge test and the new class's own golden suite) and
+   delete it in its own commit, with the plan updated.
+
+**Exit criteria:** all tools and tests build and pass with the new class
+in the serving path; `libpdb::PDB` still compiles untouched for external
+users.
 
 ## 6. Phase 4 — Cleanup, documentation, deprecation
 
 1. Mark `libpdb::PDB` deprecated in `include/PDB.hpp`-adjacent docs (upstream
    header itself stays untouched); README gains a "modern PDB record API"
    section pointing at `include/Record.hpp` and the wwPDB format reference.
-2. Remove now-dead internal glue if the compiler no longer needs it; keep
-   upstream files intact.
+2. **Retire the legacy parser and union** in its own commit: once no
+   consumer references `libpdb::PDB`'s reading/writing, remove the union,
+   the `PdbFormat`/`FieldReader`/`FieldWriter` legacy tables, and the
+   legacy characterization tests that pin only legacy internals; the
+   pinned AUTHOR misaligned store leaves the sanitizer baseline at this
+   commit. Upstream-derived files keep their UCFS notices verbatim for as
+   long as they exist; deleting them is a deliberate, reviewed decision
+   here (recorded in the findings log), revisiting the earlier
+   "keep upstream files intact" stance — external users of the legacy API
+   are none in this repository, and the decision is gated on confirming
+   that before the commit.
 3. Full validation: `make clean && make -j4 all && make cpp-test &&
    make python-test && make python-check`, sanitizer build of the complete
    test suite, `git diff --check`, and `pre-commit run --all-files`.
 4. Follow-up (out of scope here): extend `RecordType` and layouts to full
    wwPDB v3.3+ records (HETNAM, LINK, CISPEP, DBREF, …) using the same
-   column-table mechanism.
+   column-table mechanism; and make `*****` charge overflow fail loudly
+   (error or diagnostic) after parity, instead of the rendered line
+   re-parsing as UNKNOWN (§4.3 follow-up defect).
 
 ## 7. Milestones and gates
 
@@ -521,7 +682,7 @@ the serving path; `libpdb::PDB` still compiles untouched for external users.
 | ----- | ----------- | ---- |
 | 0 | Characterization suite + documented semantics + sanitizer baseline | Suite green; quirks documented; zero prod changes |
 | 1 | `PdbFormat`/`FieldReader`/`FieldWriter`/`RecordClassifier` classes | Suite unchanged and green after every commit |
-| 2 | `zdock::pdb::Record` (C++17) + golden parity tests | Byte-identical record text; sanitizers clean with zero findings; parse/write within 20% of bb0032c on the Phase 2 toolchain (§4.3) |
+| 2 | `zdock::pdb::Record` (C++17) + golden parity tests | Byte-identical record text; sanitizers clean with zero findings; parse/write within 20% of bb0032c on the Phase 2 toolchain (§4.5) |
 | 3 | `zdock::PDB` on new class + shims | Tools/tests pass unchanged |
 | 4 | Deprecation notes, README, full validation | All repo checks green |
 
@@ -530,7 +691,7 @@ the serving path; `libpdb::PDB` still compiles untouched for external users.
 | Risk | Mitigation |
 | ---- | ---------- |
 | Tool output must stay byte-identical (regression-checked downstream) | Phase 0 golden lines; parity tests in Phase 2; only reviewed deviations |
-| `from_chars` double support varies by standard library | Isolated bounded fallback helper with a portability test |
+| Floating-point conversion differs from `strtod` | No `from_chars`; one shared fixed-format parser (§4.1) proven bit-identical to `strtod` by a differential test over all test-data fields plus randomized values |
 | Removing global PDBRUN state changes multi-file behavior (currently leaks) | Pin current behavior in Phase 0; make the fix an explicit, tested change in Phase 2 (`ParseContext` per file) |
 | Static-buffer `chars()` removal can expose latent double-use bugs | Shim keeps legacy signature; consumers already stream immediately |
 | C++17 default bump vs macOS/FreeBSD toolchains | Flag stays overridable; C++17 is supported by all CI compilers; document minimum versions |
