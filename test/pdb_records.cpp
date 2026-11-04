@@ -551,6 +551,115 @@ TEST_CASE("Fixed-width sscanf semantics", "[pdb-records]") {
   CHECK(std::string(s) == "");
 }
 
+TEST_CASE("CRLF line endings", "[pdb-records]") {
+  // Invariant (characterization): a trailing \r is ordinary content to the
+  // fixed-width reader. String and numeric fields strip it (isspace), so
+  // records whose last field is a string round-trip to the LF-only form;
+  // a \r landing on a format literal is a hard mismatch, so short records
+  // fall back to UNKNOWN; a \r landing in a %c field is captured verbatim
+  // into the record and only disappears from the rendered text through the
+  // trailing-blank trim.
+  PDB author("AUTHOR   1VELDE, A.V.D.\r\n");
+  REQUIRE(author.type() == PDB::AUTHOR);
+  REQUIRE(std::string(author.author.authors) == "VELDE, A.V.D.");
+  REQUIRE(std::string(author.chars()) == "AUTHOR   1VELDE, A.V.D.");
+
+  // Full-width atom: the \r falls in the charge field and is stripped, so
+  // the record parses and renders exactly like its LF-only form.
+  PDB atom("ATOM    352  N   MET b   1      20.321  -9.325  38.937  1.00"
+           " 15.91           N\r\n");
+  REQUIRE(atom.type() == PDB::ATOM);
+  REQUIRE(atom.atom.xyz[0] == 20.321);
+  REQUIRE(atom.atom.occupancy == 1.0);
+  REQUIRE(atom.atom.tempFactor == 15.91);
+  REQUIRE(std::string(atom.chars()) ==
+          "ATOM    352  N   MET b   1      20.321  -9.325  38.937  1.00"
+          " 15.91           N");
+
+  // Short atom: the \r sits where the format's trailing literal spaces
+  // expect content, so the standard and ZDATOM layouts hard-fail and the
+  // line degrades to an UNKNOWN junk record.
+  PDB shortAtom("ATOM      1  CA  ALA A   1       1.000   2.000   3.000"
+                "  1.00 10.00\r\n");
+  REQUIRE(shortAtom.type() == PDB::UNKNOWN);
+  REQUIRE(std::string(shortAtom.chars()) == "UNKNOWN:  ??    AT??");
+
+  // The \r is captured verbatim by the insert-code field (0x0D) and is
+  // hidden on output only by the trailing-blank trim.
+  PDB ter("TER       1      ALA A  10\r\n");
+  REQUIRE(ter.type() == PDB::TER);
+  REQUIRE(ter.ter.residue.insertCode == '\r');
+  REQUIRE(std::string(ter.chars()) == "TER       1      ALA A  10");
+
+  // Unknown junk: the \r\n count toward the 72-character junk field.
+  PDB junk("SOME UNKNOWN JUNK TEXT\r\n");
+  REQUIRE(junk.type() == PDB::UNKNOWN);
+  REQUIRE(std::string(junk.chars()) == "UNKNOWN:  ??      ??");
+
+  // operator>> keeps the \r as well (Windows uploads read identically).
+  std::istringstream in("AUTHOR   1VELDE, A.V.D.\r\n");
+  PDB streamed;
+  in >> streamed;
+  REQUIRE(in);
+  REQUIRE(streamed.type() == PDB::AUTHOR);
+  REQUIRE(std::string(streamed.chars()) == "AUTHOR   1VELDE, A.V.D.");
+}
+
+TEST_CASE("Real mark_sur charge written as -.15", "[pdb-records]") {
+  // Invariant (characterization): the zero-less charge form found in real
+  // mark_sur data parses to the same value as "-0.15", and the writer
+  // normalizes it to "-0.15" across the full 82-column ZDATOM layout, so
+  // the value survives a write and re-read even though the literal form
+  // does not survive byte-for-byte.
+  const std::string line = "ATOM      1  N   ASN A   1      15.639 -11.284"
+                           "  -9.203  1     0 1.63          -.15";
+  PDB record(line.c_str());
+  REQUIRE(record.type() == PDB::ATOM);
+  REQUIRE(record.atom.iszdatom);
+  REQUIRE(record.atom.chg == -0.15);
+  REQUIRE(record.atom.type == 1);
+  REQUIRE(record.atom.surface == 0);
+  REQUIRE(record.atom.rad == 1.63);
+  const std::string text = record.chars();
+  REQUIRE(text.size() == 82);
+  REQUIRE(text == "ATOM      1  N   ASN A   1      15.639 -11.284  -9.203"
+                  "  1     0 1.63         -0.15");
+  PDB reread(text.c_str());
+  REQUIRE(reread.type() == PDB::ATOM);
+  REQUIRE(reread.atom.iszdatom);
+  REQUIRE(reread.atom.chg == -0.15);
+}
+
+TEST_CASE("Continued String records", "[pdb-records]") {
+  // Invariant (characterization): continuation numbers render right-
+  // justified with zero as blanks (%D), each String record's continuation
+  // column has its own width (2 for AUTHOR/TITLE, 3 for COMPND), leading
+  // blanks of the text survive because only trailing blanks are stripped,
+  // and continued lines round-trip byte-for-byte.
+  PDB title("TITLE    2 SOME TEXT");
+  REQUIRE(title.type() == PDB::TITLE);
+  REQUIRE(title.title.continuation == 2);
+  REQUIRE(std::string(title.title.text) == " SOME TEXT");
+  REQUIRE(std::string(title.chars()) == "TITLE    2 SOME TEXT");
+
+  PDB author("AUTHOR   2 SMITH, J.");
+  REQUIRE(author.type() == PDB::AUTHOR);
+  REQUIRE(author.author.continuation == 2);
+  REQUIRE(std::string(author.chars()) == "AUTHOR   2 SMITH, J.");
+
+  // COMPND's continuation column is three wide.
+  PDB compnd("COMPND  10 TEN");
+  REQUIRE(compnd.type() == PDB::COMPND);
+  REQUIRE(compnd.compnd.continuation == 10);
+  REQUIRE(std::string(compnd.chars()) == "COMPND  10 TEN");
+
+  // Continuation zero renders as blanks and re-parses as zero.
+  PDB blankCont("AUTHOR    0 SMITH, J.");
+  REQUIRE(blankCont.type() == PDB::AUTHOR);
+  REQUIRE(blankCont.author.continuation == 0);
+  REQUIRE(std::string(blankCont.chars()) == "AUTHOR    0 SMITH, J.");
+}
+
 TEST_CASE("Fixed-width sprintf semantics", "[pdb-records]") {
   // Invariant: the custom sprintf right/left-justifies within the requested
   // width, renders %D zero as blanks, and overflows to asterisks.
