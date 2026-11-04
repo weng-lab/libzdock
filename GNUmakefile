@@ -31,6 +31,7 @@ LIBRARY := zdock
 LIBARCH := $(LIB_DIR)/lib$(LIBRARY).a
 
 LIB_SOURCES := \
+  src/libpdb++/FieldReader.cpp \
   src/libpdb++/pdbinput.cpp \
   src/libpdb++/pdb_read.cpp \
   src/libpdb++/pdb++.cpp \

@@ -18,9 +18,9 @@
 //
 
 #include "pdb++.h"
+#include "FieldReader.hpp"
 #include <ctype.h>
 #include <stdarg.h>
-#include <stdlib.h>
 
 //
 //	pdb_sscanf performs similarly to sscanf, execept that fields are of
@@ -38,141 +38,66 @@
 //		c	get a character(s); no stripping of spaces, nor is
 //			a null character appended.  Default:  space(s).
 //
-
-#define MAXFIELDSIZE 80
+//	The field mechanics live in FieldReader; this wrapper only walks
+//	the format string.
+//
 
 namespace libpdb {
 
 int PDB::sscanf(const char *buffer, const char *fmt, ...) {
   va_list ap;
-  int i, field_width;
-  int nmatch;
-  char *s, *t;
-  char tmp[MAXFIELDSIZE];
-
   va_start(ap, fmt);
-  nmatch = 0;
+  FieldReader reader(buffer);
   for (; *fmt != '\0'; fmt++) {
     if (*fmt != '%') {
-      if (*buffer == *fmt)
-        buffer++;
-      else if (*buffer != '\0' && *buffer != '\n')
+      if (!reader.matchLiteral(*fmt)) {
+        va_end(ap);
         return -1;
+      }
       continue;
     }
 
     // calculate field_width
-    field_width = 0;
-    for (++fmt; isdigit(*fmt); fmt++)
+    int field_width = 0;
+    for (++fmt; isdigit(static_cast<unsigned char>(*fmt)); fmt++)
       field_width = field_width * 10 + *fmt - '0';
     if (field_width == 0)
       field_width = 1; // default
-    if (*buffer != '\0' && *buffer != '\n')
-      nmatch++;
 
+    bool matched = true;
     switch (*fmt) {
 
     case 'd': // integer
-      // if we've already seen the end of the buffer, don't
-      // try to get anymore characters
-      if (*buffer == '\0' || *buffer == '\n') {
-        *(va_arg(ap, int *)) = 0;
-        break;
-      }
-
-      s = tmp;
-      for (i = 0; i < field_width; i++) {
-        if (*buffer == '\0' || *buffer == '\n')
-          break;
-        *s++ = *buffer++;
-      }
-      *s = '\0';
-      // remove trailing spaces
-      while (s > tmp && isspace(*(s - 1)))
-        *--s = '\0';
-      *(va_arg(ap, int *)) = (int)strtol(tmp, &t, 10);
-      if (t != s)
-        return -1;
+      matched = reader.readInt(field_width, va_arg(ap, int *));
       break;
 
     case 'f': // floating point
-      // if we've already seen the end of the buffer, don't
-      // try to get anymore characters
-      if (*buffer == '\0' || *buffer == '\n') {
-        *(va_arg(ap, double *)) = 0.0;
-        break;
-      }
-
-      s = tmp;
-      for (i = 0; i < field_width; i++) {
-        if (*buffer == '\0' || *buffer == '\n')
-          break;
-        *s++ = *buffer++;
-      }
-      *s = '\0';
-      // remove trailing spaces
-      while (s > tmp && isspace(*(s - 1)))
-        *--s = '\0';
-      *(va_arg(ap, double *)) = strtod(tmp, &t);
-      if (t != s)
-        return -1;
+      matched = reader.readReal(field_width, va_arg(ap, double *));
       break;
 
     case 's': // string
-      // if we've already seen the end of the buffer, don't
-      // try to get anymore characters
-      if (*buffer == '\0' || *buffer == '\n') {
-        *(va_arg(ap, char *)) = '\0';
-        break;
-      }
-
-      s = t = va_arg(ap, char *);
-      for (i = 0; i < field_width; i++) {
-        if (*buffer == '\0' || *buffer == '\n')
-          break;
-        *s++ = *buffer++;
-      }
-      *s = '\0';
-      // remove trailing spaces
-      while (s > t && isspace(*--s))
-        *s = '\0';
+      reader.readString(field_width, va_arg(ap, char *));
       break;
 
     case 'c': // character(s)
-      s = va_arg(ap, char *);
-      for (i = 0; i < field_width; i++)
-        s[i] = ' '; // default
-
-      // if we've already seen the end of the buffer, don't
-      // try to get anymore characters
-      if (*buffer == '\0' || *buffer == '\n')
-        break;
-
-      for (i = 0; i < field_width; i++) {
-        if (*buffer == '\0' || *buffer == '\n')
-          break;
-        *s++ = *buffer++;
-      }
+      reader.readChars(field_width, va_arg(ap, char *));
       break;
 
     case ' ': // space (ignore)
-      // if we've already seen the end of the buffer, don't
-      // try to get anymore characters
-      if (*buffer == '\0' || *buffer == '\n')
-        break;
-
-      for (i = 0; i < field_width; i++, buffer++)
-        if (*buffer == '\0' || *buffer == '\n')
-          break;
+      reader.skipChars(field_width);
       break;
 
     default:
       va_end(ap);
       return -1;
     }
+    if (!matched) {
+      va_end(ap);
+      return -1;
+    }
   }
   va_end(ap);
-  return nmatch;
+  return reader.nmatch();
 }
 
 } // namespace libpdb
