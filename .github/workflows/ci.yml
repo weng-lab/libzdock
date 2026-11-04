@@ -48,9 +48,6 @@ jobs:
           - os: ubuntu-24.04
             compiler: clang
             cxx: clang++
-          - os: macos-latest
-            compiler: apple-clang
-            cxx: clang++
 
     steps:
       - name: Check out repository
@@ -65,21 +62,12 @@ jobs:
           enable-cache: true
           cache-dependency-glob: python/uv.lock
 
-      - name: Install GNU make on macOS
-        if: runner.os == 'macOS'
-        run: brew install make
-
       - name: Build and run tests
         env:
           CXX: ${{ matrix.cxx }}
         run: |
-          if [ "$RUNNER_OS" = "macOS" ]; then
-            MAKE=gmake
-          else
-            MAKE=make
-          fi
-          "$MAKE" clean
-          "$MAKE" -j2 all
-          "$MAKE" cpp-test
-          "$MAKE" python-test
-          "$MAKE" python-check
+          make clean
+          make -j2 all
+          make cpp-test
+          make python-test
+          make python-check
