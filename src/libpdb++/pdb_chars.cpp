@@ -26,7 +26,10 @@
 namespace libpdb {
 
 const char *PDB::chars(void) const {
-  static char buf[BufLen];
+  // The legacy fixed-width formatter is unbounded, and its widest layout,
+  // the 82-column ZDATOM record, needs two more cells than BufLen before
+  // the record is clamped to the 80-character record length.
+  static char buf[BufLen + 8];
 
   // convert C structure to pdb record
 

@@ -20,8 +20,8 @@ work log for that effort.
 
 | Phase | State |
 | ----- | ----- |
-| 0 — Document and pin current behavior | Characterization suite complete: `test/pdb_records.cpp` (20 test cases, 324 assertions) plus extended `test/formatting.cpp`; full suite 764 assertions / 54 test cases green; sanitizer run pending |
-| 1 — Restructure legacy code into classes | In progress: `FieldReader` (cbcd7aa), `FieldWriter` (a6968fc), `RecordClassifier` (fd078d3), and the `PdbFormat` read side are extracted and committed; write side pending |
+| 0 — Document and pin current behavior | Characterization suite complete: `test/pdb_records.cpp` (21 test cases, 330 assertions) plus extended `test/formatting.cpp`; full suite 770 assertions / 55 test cases green. Sanitizer baseline complete: the only remaining finding is the pinned AUTHOR misaligned `%2d` store; see the findings log |
+| 1 — Restructure legacy code into classes | Complete: `FieldReader` (cbcd7aa), `FieldWriter` (a6968fc), `RecordClassifier` (fd078d3), and the `PdbFormat` read (97303e4) and write (b274b94) sides are extracted and committed; `PDB` is a thin shell over them and the varargs `PDB::sscanf`/`PDB::sprintf` remain as compatibility wrappers. Table mutations were verified to fail the suite, and parse/write throughput on a 172k-record replay stays within 20% of the pre-refactor baseline |
 | 2 — New modern record class (C++17) | Not started |
 | 3 — Adapter shim and consumer migration | Not started |
 | 4 — Cleanup, documentation, deprecation | Not started |
@@ -56,10 +56,14 @@ Characterization findings log (updated as batches complete):
   of quotes. Pinned as a one-cycle assertion.
 - v5 `USER  DISTANCE` uses `%8.3f` (not the v6 `%9.3f`); v5 `ANGLE` carries
   the extra `which` field.
-- Defect (pinned): the ZDATOM write layout is 82 columns but `chars()`
-  formats into an 81-byte static buffer — a two-byte overflow — before the
-  result is clamped and truncated to 80 characters. Every full ZDATOM record
-  output overflows. The modern class must keep records bounded.
+- Defect (fixed): the ZDATOM write layout is 82 columns but `chars()`
+  formatted into an 81-byte static buffer — a two-byte overflow — before the
+  result was clamped and truncated to 80 characters. The record buffer now
+  accommodates the widest legacy layout, so no write passes its end while the
+  output stays clamped to the 80-character record length (dropping the last
+  two charge columns); the Phase 2 modern class must keep records bounded by
+  construction. Regression test: the full-width ZDATOM case in
+  `test/pdb_records.cpp`.
 - Defect (sanitizer-confirmed): AUTHOR parsing stores the `%2d` continuation
   through `&author.continuation`, a `char` at union offset 70 — a misaligned
   4-byte store (UB) that only stays inside the union because larger members
@@ -208,6 +212,29 @@ Progress log (branch `pdbcpprewrite`):
   field list pairs one-to-one with the value conversions of its format
   string before `pdb_read.cpp` switched over. The characterization suite
   passed unmodified.
+- PdbFormat write side (complete): the write tables mirror the read tables,
+  sharing field lists except where member types differ (AUTHOR's char
+  continuation loads as one byte when formatting). The v5 USER paths that
+  use libc `printf` conversions keep explicit `snprintf` bindings, null
+  formats keep the count-zero suppressions, and the USER GFX BEGIN
+  primitive-name substitution and the USER PDBRUN output-version side
+  effect are preserved. `pdb_chars.cpp` now only selects the table-driven
+  formatter and applies the pinned static-buffer, clamp, and trailing-blank
+  trim.
+- Table validation: mutating one read-side entry (v6 USER ANGLE pointed at
+  the wrong field list) and one write-side entry (TVECT pointed at the TER
+  list) each failed exactly one round-trip test case; both were reverted.
+- Throughput: on a 172,200-record replay (2OOB ligand repeated 300x,
+  `-O3 -std=c++14`, best of repeated runs), the table-driven parse is
+  ~13% slower (125 to 143 ms) and the write path ~17% slower (45 to 52 ms)
+  than the pre-refactor switch implementation — within the accepted 20%
+  budget; the Phase 2 clean-room class recovers this by dropping the
+  format-string walk entirely.
+- Sanitizer baseline: with ASan/UBSan, the only remaining finding is the
+  pinned AUTHOR misaligned `%2d` store; the ZDATOM record-buffer overrun is
+  fixed by sizing the `chars()` record buffer for the widest legacy layout
+  while keeping the 80-character output and the shared-static-buffer
+  behavior unchanged.
 
 The parse/format switches currently live inside the `PDB` constructor and
 `chars()`. Extract them into internal, project-owned classes while keeping the

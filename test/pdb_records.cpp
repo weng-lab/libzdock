@@ -359,6 +359,24 @@ TEST_CASE("MODEL records tolerate the non-standard column layout",
   REQUIRE(record.model.num == 1);
 }
 
+TEST_CASE("Full-width ZDATOM record stays within the record buffer",
+          "[pdb-records]") {
+  // Invariant: a ZDATOM record whose layout renders 82 columns writes no
+  // byte past the record buffer, and its text is truncated to exactly the
+  // 80-character record length (dropping the last two charge columns).
+  const std::string line = "ATOM      1  CA  ALA A   1      12.345  -6.789"
+                           "  10.000  1     1 1.23     ALA  1.50";
+  REQUIRE(line.size() == 82);
+  PDB record(line.c_str());
+  REQUIRE(record.type() == PDB::ATOM);
+  REQUIRE(record.atom.iszdatom);
+  REQUIRE(record.atom.chg == 1.5);
+  const std::string text = record.chars();
+  REQUIRE(text.size() == 80);
+  REQUIRE(text == "ATOM      1  CA  ALA A   1      12.345  -6.789  10.000 "
+                  " 1     1 1.23     ALA  1.");
+}
+
 TEST_CASE("PDBRUN versions are global mutable parse state", "[pdb-records]") {
   // Invariant (pinned legacy quirk): parsing a USER PDBRUN record mutates
   // process-global input version state observed by every later parse.
