@@ -967,21 +967,33 @@ TEST_CASE("Parsing a PDBRUN record updates the caller's ParseContext",
       zdock::pdb::Record::parse("USER  MARKNAME MARK1", context);
   REQUIRE(markname.has_value());
   REQUIRE(markname->type() == zdock::pdb::RecordType::USER);
+  // pin the legacy globals the legacy comparison relies on: the
+  // process-global output version is mutated by other test cases and
+  // the case order varies between executions
+  libpdb::PDB::PdbrunInputVersion(6);
+  libpdb::PDB::PdbrunOutputVersion(6);
   REQUIRE(markname->chars() == std::string(
       libpdb::PDB("USER  MARKNAME MARK1").chars()));
+  libpdb::PDB::PdbrunInputVersion(6);
+  libpdb::PDB::PdbrunOutputVersion(6);
 }
 
 TEST_CASE("Failed USER records fall back to the generic USER columns",
           "[record-parity]") {
   // Invariant: a USER record whose typed binder mismatches parses with
   // the generic USER columns, keeping the subtype text -- the pinned
-  // fallback chain.
+  // fallback chain. The legacy globals are pinned because the case run
+  // order varies between executions and other cases mutate them.
+  libpdb::PDB::PdbrunInputVersion(6);
+  libpdb::PDB::PdbrunOutputVersion(6);
   zdock::pdb::ParseContext context;
   const auto angle = zdock::pdb::Record::parse("USER  ANGLE  X      2", context);
   REQUIRE(angle.has_value());
   REQUIRE(angle->type() == zdock::pdb::RecordType::USER);
   const libpdb::PDB legacy("USER  ANGLE  X      2");
   REQUIRE(angle->chars() == std::string(legacy.chars()));
+  libpdb::PDB::PdbrunInputVersion(6);
+  libpdb::PDB::PdbrunOutputVersion(6);
 }
 
 TEST_CASE("v5 rendering suppresses records the v5 writer cannot emit",
@@ -994,11 +1006,17 @@ TEST_CASE("v5 rendering suppresses records the v5 writer cannot emit",
   const auto markname =
       zdock::pdb::Record::parse("USER  MARKNAME MARK1", context);
   REQUIRE(markname.has_value());
-  // under v5 the line degrades to a generic USER record, which renders
+  // under v5 the line degrades to a generic USER record, which renders;
+  // pin the legacy globals the comparison relies on (the case run order
+  // varies between executions and other cases mutate them)
+  libpdb::PDB::PdbrunInputVersion(5);
+  libpdb::PDB::PdbrunOutputVersion(6);
   const auto generic = zdock::pdb::Record::parse("USER  MARKNAME MARK1",
                                                  context);
   REQUIRE(generic->chars() == std::string(
       libpdb::PDB("USER  MARKNAME MARK1").chars()));
+  libpdb::PDB::PdbrunInputVersion(6);
+  libpdb::PDB::PdbrunOutputVersion(6);
 
   zdock::pdb::WriteContext writeContext;
   writeContext.pdbrunVersion = 5;

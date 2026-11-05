@@ -710,51 +710,6 @@ constexpr ColumnSpec kObslteWriteCols[] = {
     {71, 4, ColumnKind::Str, 0, true},
 };
 
-constexpr ColumnSpec kSprsdeReadCols[] = {
-    {0, 8, ColumnKind::Skip},
-    {8, 2, ColumnKind::Int, 0, false, ' ', true},
-    {10, 1, ColumnKind::Literal, 0, false, ' '},
-    {11, 9, ColumnKind::Str, 0, true},
-    {20, 1, ColumnKind::Literal, 0, false, ' '},
-    {21, 4, ColumnKind::Str},
-    {25, 6, ColumnKind::Skip},
-    {31, 4, ColumnKind::Str},
-    {35, 1, ColumnKind::Literal, 0, false, ' '},
-    {36, 4, ColumnKind::Str},
-    {40, 1, ColumnKind::Literal, 0, false, ' '},
-    {41, 4, ColumnKind::Str},
-    {45, 1, ColumnKind::Literal, 0, false, ' '},
-    {46, 4, ColumnKind::Str},
-    {50, 1, ColumnKind::Literal, 0, false, ' '},
-    {51, 4, ColumnKind::Str},
-    {55, 1, ColumnKind::Literal, 0, false, ' '},
-    {56, 4, ColumnKind::Str},
-    {60, 1, ColumnKind::Literal, 0, false, ' '},
-    {61, 4, ColumnKind::Str},
-    {65, 1, ColumnKind::Literal, 0, false, ' '},
-    {66, 4, ColumnKind::Str},
-    {70, 1, ColumnKind::Literal, 0, false, ' '},
-    {71, 4, ColumnKind::Str},
-};
-
-constexpr ColumnSpec kSprsdeWriteCols[] = {
-    {0, 8, ColumnKind::Skip},
-    {8, 2, ColumnKind::Int, 0, false, ' ', true},
-    {10, 1, ColumnKind::Literal, 0, false, ' '},
-    {11, 9, ColumnKind::Str, 0, true},
-    {20, 1, ColumnKind::Literal, 0, false, ' '},
-    {21, 10, ColumnKind::Str, 0, true},
-    {31, 5, ColumnKind::Str, 0, true},
-    {36, 5, ColumnKind::Str, 0, true},
-    {41, 5, ColumnKind::Str, 0, true},
-    {46, 5, ColumnKind::Str, 0, true},
-    {51, 5, ColumnKind::Str, 0, true},
-    {56, 5, ColumnKind::Str, 0, true},
-    {61, 5, ColumnKind::Str, 0, true},
-    {66, 5, ColumnKind::Str, 0, true},
-    {71, 4, ColumnKind::Str, 0, true},
-};
-
 constexpr ColumnSpec kMasterCols[] = {
     {0, 10, ColumnKind::Skip},
     {10, 5, ColumnKind::Int},
@@ -3058,7 +3013,6 @@ std::optional<Record> Record::parse(std::string_view line,
     ColumnReader reader(line);
     Record record(type);
     const bool ok = parseAnisouColumns(reader, record, kAnisouCols);
-    fprintf(stderr, "anisou binder ok=%d\n", (int)ok);
     if (!ok)
       return std::nullopt;
     return record;

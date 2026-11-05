@@ -88,6 +88,10 @@ TEST_CASE("PDBRUN v5 user records are bounded", "[pdb-format]") {
     fill_field(record.userGfxLabel.text);
     require_truncated_record(record);
   }
+
+  // restore the process default: the output version is a legacy global,
+  // and test cases run in an order that varies between executions
+  libpdb::PDB::PdbrunOutputVersion(6);
 }
 
 TEST_CASE("Standard records are bounded at maximum width", "[pdb-format]") {

@@ -15,8 +15,8 @@
 // build of the pre-rewrite parser (bb0032c): build the baseline with
 //   git worktree add /tmp/bb0032c bb0032c
 //   make -C /tmp/bb0032c clean all   (its own toolchain, C++14)
-//   g++ -O2 -std=c++14 -I/tmp/bb0032c/contrib/eigen \
-//       -I/tmp/bb0032c/include tools/compare_parsers_dump.cpp \
+//   g++ -O2 -std=c++14 -I/tmp/bb0032c/contrib/eigen
+//       -I/tmp/bb0032c/include tools/compare_parsers_dump.cpp
 //       /tmp/bb0032c/lib/libzdock.a -o /tmp/baseline_dump
 // Differences against the baseline are classified: ZDATOM-length
 // differences (the pre-fb720ad 80-column truncation) and v5 USER token
@@ -30,7 +30,13 @@
 //
 // Usage:
 //   bin/compare_parsers <file-or-directory> [--baseline <exe>]
-//       [--max-files N] [--max-lines N] [--all-extensions] [--quiet]
+//       [--files-from <list>] [--max-files N] [--max-lines N]
+//       [--all-extensions] [--quiet]
+//
+// With --files-from, <list> holds one input path per line (visited in
+// listed order instead of a sorted walk); the first argument is then only
+// a label. Shard drivers use this to split a corpus across parallel
+// invocations without re-walking the tree.
 //
 // Exit status: 0 = full parity, 1 = mismatches found, 2 = usage or I/O
 // error. Files are visited in sorted order for reproducibility; only
@@ -54,6 +60,7 @@ namespace {
 
 struct Options {
   std::string root;
+  std::string filesFrom; // file list (one path per line); overrides the walk
   std::string baseline; // path to the bb0032c dump executable (optional)
   std::size_t maxFiles = 0;
   std::size_t maxLines = 0;
@@ -717,7 +724,8 @@ int main(int argc, char **argv) {
   Options options;
   if (argc < 2) {
     fprintf(stderr,
-            "usage: %s <file-or-directory> [--baseline <exe>] "
+            "usage: %s <file-or-directory> [--files-from <list>] "
+            "[--baseline <exe>] "
             "[--max-files N] [--max-lines N] [--all-extensions] [--quiet]\n",
             argv[0]);
     return 2;
@@ -727,6 +735,8 @@ int main(int argc, char **argv) {
     const std::string arg = argv[i];
     if (arg == "--baseline" && i + 1 < argc)
       options.baseline = argv[++i];
+    else if (arg == "--files-from" && i + 1 < argc)
+      options.filesFrom = argv[++i];
     else if (arg == "--max-files" && i + 1 < argc)
       options.maxFiles = static_cast<std::size_t>(std::atoi(argv[++i]));
     else if (arg == "--max-lines" && i + 1 < argc)
@@ -744,7 +754,18 @@ int main(int argc, char **argv) {
   std::vector<std::filesystem::path> files;
   try {
     const std::filesystem::path root(options.root);
-    if (std::filesystem::is_regular_file(root)) {
+    if (!options.filesFrom.empty()) {
+      std::ifstream list(options.filesFrom);
+      if (!list) {
+        fprintf(stderr, "cannot open file list %s\n",
+                options.filesFrom.c_str());
+        return 2;
+      }
+      std::string path;
+      while (std::getline(list, path))
+        if (!path.empty())
+          files.push_back(std::filesystem::path(path));
+    } else if (std::filesystem::is_regular_file(root)) {
       files.push_back(root);
     } else {
       for (const auto &entry :
@@ -795,18 +816,34 @@ int main(int argc, char **argv) {
       lineContext.pdbrunVersion = parseContext.pdbrunVersion;
       const std::optional<zdock::pdb::Record> parsed =
           zdock::pdb::Record::parse(line, lineContext);
+      zdock::pdb::WriteContext writeContext;
+      writeContext.pdbrunVersion = parseContext.pdbrunVersion;
 
       bool parity = true;
       if (!parsed.has_value()) {
-        ++counters.rejections;
-        parity = false;
-        if (!options.quiet)
-          report(where, lineNo, "new parser rejected",
-                 "legacy type " + std::to_string((int)legacy.type()) + " | " +
-                     shorten(line));
+        // a rejection is only a divergence when the legacy parse did not
+        // also fall back to the junk record; when it did, compare the
+        // unknown text exactly as the standing parity harness does
+        if (legacy.type() == libpdb::PDB::UNKNOWN) {
+          const std::string junkText =
+              zdock::pdb::Record::unknownFrom(line).chars(writeContext);
+          if (junkText != legacyText) {
+            ++counters.textMismatches;
+            parity = false;
+            if (!options.quiet)
+              report(where, lineNo, "text mismatch",
+                     "legacy '" + shorten(legacyText) + "' new '" +
+                         shorten(junkText) + "'");
+          }
+        } else {
+          ++counters.rejections;
+          parity = false;
+          if (!options.quiet)
+            report(where, lineNo, "new parser rejected",
+                   "legacy type " + std::to_string((int)legacy.type()) +
+                       " | " + shorten(line));
+        }
       } else {
-        zdock::pdb::WriteContext writeContext;
-        writeContext.pdbrunVersion = parseContext.pdbrunVersion;
         const std::string newText = parsed->chars(writeContext);
 
         if (static_cast<int>(parsed->type()) !=

@@ -53,3 +53,12 @@
 
 # local tool caches
 /.cache/
+
+# parity harness outputs (run_parity.py) and bundles (make_bundle.sh)
+/parity-results-*
+/libzdock-parity-bundle-*
+/BUNDLE_INFO.txt
+
+# python bytecode caches
+__pycache__/
+*.py[cod]

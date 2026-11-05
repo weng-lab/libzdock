@@ -22,7 +22,7 @@ work log for that effort.
 | ----- | ----- |
 | 0 — Document and pin current behavior | Characterization suite complete: `test/pdb_records.cpp` (24 test cases; CRLF, zero-less charge, and continued-String behavior pinned) plus extended `test/formatting.cpp`; full suite green. Sanitizer baseline complete: the only remaining finding is the pinned AUTHOR misaligned `%2d` store; see the findings log |
 | 1 — Restructure legacy code into classes | Complete: `FieldReader` (cbcd7aa), `FieldWriter` (a6968fc), `RecordClassifier` (fd078d3), and the `PdbFormat` read (97303e4) and write (b274b94) sides are extracted and committed; `PDB` is a thin shell over them and the varargs `PDB::sscanf`/`PDB::sprintf` remain as compatibility wrappers. Table mutations were verified to fail the suite, and parse/write throughput on a 172k-record replay stays within 20% of the pre-refactor baseline. The ZDATOM overrun and truncation were fixed on this branch (df7ab1d, fb720ad); see the release status below |
-| 2 — New modern record class (C++17) | Complete: the `zdock::pdb::Record` class with typed payloads, column tables, and the shared fixed-format parser covers every record family (commits 1-8; see §4.2) |
+| 2 — New modern record class (C++17) | Complete: the `zdock::pdb::Record` class with typed payloads, column tables, and the shared fixed-format parser covers every record family (commits 1-8; see §4.2); the migrated-input corpus run reports 563 text mismatches in 8 signatures (ANISOU zero-vs-blank writer divergences dominate; see §4.2) — fixes pending |
 | 3 — Adapter shim and consumer migration | Not started |
 | 4 — Cleanup, documentation, deprecation | Not started |
 
@@ -656,6 +656,41 @@ accumulation plus one division is expected to be cheaper than `strtod`.
    parse, the scanset never runs and the label text keeps its default,
    exactly as the legacy sscanf matching failure leaves it); both were
    added in the same commit.
+
+Corpus runs and the remote harness (post-commit-8): the comparison
+harness gained a `--files-from <list>` mode so a driver can shard a
+corpus without re-walking it, and `tools/parity/` adds the remote
+workflow — `run_parity.py` enumerates an input tree, runs one harness
+process per shard across a worker pool, and stores per-shard summaries,
+mismatch reports, statuses, and a manifest (tool commit, binary SHA-256)
+in a self-contained output directory with `--resume` support;
+`merge_parity.py` deduplicates the reports into normalized signatures
+(record kind plus first-divergence column, digits masked) and its
+`--compare` mode diffs two merged runs for fix verification;
+`make_bundle.sh` packages the source tree with the contrib submodules
+for a server that only needs a toolchain, GNU make, and Python 3
+(usage in `tools/parity/README.md`; results stay outside the
+repository). Two harness-semantics fixes landed with the setup: a
+modern rejection of a line the legacy parser stored as UNKNOWN is now a
+junk-text comparison rather than a rejection (aligning the corpus
+harness with the standing parity harness), and the stray
+`anisou binder ok=` debug print is removed from the ANISOU binder.
+
+First full corpus run (migrated input, 75,453 files, 219,212,866
+lines): 0 type mismatches, 0 field mismatches, 0 state mismatches, 0
+rejections, 563 text mismatches in 71 files — 8 normalized signatures.
+Seven are ANISOU/SIGUIJ zero-vs-blank render divergences (first
+difference at columns 49/50/55/62/63; the parsed fields agree, so the
+modern writer renders a parsed zero as blanks where legacy renders a
+zero-padded column), and one is a single-line outlier rendering
+`EPDOCK` vs `EPDO CK` at column 50. These are Phase 2 defects to fix;
+the merged run is the fix-verification baseline. Separately, the full
+test suite's case order was found to vary between executions (Catch2
+registration order is not stable here), which let the formatting suite's
+v5 output-version state leak into unrelated cases intermittently; the
+formatting case now restores the version and the USER-comparison cases
+pin the legacy globals explicitly (ten consecutive full-suite runs
+green).
 
 Each commit touches only `include/Record.hpp`, new files under
 `src/pdb/` (or a new `src/record/`), and `test/record.cpp`; the legacy
