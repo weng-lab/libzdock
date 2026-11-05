@@ -41,7 +41,9 @@ work log for that effort.
   pushes to `master` and `agv/modernize` and on pull requests only, and the
   branch push did not start a run. Before merging, a draft PR from
   `pdbcpprewrite` must show green Ubuntu GCC, Ubuntu Clang, and macOS jobs
-  (plus the pre-commit job). The branch itself is not protected; `master` is.
+  (plus the pre-commit job). The branch itself is not protected; `master`
+  is. The local clang and libc++ builds are development checks only; Apple
+  Clang still has to pass in real CI before merging.
 - **Pinned limit**: a charge too wide for the ZDATOM `%5.2f` field (input
   `-12.3`) renders as `*****` and the rendered line re-parses as UNKNOWN —
   the formatter's asterisk convention, pinned by the charge test.
@@ -87,7 +89,26 @@ Characterization findings log (updated as batches complete):
 - Defect (sanitizer-confirmed): AUTHOR parsing stores the `%2d` continuation
   through `&author.continuation`, a `char` at union offset 70 — a misaligned
   4-byte store (UB) that only stays inside the union because larger members
-  follow. The modern class must use correctly typed fields.
+  follow. The modern class must use correctly typed fields. A per-process
+  UBSan sweep over every record type and PDBRUN version (full, name-only, and
+  half-truncated lines; 298 isolated cases) confirms AUTHOR is the only
+  record that triggers it, at both store sites: the strtol store
+  (`FieldReader.cpp:53`) and the end-of-line default store
+  (`FieldReader.cpp:40`, first exposed when the commit-4 parity fixture
+  parsed a truncated AUTHOR through the legacy parser; the sweep's
+  FieldReader-level walk stores into aligned locals and cannot see it).
+- Defect (audit, UBSan-invisible): the v5 libc `sscanf` paths pass unbounded
+  `%s` conversions — `USER  CNAME`/`USER  COLOR`/`USER  GFX COLOR` into
+  39-byte name/spec members and `USER  GFX FONT` into a 54-byte name — so a
+  long whitespace-delimited token can overrun the member and the record
+  object. Logged for Phase 3/4; the modern class reads these with bounded
+  token parsers.
+- Audit correction: the planned "CAVEAT `%4s` NUL one-past" quirk does not
+  exist — `PName` is `char[5]` (verified by sizeof, a byte-level parse
+  probe, and the original import), so `%4s` plus its NUL is an exact fit.
+  The mechanical sizeof/alignof audit over every read-format conversion
+  found no `%Ns` destination smaller than width + 1 and no int/double
+  destination other than the pinned AUTHOR member.
 - Quirk (pinned): a failed standard ATOM parse partially writes occupancy
   from its first `%6f` field before the ZDATOM fallback runs, so ZDATOM
   records surface a leaked occupancy value.
@@ -258,11 +279,17 @@ Progress log (branch `pdbcpprewrite`):
   than the pre-refactor switch implementation — within the accepted 20%
   budget; the Phase 2 clean-room class recovers this by dropping the
   format-string walk entirely.
-- Sanitizer baseline: with ASan/UBSan, the only remaining finding is the
-  pinned AUTHOR misaligned `%2d` store; the ZDATOM record-buffer overrun is
-  fixed by sizing the `chars()` record buffer for the widest legacy layout
-  while keeping the 80-character output and the shared-static-buffer
-  behavior unchanged.
+- Sanitizer baseline: with ASan/UBSan, the remaining findings are the pinned
+  AUTHOR misaligned `%2d` store at both sites (see the findings log); the
+  ZDATOM record-buffer overrun is fixed by sizing the `chars()` record
+  buffer for the widest legacy layout while keeping the 80-character output
+  and the shared-static-buffer behavior unchanged. The sanitizer build also
+  emits exactly four `-Wmaybe-uninitialized` warnings from libstdc++'s
+  regex/`<functional>` headers (two each from `src/zdock/Constraints.cpp`
+  and the pinned Catch2 amalgamation, which are byte-identical to master
+  and produce the same warnings there) — pre-existing compiler false
+  positives under `-O1 -g -fsanitize=address,undefined`, not linker notes
+  and not from this branch.
 - Resolved defect (ZDATOM charge truncation on rewrite). Verified: the
   80-column clamp in `chars()` was introduced by this repository's fcfa96c
   ("Bound PDBRUN v5 record formatting", 2026-07-21; first in tag v1.1.2) —
@@ -337,7 +364,9 @@ existing `zdock::PDB` home):
    - Rationale: variant payloads make illegal field access a compile-time/
      runtime-typed error instead of a silent union misread. (Alternative
      considered: one aggregate with optionals — simpler but reintroduces
-     "wrong-record field" bugs.)
+     "wrong-record field" bugs.) The AUTHOR misaligned `%2d` store is
+   unrepresentable; the planned CAVEAT NUL clobber turned out not to exist
+   (see the audit correction in the findings log).
 4. **Bounded column access replaces format strings.** One layout table per
    record type (per PDBRUN version for USER records): an array of column
    descriptors `{ std::uint16_t offset; std::uint8_t width; ColumnKind }`
@@ -409,6 +438,13 @@ existing `zdock::PDB` home):
   libc++ are supported as-is** — no fallback parser, no per-platform
   decision, and no `std::variant`/`std::string_view` concerns on any
   CI target.
+- **libc++ check (local, macOS approximation)**: before each Phase 2
+  stop, a clean build and the full suite run with `clang++
+  -std=c++17 -stdlib=libc++ -Wall -Wextra -pedantic` in a separate build
+  tree so the objects never mix with the g++ tree, and g++ builds run
+  afterward. This is a portability check only — it is **not** macOS
+  verification; Apple Clang on the macOS CI runner must still pass in
+  real CI before merging (see the merge gates above).
 - **Language standard**: the whole tree now builds as C++17 — the switch
   (GNUmakefile `CXXSTANDARD ?= -std=c++17`) is the first commit of this
   phase, with no other changes. It built warning-free (including the
@@ -567,8 +603,9 @@ class, its tables, and its tests are not modified after commit 1 lands.
 | ------------ | -------- | ----- |
 | `chars()` returns a shared static buffer | drop (new class returns `std::string`); legacy keeps it until retirement | Phase 2 |
 | Global PDBRUN input/output version state (leaks across files and instances) | drop for the new class (`ParseContext` per file, output version per call); legacy keeps the globals until retirement, so multi-file callers become order-independent at Phase 3 | Phase 2/3 |
-| AUTHOR misaligned `%2d` store (the only sanitizer finding) | fix in the new class (typed `int` continuation); legacy keeps it pinned — the finding leaves the serving path at Phase 3 and the sanitizer baseline at Phase 4 retirement (§5, §6) | Phase 2 fix, Phase 4 removal |
-| CAVEAT `%4s` NUL clobber | fix in the new class (`std::string` id); text was never affected | Phase 2 |
+| AUTHOR misaligned `%2d` store (the only sanitizer finding) | fix in the new class (typed `int` continuation); legacy keeps it pinned — the finding leaves the serving path at Phase 3 and the sanitizer baseline at Phase 4 retirement (§5, §6). Both store sites are logged in the findings log | Phase 2 fix, Phase 4 removal |
+| CAVEAT `%4s` NUL clobber | claim withdrawn (audit correction): `PName` is `char[5]`, so `%4s` plus its NUL is an exact fit and no clobber exists; the new class's `std::string` id is simply correct | audit correction |
+| v5 libc unbounded `%s` into USER CNAME/COLOR/GFX COLOR/GFX FONT | logged (UBSan-invisible overrun hazard); the modern class uses bounded token parsers; legacy keeps it until retirement | Phase 3/4 |
 | ZDATOM leaked occupancy from the failed standard parse | drop (clean ZDATOM parse leaves occupancy unset); record text never renders ZDATOM occupancy | Phase 2 |
 | `*****` charge renders and re-parses as UNKNOWN | keep through parity, then **follow-up defect: fail loudly after parity** — a charge too wide for `%5.2f` silently loses its value when the rendered line is re-read; after the parity harness exists, surface the overflow as an error/diagnostic instead of silent degradation (tracked as §6.4 follow-up) | follow-up defect |
 | UNKNOWN junk right-aligned in 72 columns with `*` overflow | keep; enforced by the parity harness | kept |
@@ -599,6 +636,20 @@ the Phase 2 toolchain (host g++ 13.3.0). Recorded best-of-runs on the
 | **bb0032c, C++17 — budget baseline** | **126.9** | **45.0** |
 | current branch, C++14 (pre-switch) | 142.1 | 50.9 |
 | current branch, C++17 (after the switch) | 143.2 | 51.3 |
+| commit 4, new class, simple-family replay | 13.0 | 40.8 (`chars()`) / 34.3 (`write_into`) |
+| commit 4, legacy path, same replay | 14.0 | 39.5 |
+
+The commit-4 rows use a like-for-like 172,200-record replay of the simple
+families the new class fully supports at that commit (AUTHOR, TITLE,
+COMPND, KEYWDS, SOURCE, MDLTYP, END, ENDMDL, UNKNOWN junk; best of three
+interleaved runs, `-O3`, g++ 13.3.0), not the ATOM-heavy recorded corpus,
+so the rows compare the two paths against each other rather than against
+the budget rows above. The new parse is faster (no format-string walk);
+`chars()` matches the legacy writer within the cost of its one return
+allocation, and the plan's `write_into(char(&)[83])` counterpart — added
+at this commit exactly as §4.5 anticipated — beats the legacy static
+buffer. The budget trigger stays tied to the recorded ATOM corpus and is
+re-measured when the parity harness lands.
 
 The Phase 1 table-driven implementation sits at **+12.9% parse / +14.0%
 write** over the budget baseline — within the 20% budget. Phase 2 is

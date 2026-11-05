@@ -6,7 +6,9 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <ostream>
 #include <string>
+#include <string_view>
 #include <variant>
 
 namespace zdock::pdb {
@@ -560,6 +562,18 @@ using RecordPayload = std::variant<
     UserRadiusRecord, UserObjectRecord, UserChainRecord, UserGfxBeginRecord,
     UserGfxFontRecord, UserGfxLabelRecord, UserGfxPointRecord>;
 
+// Caller-owned PDBRUN version state: parsing a USER PDBRUN record updates
+// the context owned by the caller instead of process globals, and
+// formatting takes the output version explicitly. (The USER records
+// themselves land in a later Phase 2 commit.)
+struct ParseContext {
+  int pdbrunVersion = 6;
+};
+
+struct WriteContext {
+  int pdbrunVersion = 6;
+};
+
 // Default-constructs the payload a record of the given type carries.
 RecordPayload payloadFor(RecordType type);
 
@@ -588,9 +602,38 @@ public:
   const AtomRecord &asAtom() const { return std::get<AtomRecord>(payload_); }
   AtomRecord &asAtom() { return std::get<AtomRecord>(payload_); }
 
+  // Parsing: classifies the line and walks the layout table for its
+  // family. Returns std::nullopt on a hard field mismatch (the caller
+  // falls back to unknownFrom, as the legacy parse did) and for record
+  // families whose tables have not landed yet. USER PDBRUN parsing
+  // updates the context owned by the caller, never process-global state.
+  static std::optional<Record> parse(std::string_view line,
+                                     ParseContext &context);
+
+  // The UNKNOWN junk fallback: the line right-aligned in 72 columns with
+  // '*' overflow, exactly as the legacy setUnknown produced.
+  static Record unknownFrom(std::string_view line);
+
+  // Formatting: the record text with trailing blanks trimmed, bounded by
+  // the declared record length; thread-safe by construction. Record
+  // families whose write tables have not landed yet format as empty.
+  std::string chars() const;
+  std::string chars(const WriteContext &context) const;
+
+  // Allocation-free formatting into the caller's record buffer (sized for
+  // the widest declared layout plus a terminator); renders the same text
+  // as chars(), NUL-terminated, returning the trimmed length. The
+  // hot-path counterpart of chars() for streaming loops.
+  std::size_t write_into(char (&out)[83], const WriteContext &context) const;
+
 private:
   RecordType type_;
   RecordPayload payload_;
 };
+
+inline std::ostream &operator<<(std::ostream &s, const Record &record) {
+  s << record.chars();
+  return s;
+}
 
 } // namespace zdock::pdb

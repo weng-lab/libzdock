@@ -49,7 +49,8 @@ LIB_SOURCES := \
   src/zdock/ZDOCK.cpp \
   src/pdb/PDB.cpp \
   src/record/Record.cpp \
-  src/record/Columns.cpp
+  src/record/Columns.cpp \
+  src/record/RecordText.cpp
 
 TOOL_NAMES := createlig createmultimer pruning constraints centroids zdsplit zdunsplit
 TOOL_SOURCES := \

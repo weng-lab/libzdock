@@ -177,16 +177,20 @@ void ColumnReader::skipChars(int width) {
   slice(width);
 }
 
-ColumnWriter::ColumnWriter(std::string &out) noexcept : out_(out) {}
+ColumnWriter::ColumnWriter(std::string &out) noexcept
+    : out_(out.data()), size_(out.size()) {}
+
+ColumnWriter::ColumnWriter(char *out, std::size_t size) noexcept
+    : out_(out), size_(size) {}
 
 char *ColumnWriter::field(const ColumnSpec &spec) {
-  assert(static_cast<std::size_t>(spec.offset) + spec.width <= out_.size());
-  return out_.data() + spec.offset;
+  assert(static_cast<std::size_t>(spec.offset) + spec.width <= size_);
+  return out_ + spec.offset;
 }
 
 void ColumnWriter::writeLiteral(std::size_t offset, std::string_view text) {
-  assert(offset + text.size() <= out_.size());
-  text.copy(out_.data() + offset, text.size());
+  assert(offset + text.size() <= size_);
+  text.copy(out_ + offset, text.size());
 }
 
 // The pinned integer emitter: right or left justification within the
@@ -255,11 +259,11 @@ void ColumnWriter::writeReal(double value, const ColumnSpec &spec) {
   int intval = static_cast<int>(value + 0.5);
 
   if (places + (places == 0 ? 1 : 2) > static_cast<int>(width)) {
-    std::fill_n(out_.data() + offset, width, '*');
+    std::fill_n(out_ + offset, width, '*');
     return;
   }
 
-  char *const p = out_.data() + offset;
+  char *const p = out_ + offset;
   char *place = p + width - 1;
   for (; place >= p + width - places; place--) {
     *place = static_cast<char>('0' + intval % 10);
@@ -315,11 +319,11 @@ void ColumnWriter::writeString(std::string_view s, const ColumnSpec &spec) {
   if (spec.precision >= 0 && len > static_cast<std::size_t>(spec.precision))
     len = static_cast<std::size_t>(spec.precision);
   if (len > width) {
-    std::fill_n(out_.data() + offset, width, '*');
+    std::fill_n(out_ + offset, width, '*');
     return;
   }
 
-  char *p = out_.data() + offset;
+  char *p = out_ + offset;
   char *const end = p + width;
   if (!spec.leftJustify)
     while (end - p > static_cast<std::ptrdiff_t>(len))
@@ -334,7 +338,7 @@ void ColumnWriter::writeString(std::string_view s, const ColumnSpec &spec) {
 void ColumnWriter::writeChar(char c, const ColumnSpec &spec) {
   if (c == '\0')
     c = ' ';
-  char *p = out_.data() + spec.offset;
+  char *p = out_ + spec.offset;
   char *const end = p + spec.width;
   if (spec.leftJustify)
     *p++ = c;

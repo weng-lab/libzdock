@@ -1133,3 +1133,205 @@ TEST_CASE("Payload fields default to the parsed field defaults",
   const zdock::pdb::AuthorRecord author; // typed int continuation
   REQUIRE(author.continuation == 0);
 }
+
+// ---------------------------------------------------------------------------
+// Simple-family parse and write with legacy parity (Phase 2, commit 4)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Simple families parse and format byte-for-byte against legacy",
+          "[record-parity]") {
+  // Invariant: for every simple-family line (continuation-plus-text
+  // records, END, ENDMDL, and UNKNOWN junk, including CRLF, truncated,
+  // continued, full-width, and lowercase forms), Record::parse yields the
+  // same record type and Record::chars() renders byte-for-byte what the
+  // legacy PDB constructor and chars() render.
+  const std::vector<std::string> lines = {
+      "AUTHOR   1VELDE, A.V.D.",
+      "AUTHOR   1" + std::string(69, 'A'),
+      "AUTHOR   2 SMITH, J.",
+      "AUTHOR    0 SMITH, J.",
+      "AUTHOR   1VELDE, A.V.D.\r\n",
+      "AUTHOR",
+      "TITLE    1LYSOZYME",
+      "TITLE    2 SOME TEXT",
+      "TITLE    1" + std::string(70, 'T'),
+      "TITLE",
+      "COMPND   1LYSOZYME",
+      "COMPND  10 TEN",
+      "KEYWDS   1LYSOZYME",
+      "SOURCE   1HUMAN",
+      "MDLTYP   1TETRAMER",
+      "END",
+      "ENDMDL",
+      "END  ",
+      "author   1velde",
+  };
+  for (const auto &line : lines) {
+    CAPTURE(line);
+    zdock::pdb::ParseContext context;
+    const std::optional<zdock::pdb::Record> parsed =
+        zdock::pdb::Record::parse(line, context);
+    const libpdb::PDB legacy(line.c_str());
+    REQUIRE(parsed.has_value());
+    // the enumerations mirror one-for-one in declaration order
+    REQUIRE(static_cast<int>(parsed->type()) ==
+            static_cast<int>(legacy.type()));
+    REQUIRE(parsed->chars() == std::string(legacy.chars()));
+  }
+}
+
+TEST_CASE("Simple-family fields parse into the pinned typed values",
+          "[record-parity]") {
+  // Invariant: continuation numbers land as typed ints, text keeps its
+  // leading blanks (only trailing blanks are stripped), truncation yields
+  // defaults, and the AUTHOR continuation is an int as the rewrite
+  // requires.
+  zdock::pdb::ParseContext context;
+
+  const auto author = zdock::pdb::Record::parse("AUTHOR   1VELDE, A.V.D.",
+                                                context);
+  REQUIRE(author.has_value());
+  REQUIRE(author->holds<zdock::pdb::AuthorRecord>());
+  REQUIRE(author->as<zdock::pdb::AuthorRecord>().continuation == 1);
+  REQUIRE(author->as<zdock::pdb::AuthorRecord>().authors == "VELDE, A.V.D.");
+
+  const auto title = zdock::pdb::Record::parse("TITLE    2 SOME TEXT", context);
+  REQUIRE(title.has_value());
+  REQUIRE(title->as<zdock::pdb::TitleRecord>().continuation == 2);
+  REQUIRE(title->as<zdock::pdb::TitleRecord>().text == " SOME TEXT");
+
+  const auto compnd = zdock::pdb::Record::parse("COMPND  10 TEN", context);
+  REQUIRE(compnd.has_value());
+  REQUIRE(compnd->as<zdock::pdb::CompndRecord>().continuation == 10);
+  REQUIRE(compnd->as<zdock::pdb::CompndRecord>().compound == " TEN");
+
+  // In "AUTHOR    0 SMITH, J." the zero sits in the text field (column
+  // 10); the continuation columns are blank and parse as the blank-field
+  // zero, exactly as the legacy reader saw it.
+  const auto zeroCont =
+      zdock::pdb::Record::parse("AUTHOR    0 SMITH, J.", context);
+  REQUIRE(zeroCont.has_value());
+  REQUIRE(zeroCont->as<zdock::pdb::AuthorRecord>().continuation == 0);
+  REQUIRE(zeroCont->as<zdock::pdb::AuthorRecord>().authors == "0 SMITH, J.");
+
+  const auto truncated = zdock::pdb::Record::parse("AUTHOR", context);
+  REQUIRE(truncated.has_value());
+  REQUIRE(truncated->as<zdock::pdb::AuthorRecord>().continuation == 0);
+  REQUIRE(truncated->as<zdock::pdb::AuthorRecord>().authors.empty());
+}
+
+TEST_CASE("Simple-family hard mismatches fall back like the legacy parse",
+          "[record-parity]") {
+  // Invariant: a hard numeric mismatch yields std::nullopt, and the
+  // caller-visible junk fallback renders exactly what the legacy
+  // UNKNOWN fallback rendered.
+  zdock::pdb::ParseContext context;
+  const std::string mismatch = "AUTHOR  X ";
+  REQUIRE_FALSE(zdock::pdb::Record::parse(mismatch, context).has_value());
+  REQUIRE(zdock::pdb::Record::unknownFrom(mismatch).chars() ==
+          std::string(libpdb::PDB(mismatch.c_str()).chars()));
+}
+
+TEST_CASE("Unknown lines parse as junk records matching legacy",
+          "[record-parity]") {
+  // Invariant: lines with no recognized record type parse to UNKNOWN
+  // junk records whose rendering matches the legacy fallback, including
+  // the pinned bounded forms for overlong lines.
+  const std::vector<std::string> lines = {
+      "SOME UNKNOWN JUNK TEXT\r\n",
+      std::string(120, 'X'),
+      std::string(300, 'X'),
+  };
+  for (const auto &line : lines) {
+    CAPTURE(line);
+    zdock::pdb::ParseContext context;
+    const std::optional<zdock::pdb::Record> parsed =
+        zdock::pdb::Record::parse(line, context);
+    const libpdb::PDB legacy(line.c_str());
+    REQUIRE(parsed.has_value());
+    REQUIRE(static_cast<int>(parsed->type()) == static_cast<int>(libpdb::PDB::UNKNOWN));
+    REQUIRE(parsed->holds<zdock::pdb::UnknownRecord>());
+    REQUIRE(parsed->chars() == std::string(legacy.chars()));
+  }
+  zdock::pdb::ParseContext context;
+  const auto bounded =
+      zdock::pdb::Record::parse(std::string(300, 'X'), context);
+  REQUIRE(bounded.has_value());
+  REQUIRE(bounded->chars() == "UNKNOWN:  ??******??");
+}
+
+TEST_CASE("Fresh simple records format from typed payloads",
+          "[record-parity]") {
+  // Invariant: rendering works from constructed payloads without a prior
+  // parse, reproducing the legacy writer's continuation, padding, and
+  // trailing-blank conventions; families without write tables yet format
+  // as empty.
+  REQUIRE(zdock::pdb::Record(zdock::pdb::RecordType::AUTHOR).chars() ==
+          "AUTHOR");
+  REQUIRE(zdock::pdb::Record(zdock::pdb::RecordType::END).chars() == "END");
+  REQUIRE(zdock::pdb::Record(zdock::pdb::RecordType::ENDMDL).chars() ==
+          "ENDMDL");
+  REQUIRE(zdock::pdb::Record(zdock::pdb::RecordType::ATOM).chars().empty());
+
+  zdock::pdb::Record author(zdock::pdb::RecordType::AUTHOR);
+  author.as<zdock::pdb::AuthorRecord>().continuation = 2;
+  author.as<zdock::pdb::AuthorRecord>().authors = " SMITH, J.";
+  REQUIRE(author.chars() == "AUTHOR   2 SMITH, J.");
+
+  zdock::pdb::Record compnd(zdock::pdb::RecordType::COMPND);
+  compnd.as<zdock::pdb::CompndRecord>().continuation = 10;
+  compnd.as<zdock::pdb::CompndRecord>().compound = " TEN";
+  REQUIRE(compnd.chars() == "COMPND  10 TEN");
+}
+
+TEST_CASE("Records stream through operator<< as their rendered text",
+          "[record-parity]") {
+  // Invariant: operator<< emits the same text chars() returns, mirroring
+  // the legacy stream operator.
+  zdock::pdb::ParseContext context;
+  const auto parsed =
+      zdock::pdb::Record::parse("TITLE    1LYSOZYME", context);
+  REQUIRE(parsed.has_value());
+  std::ostringstream out;
+  out << *parsed;
+  REQUIRE(out.str() == "TITLE    1LYSOZYME");
+}
+
+TEST_CASE("write_into renders the same bounded text as chars",
+          "[record-parity]") {
+  // Invariant: the allocation-free renderer produces exactly the chars()
+  // text, NUL-terminated at the trimmed length, writing nothing past the
+  // declared record length inside the 83-byte buffer.
+  const std::vector<std::string> lines = {
+      "AUTHOR   1VELDE, A.V.D.",
+      "AUTHOR   1" + std::string(69, 'A'),
+      "TITLE    2 SOME TEXT",
+      "COMPND  10 TEN",
+      "KEYWDS   1LYSOZYME",
+      "SOURCE   1HUMAN",
+      "MDLTYP   1TETRAMER",
+      "END",
+      "ENDMDL",
+      std::string(120, 'X'),
+      std::string(300, 'X'),
+  };
+  for (const auto &line : lines) {
+    CAPTURE(line);
+    zdock::pdb::ParseContext context;
+    const auto parsed = zdock::pdb::Record::parse(line, context);
+    REQUIRE(parsed.has_value());
+    char buf[83];
+    std::memset(buf, '#', sizeof(buf)); // sentinel past the record length
+    const std::size_t length = parsed->write_into(buf, zdock::pdb::WriteContext{});
+    REQUIRE(length <= 80);
+    REQUIRE(buf[length] == '\0');
+    REQUIRE(std::string(buf, length) == parsed->chars());
+    for (std::size_t i = 81; i < sizeof(buf); ++i)
+      REQUIRE(buf[i] == '#'); // nothing written past the record length
+  }
+  // Families without write tables format as empty.
+  zdock::pdb::Record atom(zdock::pdb::RecordType::ATOM);
+  char buf[83];
+  REQUIRE(atom.write_into(buf, zdock::pdb::WriteContext{}) == 0);
+  REQUIRE(buf[0] == '\0');
+}

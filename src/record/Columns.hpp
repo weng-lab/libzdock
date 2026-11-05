@@ -75,8 +75,8 @@ private:
   int nmatch_;
 };
 
-// Fixed-width column formatting into a caller-owned std::string sized to
-// the declared record length and pre-filled with spaces, with the pinned
+// Fixed-width column formatting into a caller-owned buffer sized to the
+// declared record length and pre-filled with spaces, with the pinned
 // legacy emitter semantics: right or left justification, blank or zero
 // fill, '*' overflow markers, and %D integers that render zero as blanks.
 // Every field renders exactly its descriptor width at its descriptor
@@ -84,6 +84,7 @@ private:
 class ColumnWriter {
 public:
   explicit ColumnWriter(std::string &out) noexcept;
+  ColumnWriter(char *out, std::size_t size) noexcept;
 
   // Writes raw text (the record-name prefix) at an absolute offset.
   void writeLiteral(std::size_t offset, std::string_view text);
@@ -96,7 +97,8 @@ public:
 private:
   char *field(const ColumnSpec &spec); // start of the field window
 
-  std::string &out_;
+  char *out_;
+  std::size_t size_;
 };
 
 } // namespace zdock::pdb
