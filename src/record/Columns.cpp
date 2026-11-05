@@ -71,6 +71,28 @@ bool scanFixed(std::string_view field, bool keepPoint, std::uint64_t *digits,
 
 } // namespace
 
+bool parseFixedInt(std::string_view field, std::int64_t *value) {
+  std::uint64_t d = 0;
+  int m = 0;
+  bool negative = false;
+  const bool ok = scanFixed(field, false, &d, &m, &negative);
+  std::int64_t v = static_cast<std::int64_t>(d);
+  *value = negative ? -v : v;
+  return ok;
+}
+
+bool parseFixedReal(std::string_view field, double *value) {
+  std::uint64_t d = 0;
+  int m = 0;
+  bool negative = false;
+  const bool ok = scanFixed(field, true, &d, &m, &negative);
+  double v = static_cast<double>(d);
+  if (negative)
+    v = -v;
+  *value = v / kPow10[m];
+  return ok;
+}
+
 ColumnReader::ColumnReader(std::string_view line) noexcept
     : line_(line), cursor_(0), nmatch_(0) {}
 

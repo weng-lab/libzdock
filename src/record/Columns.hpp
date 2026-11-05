@@ -47,6 +47,14 @@ struct ColumnSpec {
   std::int8_t precision = -1; // write Str: maximum length, -1 unbounded
 };
 
+// The shared fixed-format number grammar on a single field text
+// (whitespace-delimited token or column slice): optional leading blanks,
+// an optional sign, and a decimal number with at least one digit.
+// Everything else is rejected; on rejection the partial prefix value is
+// still stored, exactly as the legacy strtol/strtod path stored it.
+bool parseFixedInt(std::string_view field, std::int64_t *value);
+bool parseFixedReal(std::string_view field, double *value);
+
 // Bounded, table-driven field extraction over one record line, with the
 // pinned legacy field semantics: fields starting at or past end-of-line
 // yield their documented defaults instead of failing (0, 0.0, empty

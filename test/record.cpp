@@ -856,6 +856,213 @@ TEST_CASE("Column writer reproduces the pinned string and char emitters",
   REQUIRE(line.substr(0, 2) == "  ");
 }
 
+
+// ---------------------------------------------------------------------------
+// USER records under both PDBRUN versions (Phase 2, commit 7)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("USER records parse and format byte-for-byte under both versions",
+          "[record-parity]") {
+  // Invariant: every v5 and v6 USER characterization fixture parses to the
+  // same type and renders byte-identically to the legacy path under its
+  // pinned PDBRUN version, including the v5 records that degrade to
+  // generic USER records.
+  const std::vector<std::pair<std::string, int>> fixtures = {
+      {"USER  PDBRUN  6", 6},
+      {"USER  EYEPOS     1.000     2.000     3.000", 6},
+      {"USER  ATPOS      4.000     5.000     6.000", 6},
+      {"USER  WINDOW     1.000     2.000     3.000     4.000     5.000"
+       "     6.000",
+       6},
+      {"USER  FOCUS      1.500", 6},
+      {"USER  VIEWPORT     1.000     2.000     3.000     4.000", 6},
+      {"USER  BGCOLOR 0.100 0.200 0.300", 6},
+      {"USER  ANGLE      1      2      3      4   109.500", 6},
+      {"USER  DISTANCE      1      2     3.500", 6},
+      {"USER  FILE    1 /tmp/foo.pdb", 6},
+      {"USER  MARKNAME MARK1", 6},
+      {"USER  MARK MARK1", 6},
+      {"USER  CNAME 1.000 0.000 0.000 RED", 6},
+      {"USER  COLOR 0.000 1.000 0.000 GREEN", 6},
+      {"USER  RADIUS   1.250", 6},
+      {"USER  OBJECT", 6},
+      {"USER  ENDOBJ", 6},
+      {"USER  CHAIN      1     10", 6},
+      {"USER  GFX BEGIN LINES", 6},
+      {"USER  GFX END", 6},
+      {"USER  GFX COLOR 1.000 0.000 0.000 RED", 6},
+      {"USER  GFX NORMAL     0.000     0.000     1.000", 6},
+      {"USER  GFX VERTEX     1.000     2.000     3.000", 6},
+      {"USER  GFX FONT  10 Helvetica", 6},
+      {"USER  GFX TEXTPOS     1.000     2.000     3.000", 6},
+      {"USER  GFX LABEL LABEL TEXT", 6},
+      {"USER  PDBRUN  5", 5},
+      {"USER  EYEPOS     1.000     2.000     3.000", 5},
+      {"USER  ATPOS      4.000     5.000     6.000", 5},
+      {"USER  WINDOW     1.000     2.000     3.000     4.000     5.000"
+       "     6.000",
+       5},
+      {"USER  FOCUS     1.500", 5},
+      {"USER  VIEWPORT     1.000     2.000     3.000     4.000", 5},
+      {"USER  BGCOLOR 0.100 0.200 0.300", 5},
+      {"USER  ANGLE  1      1      2      3      4  109.500", 5},
+      {"USER  DISTANCE  1      1      2    3.500", 5},
+      {"USER  FILE /tmp/foo.pdb", 5},
+      {"USER  OBJECT   1", 5},
+      {"USER  ENDOBJ   1", 5},
+      {"USER  CHAIN 1 10", 5},
+      {"USER  RADIUS   1.250", 5},
+      {"USER  CNAME RED 0.100 0.200 0.300", 5},
+      {"USER  COLOR RED 1.000 0.000 0.000", 5},
+      {"USER  GFX COLOR RED 1.000 0.000 0.000", 5},
+      {"USER  GFX FONT Helvetica 10", 5},
+      {"USER  GFX MOVE     1.000     2.000     3.000", 5},
+      {"USER  GFX DRAW     1.000     2.000     3.000", 5},
+      {"USER  GFX MARKER     1.000     2.000     3.000", 5},
+      {"USER  GFX POINT     1.000     2.000     3.000", 5},
+      {"USER  MARKNAME MARK1", 5},
+      {"USER  MARK MARK1", 5},
+      {"USER  GFX BEGIN LINES", 5},
+      {"USER  GFX END", 5},
+      {"USER  GFX NORMAL     0.000     0.000     1.000", 5},
+      {"USER  GFX VERTEX     1.000     2.000     3.000", 5},
+      {"USER  GFX TEXTPOS     1.000     2.000     3.000", 5},
+      {"USER  XX SOMETHING", 6},
+  };
+  for (const auto &fixture : fixtures) {
+    CAPTURE(fixture.first);
+    CAPTURE(fixture.second);
+    zdock::pdb::ParseContext context;
+    context.pdbrunVersion = fixture.second;
+    libpdb::PDB::PdbrunInputVersion(fixture.second);
+    libpdb::PDB::PdbrunOutputVersion(fixture.second);
+    const auto parsed = zdock::pdb::Record::parse(fixture.first, context);
+    const libpdb::PDB legacy(fixture.first.c_str());
+    REQUIRE(parsed.has_value());
+    REQUIRE(static_cast<int>(parsed->type()) ==
+            static_cast<int>(legacy.type()));
+    zdock::pdb::WriteContext writeContext;
+    writeContext.pdbrunVersion = fixture.second;
+    REQUIRE(parsed->chars(writeContext) == std::string(legacy.chars()));
+  }
+  libpdb::PDB::PdbrunInputVersion(6);
+  libpdb::PDB::PdbrunOutputVersion(6);
+}
+
+TEST_CASE("Parsing a PDBRUN record updates the caller's ParseContext",
+          "[record-parity]") {
+  // Invariant: the modern parser carries the PDBRUN input version in the
+  // context owned by the caller -- parsing a USER PDBRUN record updates
+  // that context, never process-global state, and the following USER
+  // lines parse under the updated version.
+  zdock::pdb::ParseContext context;
+  REQUIRE(context.pdbrunVersion == 6);
+  const auto run =
+      zdock::pdb::Record::parse("USER  PDBRUN  5", context);
+  REQUIRE(run.has_value());
+  REQUIRE(context.pdbrunVersion == 5);
+  // a v6-only subtype now degrades to a generic USER record, as the
+  // legacy parser does under a v5 input version
+  const auto markname =
+      zdock::pdb::Record::parse("USER  MARKNAME MARK1", context);
+  REQUIRE(markname.has_value());
+  REQUIRE(markname->type() == zdock::pdb::RecordType::USER);
+  REQUIRE(markname->chars() == std::string(
+      libpdb::PDB("USER  MARKNAME MARK1").chars()));
+}
+
+TEST_CASE("Failed USER records fall back to the generic USER columns",
+          "[record-parity]") {
+  // Invariant: a USER record whose typed binder mismatches parses with
+  // the generic USER columns, keeping the subtype text -- the pinned
+  // fallback chain.
+  zdock::pdb::ParseContext context;
+  const auto angle = zdock::pdb::Record::parse("USER  ANGLE  X      2", context);
+  REQUIRE(angle.has_value());
+  REQUIRE(angle->type() == zdock::pdb::RecordType::USER);
+  const libpdb::PDB legacy("USER  ANGLE  X      2");
+  REQUIRE(angle->chars() == std::string(legacy.chars()));
+}
+
+TEST_CASE("v5 rendering suppresses records the v5 writer cannot emit",
+          "[record-parity]") {
+  // Invariant: MARKNAME and MARK render as empty strings under a v5
+  // output version, and the v6-only GFX MOVE/DRAW/MARKER/POINT render as
+  // empty under a v6 output version.
+  zdock::pdb::ParseContext context;
+  context.pdbrunVersion = 5;
+  const auto markname =
+      zdock::pdb::Record::parse("USER  MARKNAME MARK1", context);
+  REQUIRE(markname.has_value());
+  // under v5 the line degrades to a generic USER record, which renders
+  const auto generic = zdock::pdb::Record::parse("USER  MARKNAME MARK1",
+                                                 context);
+  REQUIRE(generic->chars() == std::string(
+      libpdb::PDB("USER  MARKNAME MARK1").chars()));
+
+  zdock::pdb::WriteContext writeContext;
+  writeContext.pdbrunVersion = 5;
+  zdock::pdb::Record marknameRecord(zdock::pdb::RecordType::USER_MARKNAME);
+  marknameRecord.as<zdock::pdb::UserMarknameRecord>().markname = "MARK1";
+  REQUIRE(marknameRecord.chars(writeContext).empty());
+
+  zdock::pdb::Record move(zdock::pdb::RecordType::USER_GFX_MOVE);
+  move.as<zdock::pdb::UserGfxPointRecord>().xyz = {1.0, 2.0, 3.0};
+  zdock::pdb::WriteContext v6Context;
+  v6Context.pdbrunVersion = 6;
+  REQUIRE(move.chars(v6Context).empty());
+  zdock::pdb::WriteContext v5Context;
+  v5Context.pdbrunVersion = 5;
+  REQUIRE(move.chars(v5Context) ==
+          "USER  GFX MOVE     1.000     2.000     3.000");
+}
+
+TEST_CASE("GFX BEGIN renders the primitive name when it is known",
+          "[record-parity]") {
+  // Invariant: a recognized primitive renders its name in place of the
+  // captured text; an unrecognized one renders the captured text.
+  zdock::pdb::ParseContext context;
+  const auto begin =
+      zdock::pdb::Record::parse("USER  GFX BEGIN LINES", context);
+  REQUIRE(begin.has_value());
+  REQUIRE(begin->as<zdock::pdb::UserGfxBeginRecord>().primitive ==
+          zdock::pdb::GfxType::LINES);
+  REQUIRE(begin->chars() == "USER  GFX BEGIN LINES");
+
+  const auto unknown =
+      zdock::pdb::Record::parse("USER  GFX BEGIN WAT", context);
+  REQUIRE(unknown.has_value());
+  REQUIRE(unknown->as<zdock::pdb::UserGfxBeginRecord>().primitive ==
+          zdock::pdb::GfxType::UNKNOWN);
+  REQUIRE(unknown->chars() == "USER  GFX BEGIN WAT");
+}
+
+TEST_CASE("v5 GFX LABEL quoting degenerates across cycles",
+          "[record-parity]") {
+  // Invariant (pinned legacy quirk): the v5 reader captures the quotes
+  // into the label text and the v5 writer wraps the text in quotes again,
+  // so each parse/format cycle adds one pair of quotes.
+  zdock::pdb::ParseContext context;
+  context.pdbrunVersion = 5;
+  const std::string line =
+      "USER  GFX LABEL     1.000     2.000     3.000 \"LABEL TEXT\"";
+  const auto parsed = zdock::pdb::Record::parse(line, context);
+  REQUIRE(parsed.has_value());
+  REQUIRE(parsed->as<zdock::pdb::UserGfxLabelRecord>().xyz.has_value());
+  REQUIRE(parsed->as<zdock::pdb::UserGfxLabelRecord>().text ==
+          "\"LABEL TEXT\"");
+  zdock::pdb::WriteContext writeContext;
+  writeContext.pdbrunVersion = 5;
+  const std::string rendered = parsed->chars(writeContext);
+  REQUIRE(rendered ==
+          "USER  GFX LABEL     1.000     2.000     3.000 \"\"LABEL TEXT\"\"");
+  libpdb::PDB::PdbrunInputVersion(5);
+  libpdb::PDB::PdbrunOutputVersion(5);
+  const libpdb::PDB legacy(line.c_str());
+  REQUIRE(rendered == std::string(legacy.chars()));
+  libpdb::PDB::PdbrunInputVersion(6);
+  libpdb::PDB::PdbrunOutputVersion(6);
+}
 TEST_CASE("Three-way field agreement across the characterization corpus",
           "[record-differential]") {
   // Invariant: for every numeric field of every characterization fixture

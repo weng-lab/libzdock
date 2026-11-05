@@ -66,6 +66,185 @@ RecordType classifyLine(std::string_view line) {
   return RecordType::UNKNOWN;
 }
 
+// The USER subtype dispatch for one PDBRUN version, mirroring the legacy
+// pdbrun5Type/pdbrun6Type matchers over the text after "USER  ": the
+// first subtype letter selects the group and the remaining characters are
+// matched case-insensitively against fragments that carry their own
+// separating blanks.
+RecordType classifyUserSubtype(std::string_view text, int pdbrunVersion) {
+  const auto matches = [&text](std::size_t offset, const char *literal) {
+    const std::size_t len = std::strlen(literal);
+    if (offset + len > text.size())
+      return false;
+    for (std::size_t i = 0; i < len; ++i) {
+      const char c = text[offset + i];
+      const char l = literal[i];
+      if (c != l && (c < 'a' || c > 'z' || c - 'a' + 'A') != l)
+        return false;
+    }
+    return true;
+  };
+  const auto boundary = [&text](std::size_t offset) {
+    return offset >= text.size() || text[offset] == '\0' ||
+           text[offset] == '\n' || text[offset] == ' ';
+  };
+  if (pdbrunVersion != 5 && pdbrunVersion != 6) {
+    // the legacy default branch recognizes only PDBRUN
+    if (matches(1, "DBRUN "))
+      return RecordType::USER_PDBRUN;
+    return RecordType::USER;
+  }
+  switch (text.empty() ? '\0' : text[0]) {
+  case 'A':
+  case 'a':
+    if (matches(1, "NGLE "))
+      return RecordType::USER_ANGLE;
+    if (matches(1, "TPOS "))
+      return RecordType::USER_ATPOS;
+    break;
+  case 'B':
+  case 'b':
+    if (matches(1, "GCOLOR "))
+      return RecordType::USER_BGCOLOR;
+    break;
+  case 'C':
+  case 'c':
+    if (matches(1, "HAIN "))
+      return RecordType::USER_CHAIN;
+    if (matches(1, "NAME "))
+      return RecordType::USER_CNAME;
+    if (matches(1, "OLOR "))
+      return RecordType::USER_COLOR;
+    break;
+  case 'D':
+  case 'd':
+    if (matches(1, "ISTANCE "))
+      return RecordType::USER_DISTANCE;
+    break;
+  case 'E':
+  case 'e':
+    if (pdbrunVersion == 6 && matches(1, "NDOBJ") && boundary(6))
+      return RecordType::USER_ENDOBJ;
+    if (pdbrunVersion == 5 && matches(1, "NDOBJ "))
+      return RecordType::USER_ENDOBJ;
+    if (matches(1, "YEPOS "))
+      return RecordType::USER_EYEPOS;
+    break;
+  case 'F':
+  case 'f':
+    if (matches(1, "ILE "))
+      return RecordType::USER_FILE;
+    if (matches(1, "OCUS "))
+      return RecordType::USER_FOCUS;
+    break;
+  case 'G':
+  case 'g':
+    if (pdbrunVersion == 6) {
+      if (text.size() < 4 || (text[1] != 'F' && text[1] != 'f') ||
+          text[2] != 'X' || text[3] != ' ')
+        break;
+      switch (text[4]) {
+      case 'B':
+      case 'b':
+        if (matches(5, "EGIN "))
+          return RecordType::USER_GFX_BEGIN;
+        break;
+      case 'C':
+      case 'c':
+        if (matches(5, "OLOR "))
+          return RecordType::USER_GFX_COLOR;
+        break;
+      case 'E':
+      case 'e':
+        if (matches(5, "ND") && boundary(7))
+          return RecordType::USER_GFX_END;
+        break;
+      case 'F':
+      case 'f':
+        if (matches(5, "ONT "))
+          return RecordType::USER_GFX_FONT;
+        break;
+      case 'L':
+      case 'l':
+        if (matches(5, "ABEL "))
+          return RecordType::USER_GFX_LABEL;
+        break;
+      case 'N':
+      case 'n':
+        if (matches(5, "ORMAL "))
+          return RecordType::USER_GFX_NORMAL;
+        break;
+      case 'T':
+      case 't':
+        if (matches(5, "EXTPOS "))
+          return RecordType::USER_GFX_TEXTPOS;
+        break;
+      case 'V':
+      case 'v':
+        if (matches(5, "ERTEX "))
+          return RecordType::USER_GFX_VERTEX;
+        break;
+      }
+    } else {
+      if (!matches(1, "FX "))
+        break;
+      if (matches(4, "COLOR "))
+        return RecordType::USER_GFX_COLOR;
+      if (matches(4, "DRAW "))
+        return RecordType::USER_GFX_DRAW;
+      if (matches(4, "FONT "))
+        return RecordType::USER_GFX_FONT;
+      if (matches(4, "LABEL "))
+        return RecordType::USER_GFX_LABEL;
+      if (matches(4, "MARKER "))
+        return RecordType::USER_GFX_MARKER;
+      if (matches(4, "MOVE "))
+        return RecordType::USER_GFX_MOVE;
+      if (matches(4, "POINT "))
+        return RecordType::USER_GFX_POINT;
+    }
+    break;
+  case 'M':
+  case 'm':
+    if (matches(1, "ARKNAME ")) // the longer name must win
+      return RecordType::USER_MARKNAME;
+    if (matches(1, "ARK "))
+      return RecordType::USER_MARK;
+    break;
+  case 'O':
+  case 'o':
+    if (pdbrunVersion == 6) {
+      if (matches(1, "BJECT") && boundary(6))
+        return RecordType::USER_OBJECT;
+    } else {
+      if (matches(1, "BJECT "))
+        return RecordType::USER_OBJECT;
+    }
+    break;
+  case 'P':
+  case 'p':
+    if (matches(1, "DBRUN "))
+      return RecordType::USER_PDBRUN;
+    break;
+  case 'R':
+  case 'r':
+    if (matches(1, "ADIUS "))
+      return RecordType::USER_RADIUS;
+    break;
+  case 'V':
+  case 'v':
+    if (matches(1, "IEWPORT "))
+      return RecordType::USER_VIEWPORT;
+    break;
+  case 'W':
+  case 'w':
+    if (matches(1, "INDOW "))
+      return RecordType::USER_WINDOW;
+    break;
+  }
+  return RecordType::USER;
+}
+
 // Layout tables for the simple families. Read and write walks share the
 // columns; the continuation columns render %D (zero as blanks) and the
 // text columns left-justify at their precision, exactly as the legacy
@@ -947,18 +1126,18 @@ void writeResidue(const Residue &residue, ColumnWriter &writer,
 
 #define RETURN_ON_INT(reader, cols, index, out)                               \
   do {                                                                        \
-    std::int64_t value = 0;                                                   \
-    if (!(reader).readInt((cols)[index].width, &value))                       \
-      return false;                                                                         \
-    *(out) = static_cast<int>(value);                                         \
+    std::int64_t macroValue = 0;                                              \
+    if (!(reader).readInt((cols)[index].width, &macroValue))                  \
+      return false;                                                           \
+    *(out) = static_cast<int>(macroValue);                                    \
   } while (false)
 
 #define RETURN_ON_REAL(reader, cols, index, out)                              \
   do {                                                                        \
-    double value = 0.0;                                                       \
-    if (!(reader).readReal((cols)[index].width, &value))                      \
-      return false;                                                                         \
-    *(out) = value;                                                           \
+    double macroValue = 0.0;                                                  \
+    if (!(reader).readReal((cols)[index].width, &macroValue))                 \
+      return false;                                                           \
+    *(out) = macroValue;                                                      \
   } while (false)
 
 // The HELIX residue groups carry the separator literal between the chain
@@ -1755,14 +1934,813 @@ void writeExpdtaColumns(const ExpdtaRecord &e, ColumnWriter &writer,
   writer.writeString(e.technique, cols[2]);
 }
 
+
+// ---------------------------------------------------------------------------
+// USER records (Phase 2, commit 7). The PDBRUN layouts are version-dependent
+// (v5 and v6 tables); the v5 libc scanf paths use whitespace-delimited
+// tokens instead of fixed columns, with dedicated bounded parsers.
+// ---------------------------------------------------------------------------
+
+constexpr ColumnSpec kUserPdbrunCols[] = {
+    {0, 12, ColumnKind::Skip},
+    {12, 1, ColumnKind::Literal, 0, false, ' '},
+    {13, 2, ColumnKind::Int},
+};
+constexpr ColumnSpec kUserEyePosCols[] = {
+    {0, 12, ColumnKind::Skip},
+    {12, 1, ColumnKind::Literal, 0, false, ' '},
+    {13, 9, ColumnKind::Real, 3},
+    {22, 1, ColumnKind::Literal, 0, false, ' '},
+    {23, 9, ColumnKind::Real, 3},
+    {32, 1, ColumnKind::Literal, 0, false, ' '},
+    {33, 9, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserWindowCols[] = {
+    {0, 12, ColumnKind::Skip},
+    {12, 1, ColumnKind::Literal, 0, false, ' '},
+    {13, 9, ColumnKind::Real, 3},
+    {22, 1, ColumnKind::Literal, 0, false, ' '},
+    {23, 9, ColumnKind::Real, 3},
+    {32, 1, ColumnKind::Literal, 0, false, ' '},
+    {33, 9, ColumnKind::Real, 3},
+    {42, 1, ColumnKind::Literal, 0, false, ' '},
+    {43, 9, ColumnKind::Real, 3},
+    {52, 1, ColumnKind::Literal, 0, false, ' '},
+    {53, 9, ColumnKind::Real, 3},
+    {62, 1, ColumnKind::Literal, 0, false, ' '},
+    {63, 9, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserFocusCols[] = {
+    {0, 11, ColumnKind::Skip},
+    {11, 2, ColumnKind::Literal, 0, false, ' '},
+    {13, 9, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserViewportCols[] = {
+    {0, 14, ColumnKind::Skip},
+    {14, 1, ColumnKind::Literal, 0, false, ' '},
+    {15, 9, ColumnKind::Real, 3},
+    {24, 1, ColumnKind::Literal, 0, false, ' '},
+    {25, 9, ColumnKind::Real, 3},
+    {34, 1, ColumnKind::Literal, 0, false, ' '},
+    {35, 9, ColumnKind::Real, 3},
+    {44, 1, ColumnKind::Literal, 0, false, ' '},
+    {45, 9, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserBgColorCols[] = {
+    {0, 13, ColumnKind::Skip},
+    {13, 1, ColumnKind::Literal, 0, false, ' '},
+    {14, 5, ColumnKind::Real, 3},
+    {19, 1, ColumnKind::Literal, 0, false, ' '},
+    {20, 5, ColumnKind::Real, 3},
+    {25, 1, ColumnKind::Literal, 0, false, ' '},
+    {26, 5, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserRadiusCols[] = {
+    {0, 12, ColumnKind::Skip},
+    {12, 1, ColumnKind::Literal, 0, false, ' '},
+    {13, 7, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserObjectCols[] = {
+    {0, 12, ColumnKind::Skip},
+    {12, 1, ColumnKind::Literal, 0, false, ' '},
+    {13, 3, ColumnKind::Int},
+};
+constexpr ColumnSpec kUserAngle6Cols[] = {
+    {0, 11, ColumnKind::Skip},
+    {11, 1, ColumnKind::Literal, 0, false, ' '},
+    {12, 6, ColumnKind::Int},
+    {18, 1, ColumnKind::Literal, 0, false, ' '},
+    {19, 6, ColumnKind::Int},
+    {24, 1, ColumnKind::Literal, 0, false, ' '},
+    {25, 6, ColumnKind::Int},
+    {30, 1, ColumnKind::Literal, 0, false, ' '},
+    {31, 6, ColumnKind::Int},
+    {36, 1, ColumnKind::Literal, 0, false, ' '},
+    {37, 9, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserAngle5Cols[] = {
+    {0, 11, ColumnKind::Skip},
+    {11, 1, ColumnKind::Literal, 0, false, ' '},
+    {12, 2, ColumnKind::Int},
+    {14, 1, ColumnKind::Literal, 0, false, ' '},
+    {15, 6, ColumnKind::Int},
+    {21, 1, ColumnKind::Literal, 0, false, ' '},
+    {22, 6, ColumnKind::Int},
+    {27, 1, ColumnKind::Literal, 0, false, ' '},
+    {28, 6, ColumnKind::Int},
+    {33, 1, ColumnKind::Literal, 0, false, ' '},
+    {34, 6, ColumnKind::Int},
+    {39, 1, ColumnKind::Literal, 0, false, ' '},
+    {40, 8, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserDistance6Cols[] = {
+    {0, 14, ColumnKind::Skip},
+    {14, 1, ColumnKind::Literal, 0, false, ' '},
+    {15, 6, ColumnKind::Int},
+    {21, 1, ColumnKind::Literal, 0, false, ' '},
+    {22, 6, ColumnKind::Int},
+    {27, 1, ColumnKind::Literal, 0, false, ' '},
+    {28, 9, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserDistance5Cols[] = {
+    {0, 14, ColumnKind::Skip},
+    {14, 1, ColumnKind::Literal, 0, false, ' '},
+    {15, 2, ColumnKind::Int},
+    {17, 1, ColumnKind::Literal, 0, false, ' '},
+    {18, 6, ColumnKind::Int},
+    {24, 1, ColumnKind::Literal, 0, false, ' '},
+    {25, 6, ColumnKind::Int},
+    {31, 1, ColumnKind::Literal, 0, false, ' '},
+    {32, 8, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserFile6Cols[] = {
+    {0, 10, ColumnKind::Skip},
+    {10, 1, ColumnKind::Literal, 0, false, ' '},
+    {11, 4, ColumnKind::Int},
+    {15, 1, ColumnKind::Literal, 0, false, ' '},
+    {16, 56, ColumnKind::Str, 0, true},
+};
+constexpr ColumnSpec kUserFile5Cols[] = {
+    {0, 10, ColumnKind::Skip},
+    {10, 1, ColumnKind::Literal, 0, false, ' '},
+    {11, 61, ColumnKind::Str, 0, true},
+};
+constexpr ColumnSpec kUserMarkname6Cols[] = {
+    {0, 14, ColumnKind::Skip},
+    {14, 1, ColumnKind::Literal, 0, false, ' '},
+    {15, 57, ColumnKind::Str, 0, true},
+};
+constexpr ColumnSpec kUserMark6Cols[] = {
+    {0, 10, ColumnKind::Skip},
+    {10, 1, ColumnKind::Literal, 0, false, ' '},
+    {11, 57, ColumnKind::Str, 0, true},
+};
+constexpr ColumnSpec kUserCName6Cols[] = {
+    {0, 11, ColumnKind::Skip},
+    {11, 1, ColumnKind::Literal, 0, false, ' '},
+    {12, 5, ColumnKind::Real, 3},
+    {17, 1, ColumnKind::Literal, 0, false, ' '},
+    {18, 5, ColumnKind::Real, 3},
+    {23, 1, ColumnKind::Literal, 0, false, ' '},
+    {24, 5, ColumnKind::Real, 3},
+    {29, 1, ColumnKind::Literal, 0, false, ' '},
+    {30, 38, ColumnKind::Str, 0, true},
+};
+constexpr ColumnSpec kUserChain6Cols[] = {
+    {0, 11, ColumnKind::Skip},
+    {11, 1, ColumnKind::Literal, 0, false, ' '},
+    {12, 6, ColumnKind::Int},
+    {18, 1, ColumnKind::Literal, 0, false, ' '},
+    {19, 6, ColumnKind::Int},
+};
+constexpr ColumnSpec kUserGfxBegin6Cols[] = {
+    {0, 15, ColumnKind::Skip},
+    {15, 1, ColumnKind::Literal, 0, false, ' '},
+    {16, 32, ColumnKind::Str, 0, true},
+};
+constexpr ColumnSpec kUserGfxColor6Cols[] = {
+    {0, 15, ColumnKind::Skip},
+    {15, 1, ColumnKind::Literal, 0, false, ' '},
+    {16, 5, ColumnKind::Real, 3},
+    {21, 1, ColumnKind::Literal, 0, false, ' '},
+    {22, 5, ColumnKind::Real, 3},
+    {27, 1, ColumnKind::Literal, 0, false, ' '},
+    {28, 5, ColumnKind::Real, 3},
+    {33, 1, ColumnKind::Literal, 0, false, ' '},
+    {34, 38, ColumnKind::Str, 0, true},
+};
+constexpr ColumnSpec kUserGfxPoint6Cols[] = {
+    {0, 16, ColumnKind::Skip},
+    {16, 1, ColumnKind::Literal, 0, false, ' '},
+    {17, 9, ColumnKind::Real, 3},
+    {26, 1, ColumnKind::Literal, 0, false, ' '},
+    {27, 9, ColumnKind::Real, 3},
+    {36, 1, ColumnKind::Literal, 0, false, ' '},
+    {37, 9, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserGfxTextPos6Cols[] = {
+    {0, 17, ColumnKind::Skip},
+    {17, 1, ColumnKind::Literal, 0, false, ' '},
+    {18, 9, ColumnKind::Real, 3},
+    {27, 1, ColumnKind::Literal, 0, false, ' '},
+    {28, 9, ColumnKind::Real, 3},
+    {37, 1, ColumnKind::Literal, 0, false, ' '},
+    {38, 9, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserGfxFont6Cols[] = {
+    {0, 14, ColumnKind::Skip},
+    {14, 1, ColumnKind::Literal, 0, false, ' '},
+    {15, 3, ColumnKind::Int},
+    {18, 1, ColumnKind::Literal, 0, false, ' '},
+    {19, 53, ColumnKind::Str, 0, true},
+};
+constexpr ColumnSpec kUserGfxLabel6Cols[] = {
+    {0, 15, ColumnKind::Skip},
+    {15, 1, ColumnKind::Literal, 0, false, ' '},
+    {16, 56, ColumnKind::Str, 0, true},
+};
+constexpr ColumnSpec kUserGfxMove5Cols[] = {
+    {0, 14, ColumnKind::Skip},
+    {14, 1, ColumnKind::Literal, 0, false, ' '},
+    {15, 9, ColumnKind::Real, 3},
+    {24, 1, ColumnKind::Literal, 0, false, ' '},
+    {25, 9, ColumnKind::Real, 3},
+    {34, 1, ColumnKind::Literal, 0, false, ' '},
+    {35, 9, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserGfxMarker5Cols[] = {
+    {0, 16, ColumnKind::Skip},
+    {16, 1, ColumnKind::Literal, 0, false, ' '},
+    {17, 9, ColumnKind::Real, 3},
+    {26, 1, ColumnKind::Literal, 0, false, ' '},
+    {27, 9, ColumnKind::Real, 3},
+    {36, 1, ColumnKind::Literal, 0, false, ' '},
+    {37, 9, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserGfxPoint5Cols[] = {
+    {0, 15, ColumnKind::Skip},
+    {15, 1, ColumnKind::Literal, 0, false, ' '},
+    {16, 9, ColumnKind::Real, 3},
+    {25, 1, ColumnKind::Literal, 0, false, ' '},
+    {26, 9, ColumnKind::Real, 3},
+    {35, 1, ColumnKind::Literal, 0, false, ' '},
+    {36, 9, ColumnKind::Real, 3},
+};
+constexpr ColumnSpec kUserCols[] = {
+    {0, 4, ColumnKind::Skip},
+    {4, 2, ColumnKind::Str},
+    {6, 66, ColumnKind::Str, 0, true},
+};
+
+
+// Whitespace-delimited token and number scanners for the v5 libc paths.
+// A token is bounded by its destination size (the %38s/%53s bounds); the
+// numbers parse with the shared fixed-format grammar on each token, so a
+// missing or non-numeric token keeps the member at its default and the
+// record still parses (libc sscanf matching-failure semantics: assigned
+// fields keep their values, the rest stay untouched, the call succeeds).
+bool scanWhitespaceToken(std::string_view &rest, std::string_view &token,
+                         int bound) {
+  std::size_t i = 0;
+  while (i < rest.size() && rest[i] == ' ')
+    ++i;
+  const std::size_t start = i;
+  while (i < rest.size() && rest[i] != ' ' && rest[i] != '\0' &&
+         rest[i] != '\n' && i - start < static_cast<std::size_t>(bound))
+    ++i;
+  if (i == start)
+    return false;
+  token = rest.substr(start, i - start);
+  rest = rest.substr(i);
+  return true;
+}
+
+bool scanWhitespaceReal(std::string_view &rest, double *value) {
+  std::string_view token;
+  if (!scanWhitespaceToken(rest, token, 32))
+    return false;
+  while (!token.empty() &&
+         std::isspace(static_cast<unsigned char>(token.back())))
+    token.remove_suffix(1);
+  return parseFixedReal(token, value);
+}
+
+bool scanWhitespaceInt(std::string_view &rest, std::int64_t *value) {
+  std::string_view token;
+  if (!scanWhitespaceToken(rest, token, 20))
+    return false;
+  while (!token.empty() &&
+         std::isspace(static_cast<unsigned char>(token.back())))
+    token.remove_suffix(1);
+  return parseFixedInt(token, value);
+}
+
+// The v5 libc USER records parse with whitespace-delimited tokens after
+// their fixed subtype prefix; a matching failure leaves the remaining
+// members at their defaults while the record still parses.
+bool parseUserBgColor5(std::string_view line, Record &record) {
+  std::string_view rest = line.substr(13); // after "USER  BGCOLOR"
+  UserBgColorRecord &b = record.as<UserBgColorRecord>();
+  double rgb[3] = {0.0, 0.0, 0.0};
+  for (int i = 0; i < 3; ++i)
+    if (!scanWhitespaceReal(rest, &rgb[i]))
+      break; // matching failure: keep the defaults
+  b.rgb[0] = rgb[0];
+  b.rgb[1] = rgb[1];
+  b.rgb[2] = rgb[2];
+  return true;
+}
+
+bool parseUserCName5(std::string_view line, Record &record, bool gfx) {
+  const std::size_t prefix =
+      gfx ? 15 : 11; // "USER  GFX COLOR" vs "USER  CNAME"/"USER  COLOR"
+  std::string_view rest = line.substr(std::min(prefix, line.size()));
+  std::string_view token;
+  std::string name;
+  if (scanWhitespaceToken(rest, token, 38))
+    name = std::string(token);
+  double rgb[3] = {0.0, 0.0, 0.0};
+  for (int i = 0; i < 3; ++i) {
+    if (!scanWhitespaceReal(rest, &rgb[i]))
+      break; // matching failure: keep the defaults
+  }
+  if (record.holds<UserCNameRecord>()) {
+    UserCNameRecord &c = record.as<UserCNameRecord>();
+    c.name = name;
+    c.rgb = std::array<double, 3>{rgb[0], rgb[1], rgb[2]};
+  } else {
+    UserColorRecord &c = record.as<UserColorRecord>();
+    c.spec = name;
+    c.rgb = std::array<double, 3>{rgb[0], rgb[1], rgb[2]};
+  }
+  return true;
+}
+
+bool parseUserChain5(std::string_view line, Record &record) {
+  std::string_view rest = line.substr(std::min<std::size_t>(11, line.size()));
+  UserChainRecord &c = record.as<UserChainRecord>();
+  std::int64_t atom0 = 0;
+  std::int64_t atom1 = 0;
+  if (scanWhitespaceInt(rest, &atom0))
+    c.atom0 = static_cast<int>(atom0);
+  if (scanWhitespaceInt(rest, &atom1))
+    c.atom1 = static_cast<int>(atom1);
+  return true;
+}
+
+bool parseUserGfxFont5(std::string_view line, Record &record) {
+  std::string_view rest = line.substr(std::min<std::size_t>(15, line.size()));
+  std::string_view token;
+  std::string name;
+  if (scanWhitespaceToken(rest, token, 53))
+    name = std::string(token);
+  UserGfxFontRecord &f = record.as<UserGfxFontRecord>();
+  f.name = name;
+  std::int64_t size = 0;
+  if (scanWhitespaceInt(rest, &size))
+    f.size = static_cast<int>(size);
+  return true;
+}
+
+bool parseUserGfxLabel5(std::string_view line, Record &record) {
+  std::string_view rest = line.substr(std::min<std::size_t>(15, line.size()));
+  UserGfxLabelRecord &l = record.as<UserGfxLabelRecord>();
+  double xyz[3] = {0.0, 0.0, 0.0};
+  bool haveXyz = true;
+  for (int i = 0; i < 3; ++i) {
+    if (!scanWhitespaceReal(rest, &xyz[i])) {
+      haveXyz = false;
+      break;
+    }
+  }
+  if (haveXyz)
+    l.xyz = std::array<double, 3>{xyz[0], xyz[1], xyz[2]};
+  // the scanset takes the rest of the line verbatim, bounded to 26
+  std::size_t i = 0;
+  while (i < rest.size() && rest[i] == ' ')
+    ++i;
+  std::size_t end = i;
+  while (end < rest.size() && rest[end] != '\n' && end - i < 26)
+    ++end;
+  l.text = std::string(rest.substr(i, end - i));
+  return true;
+}
+
+
+// Fixed-width and minimal field renderers for the USER appends; the
+// minimal forms reproduce the libc %d / %.Nf conversions the v5 write
+// formats use (no width, no padding).
+std::string renderFixedReal(double value, int width, int places) {
+  char buf[48];
+  std::memset(buf, ' ', sizeof(buf));
+  ColumnWriter writer(buf, sizeof(buf));
+  writer.writeReal(value, ColumnSpec{0, static_cast<std::uint8_t>(width),
+                                     ColumnKind::Real,
+                                     static_cast<std::uint8_t>(places)});
+  return std::string(buf, static_cast<std::size_t>(width));
+}
+
+std::string renderFixedInt(std::int64_t value, int width, bool zeroAsBlank,
+                           bool leftJustify) {
+  char buf[48];
+  std::memset(buf, ' ', sizeof(buf));
+  ColumnWriter writer(buf, sizeof(buf));
+  writer.writeInt(value, ColumnSpec{0, static_cast<std::uint8_t>(width),
+                                    ColumnKind::Int, 0, leftJustify, ' ',
+                                    zeroAsBlank});
+  return std::string(buf, static_cast<std::size_t>(width));
+}
+
+std::string renderMinimalReal(double value, int places) {
+  std::string rendered = renderFixedReal(value, 24, places);
+  const std::size_t first = rendered.find_first_not_of(' ');
+  return first == std::string::npos ? "" : rendered.substr(first);
+}
+
+std::string renderMinimalInt(std::int64_t value) {
+  std::string rendered = renderFixedInt(value, 24, false, false);
+  const std::size_t first = rendered.find_first_not_of(' ');
+  return first == std::string::npos ? "" : rendered.substr(first);
+}
+
+std::string renderFixedStr(std::string_view text, int width, bool leftJustify) {
+  char buf[128];
+  std::memset(buf, ' ', sizeof(buf));
+  ColumnWriter writer(buf, sizeof(buf));
+  writer.writeString(text, ColumnSpec{0, static_cast<std::uint8_t>(width),
+                                      ColumnKind::Str, 0, leftJustify});
+  return std::string(buf, static_cast<std::size_t>(width));
+}
+
+// The graphics primitive name for a captured USER GFX BEGIN text, mirroring
+// the legacy getGfxType matchers.
+GfxType gfxTypeOf(std::string_view text) {
+  const auto equals = [&text](std::size_t offset, const char *literal) {
+    const std::size_t len = std::strlen(literal);
+    if (offset + len > text.size())
+      return false;
+    for (std::size_t i = 0; i < len; ++i) {
+      const char c = text[offset + i];
+      const char l = literal[i];
+      if (c != l && (c < 'a' || c > 'z' || c - 'a' + 'A') != l)
+        return false;
+    }
+    return true;
+  };
+  switch (text.empty() ? '\0' : text[0]) {
+  case 'L':
+  case 'l':
+    if (equals(1, "INE-LOOP"))
+      return GfxType::LINE_LOOP;
+    if (equals(1, "INE-STRIP"))
+      return GfxType::LINE_STRIP;
+    if (equals(1, "INES"))
+      return GfxType::LINES;
+    break;
+  case 'M':
+  case 'm':
+    if (equals(1, "ARKERS"))
+      return GfxType::MARKERS;
+    break;
+  case 'P':
+  case 'p':
+    if (equals(1, "OINTS"))
+      return GfxType::POINTS;
+    if (equals(1, "OLYGON"))
+      return GfxType::POLYGON;
+    break;
+  case 'Q':
+  case 'q':
+    if (equals(1, "UAD-STRIP"))
+      return GfxType::QUAD_STRIP;
+    if (equals(1, "UADS"))
+      return GfxType::QUADS;
+    break;
+  case 'T':
+  case 't':
+    if (equals(1, "RIANGLE-FAN"))
+      return GfxType::TRIANGLE_FAN;
+    if (equals(1, "RIANGLE-STRIP"))
+      return GfxType::TRIANGLE_STRIP;
+    if (equals(1, "RIANGLES"))
+      return GfxType::TRIANGLES;
+    break;
+  }
+  return GfxType::UNKNOWN;
+}
+
+std::string gfxName(GfxType type) {
+  switch (type) {
+  case GfxType::POINTS:
+    return "POINTS";
+  case GfxType::MARKERS:
+    return "MARKERS";
+  case GfxType::LINES:
+    return "LINES";
+  case GfxType::LINE_STRIP:
+    return "LINE-STRIP";
+  case GfxType::LINE_LOOP:
+    return "LINE-LOOP";
+  case GfxType::TRIANGLES:
+    return "TRIANGLES";
+  case GfxType::TRIANGLE_STRIP:
+    return "TRIANGLE-STRIP";
+  case GfxType::TRIANGLE_FAN:
+    return "TRIANGLE-FAN";
+  case GfxType::QUADS:
+    return "QUADS";
+  case GfxType::QUAD_STRIP:
+    return "QUAD-STRIP";
+  case GfxType::POLYGON:
+    return "POLYGON";
+  case GfxType::UNKNOWN:
+    return "UNKNOWN";
+  }
+  return "UNKNOWN";
+}
+
+// Fixed-column USER binders; every field reads through the shared parser
+// and the version selects the table.
+bool parseUserFixedRealFields(ColumnReader &reader, double *values,
+                              const ColumnSpec *cols, std::size_t first,
+                              std::size_t count, std::size_t stride) {
+  for (std::size_t i = 0; i < count; ++i) {
+    if (i > 0)
+      RETURN_ON_LITERAL(reader, cols, first + i * stride - 1);
+    RETURN_ON_REAL(reader, cols, first + i * stride, &values[i]);
+  }
+  return true;
+}
+
+bool parseUserPdbrun(ColumnReader &reader, Record &record,
+                     const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  std::int64_t version = 0;
+  if (!reader.readInt(cols[2].width, &version))
+    return false;
+  record.as<UserPdbrunRecord>().version = static_cast<int>(version);
+  return true;
+}
+
+bool parseUserEyePos(ColumnReader &reader, Record &record,
+                     const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  UserEyePosRecord &e = record.as<UserEyePosRecord>();
+  double xyz[3] = {0.0, 0.0, 0.0};
+  if (!parseUserFixedRealFields(reader, xyz, cols, 2, 3, 2))
+    return false;
+  e.xyz = std::array<double, 3>{xyz[0], xyz[1], xyz[2]};
+  return true;
+}
+
+bool parseUserWindow(ColumnReader &reader, Record &record,
+                     const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  UserWindowRecord &w = record.as<UserWindowRecord>();
+  double values[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  if (!parseUserFixedRealFields(reader, values, cols, 2, 6, 2))
+    return false;
+  w.left = values[0];
+  w.right = values[1];
+  w.bottom = values[2];
+  w.top = values[3];
+  w.hither = values[4];
+  w.yon = values[5];
+  return true;
+}
+
+bool parseUserFocus(ColumnReader &reader, Record &record,
+                    const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  double focus = 0.0;
+  RETURN_ON_REAL(reader, cols, 2, &focus);
+  record.as<UserFocusRecord>().focus = focus;
+  return true;
+}
+
+bool parseUserViewport(ColumnReader &reader, Record &record,
+                       const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  UserViewportRecord &v = record.as<UserViewportRecord>();
+  double values[4] = {0.0, 0.0, 0.0, 0.0};
+  if (!parseUserFixedRealFields(reader, values, cols, 2, 4, 2))
+    return false;
+  v.xmin = values[0];
+  v.xmax = values[1];
+  v.ymin = values[2];
+  v.ymax = values[3];
+  return true;
+}
+
+bool parseUserBgColor6(ColumnReader &reader, Record &record,
+                       const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  UserBgColorRecord &b = record.as<UserBgColorRecord>();
+  double rgb[3] = {0.0, 0.0, 0.0};
+  if (!parseUserFixedRealFields(reader, rgb, cols, 2, 3, 2))
+    return false;
+  b.rgb = std::array<double, 3>{rgb[0], rgb[1], rgb[2]};
+  return true;
+}
+
+bool parseUserRadius(ColumnReader &reader, Record &record,
+                     const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  double radius = 0.0;
+  RETURN_ON_REAL(reader, cols, 2, &radius);
+  record.as<UserRadiusRecord>().radius = radius;
+  return true;
+}
+
+bool parseUserAngle(ColumnReader &reader, Record &record, const ColumnSpec *cols,
+                    bool v5) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  UserAngleRecord &a = record.as<UserAngleRecord>();
+  std::int64_t value = 0;
+  std::size_t base = 2;
+  if (v5) {
+    RETURN_ON_INT(reader, cols, 2, &value);
+    a.which = static_cast<int>(value);
+    RETURN_ON_LITERAL(reader, cols, 3);
+    base = 4;
+  } else {
+    base = 2;
+  }
+  RETURN_ON_INT(reader, cols, base, &a.atom0);
+  RETURN_ON_LITERAL(reader, cols, base + 1);
+  RETURN_ON_INT(reader, cols, base + 2, &a.atom1);
+  RETURN_ON_LITERAL(reader, cols, base + 3);
+  RETURN_ON_INT(reader, cols, base + 4, &a.atom2);
+  RETURN_ON_LITERAL(reader, cols, base + 5);
+  RETURN_ON_INT(reader, cols, base + 6, &a.atom3);
+  RETURN_ON_LITERAL(reader, cols, base + 7);
+  double angle = 0.0;
+  RETURN_ON_REAL(reader, cols, base + 8, &angle);
+  a.angle = angle;
+  return true;
+}
+
+bool parseUserDistance(ColumnReader &reader, Record &record,
+                       const ColumnSpec *cols, bool v5) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  UserDistanceRecord &d = record.as<UserDistanceRecord>();
+  std::int64_t value = 0;
+  std::size_t base = 2;
+  if (v5) {
+    RETURN_ON_INT(reader, cols, 2, &value);
+    d.which = static_cast<int>(value);
+    RETURN_ON_LITERAL(reader, cols, 3);
+    base = 4;
+  } else {
+    base = 2;
+  }
+  RETURN_ON_INT(reader, cols, base, &d.atom0);
+  RETURN_ON_LITERAL(reader, cols, base + 1);
+  RETURN_ON_INT(reader, cols, base + 2, &d.atom1);
+  RETURN_ON_LITERAL(reader, cols, base + 3);
+  double distance = 0.0;
+  RETURN_ON_REAL(reader, cols, base + 4, &distance);
+  d.distance = distance;
+  return true;
+}
+
+bool parseUserFile(ColumnReader &reader, Record &record, const ColumnSpec *cols,
+                   bool v5) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  UserFileRecord &f = record.as<UserFileRecord>();
+  if (v5) {
+    f.filename = reader.readString(cols[2].width);
+    return true;
+  }
+  std::int64_t model = 0;
+  RETURN_ON_INT(reader, cols, 2, &model);
+  f.model = static_cast<int>(model);
+  RETURN_ON_LITERAL(reader, cols, 3);
+  f.filename = reader.readString(cols[4].width);
+  return true;
+}
+
+bool parseUserMarkname(ColumnReader &reader, Record &record,
+                       const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  record.as<UserMarknameRecord>().markname =
+      reader.readString(cols[2].width);
+  return true;
+}
+
+bool parseUserRgbName(ColumnReader &reader, Record &record,
+                      const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  double rgb[3] = {0.0, 0.0, 0.0};
+  if (!parseUserFixedRealFields(reader, rgb, cols, 2, 3, 2))
+    return false;
+  RETURN_ON_LITERAL(reader, cols, 7);
+  const std::string name = reader.readString(cols[8].width);
+  if (record.holds<UserCNameRecord>()) {
+    UserCNameRecord &c = record.as<UserCNameRecord>();
+    c.rgb = std::array<double, 3>{rgb[0], rgb[1], rgb[2]};
+    c.name = name;
+  } else {
+    UserColorRecord &c = record.as<UserColorRecord>();
+    c.rgb = std::array<double, 3>{rgb[0], rgb[1], rgb[2]};
+    c.spec = name;
+  }
+  return true;
+}
+
+bool parseUserChain6(ColumnReader &reader, Record &record,
+                     const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  UserChainRecord &c = record.as<UserChainRecord>();
+  std::int64_t atom0 = 0;
+  std::int64_t atom1 = 0;
+  RETURN_ON_INT(reader, cols, 2, &atom0);
+  RETURN_ON_LITERAL(reader, cols, 3);
+  RETURN_ON_INT(reader, cols, 4, &atom1);
+  c.atom0 = static_cast<int>(atom0);
+  c.atom1 = static_cast<int>(atom1);
+  return true;
+}
+
+bool parseUserObject(ColumnReader &reader, Record &record,
+                     const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  std::int64_t model = 0;
+  RETURN_ON_INT(reader, cols, 2, &model);
+  record.as<UserObjectRecord>().model = static_cast<int>(model);
+  return true;
+}
+
+bool parseUserGfxBegin6(ColumnReader &reader, Record &record,
+                        const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  UserGfxBeginRecord &b = record.as<UserGfxBeginRecord>();
+  b.unknown = reader.readString(cols[2].width);
+  b.primitive = gfxTypeOf(b.unknown);
+  return true;
+}
+
+bool parseUserGfxColor6(ColumnReader &reader, Record &record,
+                        const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  UserColorRecord &c = record.as<UserColorRecord>();
+  double rgb[3] = {0.0, 0.0, 0.0};
+  if (!parseUserFixedRealFields(reader, rgb, cols, 2, 3, 2))
+    return false;
+  RETURN_ON_LITERAL(reader, cols, 7);
+  c.rgb = std::array<double, 3>{rgb[0], rgb[1], rgb[2]};
+  c.spec = reader.readString(cols[8].width);
+  return true;
+}
+
+bool parseUserGfxPoint6(ColumnReader &reader, Record &record,
+                        const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  UserGfxPointRecord &p = record.as<UserGfxPointRecord>();
+  double xyz[3] = {0.0, 0.0, 0.0};
+  if (!parseUserFixedRealFields(reader, xyz, cols, 2, 3, 2))
+    return false;
+  p.xyz = std::array<double, 3>{xyz[0], xyz[1], xyz[2]};
+  return true;
+}
+
+bool parseUserGfxFont6(ColumnReader &reader, Record &record,
+                       const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  UserGfxFontRecord &f = record.as<UserGfxFontRecord>();
+  std::int64_t size = 0;
+  RETURN_ON_INT(reader, cols, 2, &size);
+  f.size = static_cast<int>(size);
+  RETURN_ON_LITERAL(reader, cols, 3);
+  f.name = reader.readString(cols[4].width);
+  return true;
+}
+
+bool parseUserGfxLabel6(ColumnReader &reader, Record &record,
+                        const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  RETURN_ON_LITERAL(reader, cols, 1);
+  record.as<UserGfxLabelRecord>().text = reader.readString(cols[2].width);
+  return true;
+}
+
+bool parseUserGeneric(ColumnReader &reader, Record &record,
+                      const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  UserRecord &u = record.as<UserRecord>();
+  u.subtype = reader.readString(cols[1].width);
+  u.text = reader.readString(cols[2].width);
+  return true;
+}
 } // namespace
 
 std::optional<Record> Record::parse(std::string_view line,
                                     ParseContext &context) {
   (void)&context; // USER PDBRUN state handling lands with the USER records
-  const RecordType type = classifyLine(line);
+  RecordType type = classifyLine(line);
   if (type == RecordType::UNKNOWN)
     return unknownFrom(line);
+  if (type == RecordType::USER)
+    type = classifyUserSubtype(line.substr(std::min<std::size_t>(6, line.size())),
+                               context.pdbrunVersion);
 
   switch (type) {
   case RecordType::END:
@@ -2046,6 +3024,200 @@ std::optional<Record> Record::parse(std::string_view line,
       return std::nullopt;
     return record;
   }
+  case RecordType::USER:
+  case RecordType::USER_PDBRUN:
+  case RecordType::USER_EYEPOS:
+  case RecordType::USER_ATPOS:
+  case RecordType::USER_WINDOW:
+  case RecordType::USER_FOCUS:
+  case RecordType::USER_VIEWPORT:
+  case RecordType::USER_BGCOLOR:
+  case RecordType::USER_ANGLE:
+  case RecordType::USER_DISTANCE:
+  case RecordType::USER_FILE:
+  case RecordType::USER_MARKNAME:
+  case RecordType::USER_MARK:
+  case RecordType::USER_CNAME:
+  case RecordType::USER_COLOR:
+  case RecordType::USER_RADIUS:
+  case RecordType::USER_OBJECT:
+  case RecordType::USER_ENDOBJ:
+  case RecordType::USER_CHAIN:
+  case RecordType::USER_GFX_BEGIN:
+  case RecordType::USER_GFX_END:
+  case RecordType::USER_GFX_COLOR:
+  case RecordType::USER_GFX_NORMAL:
+  case RecordType::USER_GFX_VERTEX:
+  case RecordType::USER_GFX_FONT:
+  case RecordType::USER_GFX_TEXTPOS:
+  case RecordType::USER_GFX_LABEL:
+  case RecordType::USER_GFX_MOVE:
+  case RecordType::USER_GFX_DRAW:
+  case RecordType::USER_GFX_MARKER:
+  case RecordType::USER_GFX_POINT: {
+    const bool v5 = context.pdbrunVersion < 6;
+    {
+      ColumnReader reader(line);
+      Record record(type);
+      bool ok = false;
+      switch (type) {
+      case RecordType::USER:
+        ok = parseUserGeneric(reader, record, kUserCols);
+        break;
+      case RecordType::USER_PDBRUN:
+        ok = parseUserPdbrun(reader, record, kUserPdbrunCols);
+        if (ok)
+          context.pdbrunVersion = record.as<UserPdbrunRecord>().version;
+        break;
+      case RecordType::USER_EYEPOS:
+      case RecordType::USER_ATPOS:
+        ok = parseUserEyePos(reader, record, kUserEyePosCols);
+        break;
+      case RecordType::USER_WINDOW:
+        ok = parseUserWindow(reader, record, kUserWindowCols);
+        break;
+      case RecordType::USER_FOCUS:
+        ok = parseUserFocus(reader, record, kUserFocusCols);
+        break;
+      case RecordType::USER_VIEWPORT:
+        ok = parseUserViewport(reader, record, kUserViewportCols);
+        break;
+      case RecordType::USER_BGCOLOR:
+        if (v5)
+          ok = parseUserBgColor5(line, record);
+        else
+          ok = parseUserBgColor6(reader, record, kUserBgColorCols);
+        break;
+      case RecordType::USER_ANGLE:
+        ok = parseUserAngle(reader, record,
+                            v5 ? kUserAngle5Cols : kUserAngle6Cols, v5);
+        break;
+      case RecordType::USER_DISTANCE:
+        ok = parseUserDistance(reader, record,
+                               v5 ? kUserDistance5Cols : kUserDistance6Cols,
+                               v5);
+        break;
+      case RecordType::USER_FILE:
+        ok = parseUserFile(reader, record,
+                           v5 ? kUserFile5Cols : kUserFile6Cols, v5);
+        break;
+      case RecordType::USER_MARKNAME:
+        if (v5) {
+          ok = false; // v5 has no MARKNAME reader; it never classifies
+        } else {
+          ok = parseUserMarkname(reader, record, kUserMarkname6Cols);
+        }
+        break;
+      case RecordType::USER_MARK:
+        if (v5) {
+          ok = false;
+        } else {
+          ok = parseUserMarkname(reader, record, kUserMark6Cols);
+        }
+        break;
+      case RecordType::USER_CNAME:
+        if (v5)
+          ok = parseUserCName5(line, record, false);
+        else
+          ok = parseUserRgbName(reader, record, kUserCName6Cols);
+        break;
+      case RecordType::USER_COLOR:
+        if (v5)
+          ok = parseUserCName5(line, record, false);
+        else
+          ok = parseUserRgbName(reader, record, kUserCName6Cols);
+        break;
+      case RecordType::USER_RADIUS:
+        ok = parseUserRadius(reader, record, kUserRadiusCols);
+        break;
+      case RecordType::USER_OBJECT:
+      case RecordType::USER_ENDOBJ:
+        if (v5)
+          ok = parseUserObject(reader, record, kUserObjectCols);
+        else
+          ok = true; // v6 renders the subtype with no fields
+        break;
+      case RecordType::USER_CHAIN:
+        if (v5)
+          ok = parseUserChain5(line, record);
+        else
+          ok = parseUserChain6(reader, record, kUserChain6Cols);
+        break;
+      case RecordType::USER_GFX_BEGIN:
+        if (v5)
+          ok = false; // v5 has no GFX BEGIN reader; it never classifies
+        else
+          ok = parseUserGfxBegin6(reader, record, kUserGfxBegin6Cols);
+        break;
+      case RecordType::USER_GFX_END:
+        ok = true; // v6: the subtype renders with no fields
+        break;
+      case RecordType::USER_GFX_COLOR:
+        if (v5)
+          ok = parseUserCName5(line, record, true);
+        else
+          ok = parseUserGfxColor6(reader, record, kUserGfxColor6Cols);
+        break;
+      case RecordType::USER_GFX_NORMAL:
+      case RecordType::USER_GFX_VERTEX:
+        if (v5)
+          ok = false; // v5 has no readers; these never classify
+        else
+          ok = parseUserGfxPoint6(reader, record, kUserGfxPoint6Cols);
+        break;
+      case RecordType::USER_GFX_TEXTPOS:
+        if (v5)
+          ok = false;
+        else
+          ok = parseUserGfxPoint6(reader, record, kUserGfxTextPos6Cols);
+        break;
+      case RecordType::USER_GFX_FONT:
+        if (v5)
+          ok = parseUserGfxFont5(line, record);
+        else
+          ok = parseUserGfxFont6(reader, record, kUserGfxFont6Cols);
+        break;
+      case RecordType::USER_GFX_LABEL:
+        if (v5)
+          ok = parseUserGfxLabel5(line, record);
+        else
+          ok = parseUserGfxLabel6(reader, record, kUserGfxLabel6Cols);
+        break;
+      case RecordType::USER_GFX_MOVE:
+      case RecordType::USER_GFX_DRAW:
+      case RecordType::USER_GFX_MARKER:
+      case RecordType::USER_GFX_POINT:
+        if (v5) {
+          const ColumnSpec *cols = type == RecordType::USER_GFX_MOVE
+                                       ? kUserGfxMove5Cols
+                                       : type == RecordType::USER_GFX_DRAW
+                                             ? kUserGfxMove5Cols
+                                             : type == RecordType::USER_GFX_MARKER
+                                                   ? kUserGfxMarker5Cols
+                                                   : kUserGfxPoint5Cols;
+          ok = parseUserGfxPoint6(reader, record, cols);
+        } else {
+          ok = true; // v6 has no writers and no readers: fields stay unset
+        }
+        break;
+      default:
+        ok = false;
+        break;
+      }
+      if (ok) {
+        return record;
+      }
+      // the pinned fallback: a failed USER record parses with the generic
+      // USER columns, keeping the subtype text
+      {
+        ColumnReader reader(line);
+        Record generic(RecordType::USER);
+        if (parseUserGeneric(reader, generic, kUserCols))
+          return generic;
+      }
+      return std::nullopt;
+    }
+  }
   default:
     // Families whose layout tables land in later Phase 2 commits are not
     // parsed yet.
@@ -2062,6 +3234,340 @@ Record Record::unknownFrom(std::string_view line) {
   return record;
 }
 
+
+// The USER record renderer: version-dependent prefixes, fixed-width and
+// minimal field renders, the count-zero suppressions, the GFX BEGIN
+// primitive substitution, and the v5 label quoting. Trailing blanks are
+// trimmed by the caller's convention.
+std::string userChars(const Record &record, const WriteContext &context) {
+  const bool v5 = context.pdbrunVersion < 6;
+  std::string out;
+  const auto sep = [&out]() { out += ' '; };
+  switch (record.type()) {
+  case RecordType::USER: {
+    const UserRecord &u = record.as<UserRecord>();
+    out += "USER";
+    out += renderFixedStr(u.subtype, 2, true);
+    out += renderFixedStr(u.text, 66, true);
+    break;
+  }
+  case RecordType::USER_PDBRUN: {
+    const UserPdbrunRecord &p = record.as<UserPdbrunRecord>();
+    out += "USER  PDBRUN ";
+    out += renderFixedInt(p.version, 2, false, false);
+    break;
+  }
+  case RecordType::USER_EYEPOS: {
+    const UserEyePosRecord &e = record.as<UserEyePosRecord>();
+    out += "USER  EYEPOS ";
+    for (int i = 0; i < 3; ++i) {
+      if (i > 0)
+        sep();
+      out += renderFixedReal(e.xyz[i], 9, 3);
+    }
+    break;
+  }
+  case RecordType::USER_ATPOS: {
+    const UserEyePosRecord &e = record.as<UserEyePosRecord>();
+    out += "USER  ATPOS  ";
+    for (int i = 0; i < 3; ++i) {
+      if (i > 0)
+        sep();
+      out += renderFixedReal(e.xyz[i], 9, 3);
+    }
+    break;
+  }
+  case RecordType::USER_WINDOW: {
+    const UserWindowRecord &w = record.as<UserWindowRecord>();
+    out += "USER  WINDOW ";
+    const double values[6] = {w.left, w.right, w.bottom, w.top, w.hither,
+                              w.yon};
+    for (int i = 0; i < 6; ++i) {
+      if (i > 0)
+        sep();
+      out += renderFixedReal(values[i], 9, 3);
+    }
+    break;
+  }
+  case RecordType::USER_FOCUS: {
+    const UserFocusRecord &f = record.as<UserFocusRecord>();
+    out += v5 ? "USER  FOCUS " : "USER  FOCUS  ";
+    out += renderFixedReal(f.focus, 9, 3);
+    break;
+  }
+  case RecordType::USER_VIEWPORT: {
+    const UserViewportRecord &v = record.as<UserViewportRecord>();
+    out += "USER  VIEWPORT ";
+    const double values[4] = {v.xmin, v.xmax, v.ymin, v.ymax};
+    for (int i = 0; i < 4; ++i) {
+      if (i > 0)
+        sep();
+      out += renderFixedReal(values[i], 9, 3);
+    }
+    break;
+  }
+  case RecordType::USER_BGCOLOR: {
+    const UserBgColorRecord &b = record.as<UserBgColorRecord>();
+    out += "USER  BGCOLOR ";
+    for (int i = 0; i < 3; ++i) {
+      if (i > 0)
+        sep();
+      out += v5 ? renderMinimalReal(b.rgb[i], 3)
+                : renderFixedReal(b.rgb[i], 5, 3);
+    }
+    break;
+  }
+  case RecordType::USER_ANGLE: {
+    const UserAngleRecord &a = record.as<UserAngleRecord>();
+    out += "USER  ANGLE ";
+    if (v5) {
+      out += renderFixedInt(a.which.value_or(0), 2, false, false);
+      sep();
+    }
+    out += renderFixedInt(a.atom0, 6, false, false);
+    sep();
+    out += renderFixedInt(a.atom1, 6, false, false);
+    sep();
+    out += renderFixedInt(a.atom2, 6, false, false);
+    sep();
+    out += renderFixedInt(a.atom3, 6, false, false);
+    sep();
+    out += renderFixedReal(a.angle, v5 ? 8 : 9, 3);
+    break;
+  }
+  case RecordType::USER_DISTANCE: {
+    const UserDistanceRecord &d = record.as<UserDistanceRecord>();
+    out += "USER  DISTANCE ";
+    if (v5) {
+      out += renderFixedInt(d.which.value_or(0), 2, false, false);
+      sep();
+    }
+    out += renderFixedInt(d.atom0, 6, false, false);
+    sep();
+    out += renderFixedInt(d.atom1, 6, false, false);
+    sep();
+    out += renderFixedReal(d.distance, v5 ? 8 : 9, 3);
+    break;
+  }
+  case RecordType::USER_FILE: {
+    const UserFileRecord &f = record.as<UserFileRecord>();
+    out += "USER  FILE ";
+    if (v5) {
+      out += renderFixedStr(f.filename, 61, true);
+    } else {
+      out += renderFixedInt(f.model.value_or(0), 4, false, false);
+      sep();
+      out += renderFixedStr(f.filename, 56, true);
+    }
+    break;
+  }
+  case RecordType::USER_MARKNAME:
+    if (v5)
+      return ""; // the v5 writer cannot emit MARKNAME
+    out += "USER  MARKNAME ";
+    out += renderFixedStr(record.as<UserMarknameRecord>().markname, 57, true);
+    break;
+  case RecordType::USER_MARK:
+    if (v5)
+      return ""; // the v5 writer cannot emit MARK
+    out += "USER  MARK ";
+    out += renderFixedStr(record.as<UserMarknameRecord>().markname, 57, true);
+    break;
+  case RecordType::USER_CNAME: {
+    const UserCNameRecord &c = record.as<UserCNameRecord>();
+    out += "USER  CNAME ";
+    if (v5) {
+      // the v5 libc %-.38s is a precision: truncate, never pad
+      out += c.name.substr(0, 38);
+      sep();
+      out += renderMinimalReal(c.rgb[0], 3);
+      sep();
+      out += renderMinimalReal(c.rgb[1], 3);
+      sep();
+      out += renderMinimalReal(c.rgb[2], 3);
+    } else {
+      out += renderFixedReal(c.rgb[0], 5, 3);
+      sep();
+      out += renderFixedReal(c.rgb[1], 5, 3);
+      sep();
+      out += renderFixedReal(c.rgb[2], 5, 3);
+      sep();
+      out += renderFixedStr(c.name, 42, true);
+    }
+    break;
+  }
+  case RecordType::USER_COLOR: {
+    const UserColorRecord &c = record.as<UserColorRecord>();
+    out += "USER  COLOR ";
+    if (v5) {
+      out += c.spec.substr(0, 38);
+      sep();
+      out += renderMinimalReal(c.rgb[0], 3);
+      sep();
+      out += renderMinimalReal(c.rgb[1], 3);
+      sep();
+      out += renderMinimalReal(c.rgb[2], 3);
+    } else {
+      out += renderFixedReal(c.rgb[0], 5, 3);
+      sep();
+      out += renderFixedReal(c.rgb[1], 5, 3);
+      sep();
+      out += renderFixedReal(c.rgb[2], 5, 3);
+      sep();
+      out += renderFixedStr(c.spec, 42, true);
+    }
+    break;
+  }
+  case RecordType::USER_RADIUS: {
+    const UserRadiusRecord &r = record.as<UserRadiusRecord>();
+    out += "USER  RADIUS ";
+    out += renderFixedReal(r.radius, 7, 3);
+    break;
+  }
+  case RecordType::USER_OBJECT:
+    if (v5) {
+      out += "USER  OBJECT ";
+      out += renderFixedInt(record.as<UserObjectRecord>().model, 3, false,
+                            false);
+    } else {
+      out += "USER  OBJECT";
+    }
+    break;
+  case RecordType::USER_ENDOBJ:
+    if (v5) {
+      out += "USER  ENDOBJ ";
+      out += renderFixedInt(record.as<UserObjectRecord>().model, 3, false,
+                            false);
+    } else {
+      out += "USER  ENDOBJ";
+    }
+    break;
+  case RecordType::USER_CHAIN: {
+    const UserChainRecord &c = record.as<UserChainRecord>();
+    out += "USER  CHAIN ";
+    if (v5) {
+      out += renderMinimalInt(c.atom0);
+      sep();
+      out += renderMinimalInt(c.atom1);
+    } else {
+      out += renderFixedInt(c.atom0, 6, false, false);
+      sep();
+      out += renderFixedInt(c.atom1, 6, false, false);
+    }
+    break;
+  }
+  case RecordType::USER_GFX_BEGIN: {
+    const UserGfxBeginRecord &b = record.as<UserGfxBeginRecord>();
+    out += "USER  GFX BEGIN ";
+    out += renderFixedStr(b.primitive == GfxType::UNKNOWN
+                              ? b.unknown
+                              : gfxName(b.primitive),
+                          32, true);
+    break;
+  }
+  case RecordType::USER_GFX_END:
+    out += "USER  GFX END";
+    break;
+  case RecordType::USER_GFX_COLOR: {
+    const UserColorRecord &c = record.as<UserColorRecord>();
+    out += "USER  GFX COLOR ";
+    if (v5) {
+      out += c.spec.substr(0, 38); // %-.38s precision: truncate, no pad
+      sep();
+      out += renderMinimalReal(c.rgb[0], 3);
+      sep();
+      out += renderMinimalReal(c.rgb[1], 3);
+      sep();
+      out += renderMinimalReal(c.rgb[2], 3);
+    } else {
+      out += renderFixedReal(c.rgb[0], 5, 3);
+      sep();
+      out += renderFixedReal(c.rgb[1], 5, 3);
+      sep();
+      out += renderFixedReal(c.rgb[2], 5, 3);
+      sep();
+      out += c.spec; // the legacy v6 write uses a plain %s
+    }
+    break;
+  }
+  case RecordType::USER_GFX_NORMAL:
+  case RecordType::USER_GFX_VERTEX:
+  case RecordType::USER_GFX_TEXTPOS: {
+    const UserGfxPointRecord &p = record.as<UserGfxPointRecord>();
+    out += record.type() == RecordType::USER_GFX_NORMAL
+               ? "USER  GFX NORMAL "
+               : record.type() == RecordType::USER_GFX_VERTEX
+                     ? "USER  GFX VERTEX "
+                     : "USER  GFX TEXTPOS ";
+    for (int i = 0; i < 3; ++i) {
+      if (i > 0)
+        sep();
+      out += renderFixedReal(p.xyz[i], 9, 3);
+    }
+    break;
+  }
+  case RecordType::USER_GFX_FONT: {
+    const UserGfxFontRecord &f = record.as<UserGfxFontRecord>();
+    out += "USER  GFX FONT ";
+    if (v5) {
+      out += f.name.substr(0, 53); // %-.53s precision: truncate, no pad
+      sep();
+      out += renderMinimalInt(f.size);
+    } else {
+      out += renderFixedInt(f.size, 3, false, false);
+      sep();
+      out += renderFixedStr(f.name, 53, true);
+    }
+    break;
+  }
+  case RecordType::USER_GFX_LABEL: {
+    const UserGfxLabelRecord &l = record.as<UserGfxLabelRecord>();
+    out += "USER  GFX LABEL ";
+    if (v5) {
+      const std::array<double, 3> xyz = l.xyz.value_or(
+          std::array<double, 3>{0.0, 0.0, 0.0});
+      out += renderFixedReal(xyz[0], 9, 3);
+      sep();
+      out += renderFixedReal(xyz[1], 9, 3);
+      sep();
+      out += renderFixedReal(xyz[2], 9, 3);
+      sep();
+      out += '"';
+      out += l.text.substr(0, 24); // %-.24s precision: truncate, no pad
+      out += '"';
+    } else {
+      out += renderFixedStr(l.text, 56, true);
+    }
+    break;
+  }
+  case RecordType::USER_GFX_MOVE:
+  case RecordType::USER_GFX_DRAW:
+  case RecordType::USER_GFX_MARKER:
+  case RecordType::USER_GFX_POINT:
+    if (!v5)
+      return ""; // the v6 writer cannot emit these
+    {
+      const UserGfxPointRecord &p = record.as<UserGfxPointRecord>();
+      out += record.type() == RecordType::USER_GFX_MOVE
+                 ? "USER  GFX MOVE "
+                 : record.type() == RecordType::USER_GFX_DRAW
+                       ? "USER  GFX DRAW "
+                       : record.type() == RecordType::USER_GFX_MARKER
+                             ? "USER  GFX MARKER "
+                             : "USER  GFX POINT ";
+      for (int i = 0; i < 3; ++i) {
+        if (i > 0)
+          sep();
+        out += renderFixedReal(p.xyz[i], 9, 3);
+      }
+    }
+    break;
+  default:
+    return "";
+  }
+  return out;
+}
+
 std::string Record::chars() const { return chars(WriteContext{}); }
 
 std::string Record::chars(const WriteContext &context) const {
@@ -2071,7 +3577,21 @@ std::string Record::chars(const WriteContext &context) const {
 }
 
 std::size_t Record::write_into(char (&out)[83],
-                               const WriteContext & /*context*/) const {
+                               const WriteContext &context) const {
+  if (type_ == RecordType::USER || type_ >= RecordType::USER_PDBRUN) {
+    // the USER records render sequentially (version-dependent prefixes,
+    // minimal and fixed-width fields); the layouts stay within the
+    // 80-column record length
+    const std::string text = userChars(*this, context);
+    const std::size_t length = std::min(text.size(), sizeof(out) - 1);
+    std::memcpy(out, text.data(), length);
+    std::size_t trimmed = length;
+    while (trimmed > 1 &&
+           std::isspace(static_cast<unsigned char>(out[trimmed - 1])))
+      --trimmed;
+    out[trimmed] = '\0';
+    return trimmed;
+  }
   // The declared record length: 80 columns for every standard record, 82
   // for a ZDATOM-marked atom; the buffer accommodates the widest layout
   // plus a terminator.

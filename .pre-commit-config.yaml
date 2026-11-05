@@ -25,7 +25,7 @@ repos:
     hooks:
       - id: codespell
         exclude: ^tags$|(^|/)uv\.lock$|(^|/)pyproject\.toml$
-        args: ["-L", "sur,nd,iif,ther,TRE,merchantibility,CONECT"]
+        args: ["-L", "sur,nd,iif,ther,TRE,merchantibility,CONECT,ISTANCE,BJECT,INES,OINTS,ARKNAME,BJECT,ADIUS,INDOW,OCUS,ILE,IEWPORT,ETHOD"]
 
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.6
