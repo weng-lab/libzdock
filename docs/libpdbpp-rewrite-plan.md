@@ -628,11 +628,17 @@ compatibility surface to respect is text: `Record::chars()` must equal
 `PDB::chars()` byte-for-byte on every input both accept (the commit-8
 harness enforces it continuously).
 
-### 4.5 Performance budget
+### 4.5 Performance (recorded, not a gate)
 
-Target: parse and write within 20% of the bb0032c baseline, measured on
-the Phase 2 toolchain (host g++ 13.3.0). Recorded best-of-runs on the
-172,200-record replay (`-O3`, matched standard per row):
+Performance is **not a gate** for the remaining Phase 2 commits: the
+benchmark and the 20 percent budget (and its 54 ms / 152 ms stop triggers)
+were dropped by decision before the ATOM/ZDATOM commit landed, and no
+remaining commit is required to measure or meet them. The numbers recorded
+through commit 4 stay in the table below as historical reference only.
+
+Target (historical): parse and write within 20% of the bb0032c baseline,
+measured on the Phase 2 toolchain (host g++ 13.3.0). Recorded best-of-runs
+on the 172,200-record replay (`-O3`, matched standard per row):
 
 | Build | parse (ms) | write (ms) |
 | ----- | ---------- | ---------- |
@@ -660,21 +666,15 @@ write** over the budget baseline — within the 20% budget. Phase 2 is
 expected to do better: the format-string walk (the dominant Phase 1
 overhead) disappears because column tables are read directly, and the
 shared fixed-format parser (§4.1) replaces `strtod` with digit
-accumulation plus one division.
+accumulation plus one division. The commit-4 measurements (per family,
+best of three interleaved runs) are recorded in the commit history and
+in the review record; the benchmark requirements ended there.
 
-**Reporting**: after **every commit that adds or changes parsing or
-writing**, run the recorded benchmark methodology (172,200-record
-replay, `-O3`, current standard; at least three interleaved runs, best
-per side) and append the numbers to this table as a performance report
-against the C++17 baseline row above.
-
-**Trigger**: if the write time crosses **54 ms** (the baseline 45.0 ms
-plus the 20% allowance) or parse exceeds 152.3 ms (126.9 + 20%), stop:
-do not start the next commit, rework the offending commit, and report
-the numbers before proceeding. `std::string` return in `chars()` adds
-one allocation per call versus the static buffer — if the benchmark
-shows it matters, offer a `write_into(char(&)[83])` overload before
-optimizing anything else.
+**Reporting and trigger (withdrawn)**: no remaining Phase 2 commit is
+required to benchmark, and the 54 ms / 152 ms stop triggers no longer
+apply — performance is not a gate for this phase. `chars()` keeps its
+allocation-free `write_into(char(&)[83])` counterpart (added at commit
+4) for streaming loops; any future optimization is a separate decision.
 
 ### 4.6 Sanitizer and exit criteria
 
@@ -742,7 +742,7 @@ users.
 | ----- | ----------- | ---- |
 | 0 | Characterization suite + documented semantics + sanitizer baseline | Suite green; quirks documented; zero prod changes |
 | 1 | `PdbFormat`/`FieldReader`/`FieldWriter`/`RecordClassifier` classes | Suite unchanged and green after every commit |
-| 2 | `zdock::pdb::Record` (C++17) + golden parity tests | Byte-identical record text; sanitizers clean with zero findings; parse/write within 20% of bb0032c on the Phase 2 toolchain (§4.5) |
+| 2 | `zdock::pdb::Record` (C++17) + golden parity tests | Byte-identical record text; sanitizers clean with zero findings; performance is not a gate (§4.5) |
 | 3 | `zdock::PDB` on new class + shims | Tools/tests pass unchanged |
 | 4 | Deprecation notes, README, full validation | All repo checks green |
 
