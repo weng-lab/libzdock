@@ -22,7 +22,7 @@ work log for that effort.
 | ----- | ----- |
 | 0 — Document and pin current behavior | Characterization suite complete: `test/pdb_records.cpp` (24 test cases; CRLF, zero-less charge, and continued-String behavior pinned) plus extended `test/formatting.cpp`; full suite green. Sanitizer baseline complete: the only remaining finding is the pinned AUTHOR misaligned `%2d` store; see the findings log |
 | 1 — Restructure legacy code into classes | Complete: `FieldReader` (cbcd7aa), `FieldWriter` (a6968fc), `RecordClassifier` (fd078d3), and the `PdbFormat` read (97303e4) and write (b274b94) sides are extracted and committed; `PDB` is a thin shell over them and the varargs `PDB::sscanf`/`PDB::sprintf` remain as compatibility wrappers. Table mutations were verified to fail the suite, and parse/write throughput on a 172k-record replay stays within 20% of the pre-refactor baseline. The ZDATOM overrun and truncation were fixed on this branch (df7ab1d, fb720ad); see the release status below |
-| 2 — New modern record class (C++17) | Planned (§4); not started |
+| 2 — New modern record class (C++17) | Complete: the `zdock::pdb::Record` class with typed payloads, column tables, and the shared fixed-format parser covers every record family (commits 1-8; see §4.2) |
 | 3 — Adapter shim and consumer migration | Not started |
 | 4 — Cleanup, documentation, deprecation | Not started |
 
@@ -295,12 +295,48 @@ Progress log (branch `pdbcpprewrite`):
 - Table validation: mutating one read-side entry (v6 USER ANGLE pointed at
   the wrong field list) and one write-side entry (TVECT pointed at the TER
   list) each failed exactly one round-trip test case; both were reverted.
-- Throughput: on a 172,200-record replay (2OOB ligand repeated 300x,
-  `-O3 -std=c++14`, best of repeated runs), the table-driven parse is
-  ~13% slower (125 to 143 ms) and the write path ~17% slower (45 to 52 ms)
-  than the pre-refactor switch implementation — within the accepted 20%
-  budget; the Phase 2 clean-room class recovers this by dropping the
-  format-string walk entirely.
+- Throughput: performance was dropped as a Phase 2 gate (707a108) —
+  the commit-4 measurements are historical reference only.
+- Column-table discipline (commit 6, 8f1584f): every separator literal
+  in a read format must be matched by its binder — the legacy formats
+  carry literals inside residue groups (`%4s%c %4d%c` in HELIX, SSBOND,
+  CMPONT), between groups (TER, OBSLTE, SPRSDE, SPLIT, REVDAT, AGGRGT,
+  SEQRES), and around values, and an unmatched literal shifts every
+  later field. The dangerous case is a shifted walk that still renders
+  byte-identically (CMPONT's doubled separator spaces): text parity
+  alone does not prove field parity, so the tests compare payload
+  fields against the legacy struct members, not just the rendered text.
+  The description family writes in two styles (FTNOTE and REMARK render
+  `%3D` with left-justified text; AGRDES, SYMDES, MTXDES, and CMPDES
+  render a plain `%3d` with right-justified text), and MODEL, REVDAT,
+  OBSLTE, SPRSDE, and SPLIT need dual read/write tables.
+- USER records (commit 7, 6a45ad6): the PDBRUN layouts are
+  version-dependent; the v5 libc scanf paths use whitespace-delimited
+  tokens parsed with dedicated bounded parsers over the shared
+  fixed-format grammar (exported as parseFixedInt/parseFixedReal); the
+  v5 label scanset never runs when the coordinates fail to parse (the
+  matching-failure semantics of sscanf); the v5 write formats' `%-Ns`
+  forms are precision (truncate, never pad), not width; and failed USER
+  binders fall back to the generic USER columns exactly as the legacy
+  chain does.
+- Comparison harness (9331451, 1366e0c): `tools/compare_parsers.cpp`
+  with a `compare-parsers` make target walks a PDB file or directory
+  tree, pushes every line through both parsers, and compares the record
+  type, the rendered text, and every parsed payload field
+  byte-for-byte. Each side derives the PDBRUN version state
+  independently from the file content (the legacy side from its process
+  globals, the modern side from its ParseContext); a divergence in the
+  derived state is itself reported. The input files are read exactly as
+  production reads them, through operator>> semantics (the 4xBufLen
+  line buffer, the one trailing CR strip, and the stream failure on
+  overlong lines). A `--baseline` mode compares against a separate
+  bb0032c build (tools/compare_parsers_dump.cpp), classifying the
+  pre-fb720ad ZDATOM truncation and the pre-ea22558 v5 token change as
+  expected and everything else as unexpected. The failure detection is
+  proven by planting type, field, text, and PDBRUN state errors and
+  verifying each is caught and each restore is clean. The harness is
+  designed to run over the migrated input corpus (`zdockdata/input`);
+  mismatch reports stay outside the repository.
 - Sanitizer baseline: with ASan/UBSan, the remaining findings are the pinned
   AUTHOR misaligned `%2d` store at both sites (see the findings log); the
   ZDATOM record-buffer overrun is fixed by sizing the `chars()` record
@@ -610,10 +646,16 @@ accumulation plus one division is expected to be cheaper than `strtod`.
 7. USER records: v6 tables, then v5 (including the libc-equivalent token
    and scanset parsers), PDBRUN version handling via `ParseContext`,
    `USER → ` fallbacks, and the count-zero suppressions.
-8. `test/record.cpp` parity harness: for every characterization fixture ×
-   PDBRUN version, `Record::parse(...).chars()` must equal
+8. `test/record.cpp` parity harness (e9a7209): for every characterization
+   fixture × PDBRUN version, `Record::parse(...).chars()` equals
    `libpdb::PDB(line).chars()` byte-for-byte — committed as a standing
    differential test so Phase 3 can re-run it after the consumer switch.
+   Standing up the harness over the full fixture corpus surfaced ANISOU
+   and SIGUIJ (the one family the per-family lists had missed) and the v5
+   GFX LABEL matching-failure semantics (when the coordinates fail to
+   parse, the scanset never runs and the label text keeps its default,
+   exactly as the legacy sscanf matching failure leaves it); both were
+   added in the same commit.
 
 Each commit touches only `include/Record.hpp`, new files under
 `src/pdb/` (or a new `src/record/`), and `test/record.cpp`; the legacy
@@ -633,7 +675,10 @@ class, its tables, and its tests are not modified after commit 1 lands.
 | UNKNOWN junk right-aligned in 72 columns with `*` overflow | keep; enforced by the parity harness | kept |
 | `%D` zero-as-blanks and right-justified continuations | keep; enforced by the parity harness | kept |
 | `-.15` normalizes to `-0.15` on rewrite | keep; pinned by the charge test | kept |
-| CRLF `` quirks (junk fallback on short records, `` captured by `%c`) | fix the input path (one trailing `` stripped in `operator>>`, commit 0a); direct-construction behavior stays pinned | commit 0a |
+| CRLF `
+` quirks (junk fallback on short records, `
+` captured by `%c`) | fix the input path (one trailing `
+` stripped in `operator>>`, commit 0a); direct-construction behavior stays pinned | commit 0a |
 | MODEL reads `%8d` at columns 7-14, writes `%5d` at 11-15 | keep (round-trips); enforced by the parity harness | kept |
 | v5/v6 USER format differences and count-zero suppressions | keep; enforced by the parity harness | kept |
 
