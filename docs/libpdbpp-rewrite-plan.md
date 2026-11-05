@@ -37,6 +37,11 @@ work log for that effort.
   replay-prepped compare collect`, plus `tests/regression`) and the Python
   pre-commit hooks (`uv`-based isort/black/mypy/pylint) must pass before
   merging; neither has run against the final state of this branch yet.
+- **CI status**: CI has not run on this branch — the workflow triggers on
+  pushes to `master` and `agv/modernize` and on pull requests only, and the
+  branch push did not start a run. Before merging, a draft PR from
+  `pdbcpprewrite` must show green Ubuntu GCC, Ubuntu Clang, and macOS jobs
+  (plus the pre-commit job). The branch itself is not protected; `master` is.
 - **Pinned limit**: a charge too wide for the ZDATOM `%5.2f` field (input
   `-12.3`) renders as `*****` and the rendered line re-parses as UNKNOWN —
   the formatter's asterisk convention, pinned by the charge test.
