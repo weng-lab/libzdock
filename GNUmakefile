@@ -14,7 +14,7 @@ CATCH_DIR := contrib/Catch2
 CATCH_CPP := $(CATCH_DIR)/extras/catch_amalgamated.cpp
 
 CPPFLAGS += -Icontrib/eigen -Isrc/libpdb++ -Isrc/zdock -Isrc/common \
-            -Isrc/pdb -Iinclude
+            -Isrc/pdb -Isrc/record -Iinclude
 CXXFLAGS ?= -O3
 CXXSTANDARD ?= -std=c++17
 WARNINGS ?= -Wall -Wextra -pedantic
@@ -48,7 +48,8 @@ LIB_SOURCES := \
   src/zdock/TransformUtil.cpp \
   src/zdock/ZDOCK.cpp \
   src/pdb/PDB.cpp \
-  src/record/Record.cpp
+  src/record/Record.cpp \
+  src/record/Columns.cpp
 
 TOOL_NAMES := createlig createmultimer pruning constraints centroids zdsplit zdunsplit
 TOOL_SOURCES := \
