@@ -1271,7 +1271,13 @@ TEST_CASE("Fresh simple records format from typed payloads",
   REQUIRE(zdock::pdb::Record(zdock::pdb::RecordType::END).chars() == "END");
   REQUIRE(zdock::pdb::Record(zdock::pdb::RecordType::ENDMDL).chars() ==
           "ENDMDL");
-  REQUIRE(zdock::pdb::Record(zdock::pdb::RecordType::ATOM).chars().empty());
+  // Deliberate deviation: a fresh atom renders with unset occupancy and
+  // tempFactor (as 0.00); the legacy fresh-record 1.0 occupancy default is
+  // a struct-level quirk the typed payload does not carry. Parsed atoms
+  // are unaffected.
+  REQUIRE(zdock::pdb::Record(zdock::pdb::RecordType::ATOM).chars() ==
+          "ATOM      0              0       0.000   0.000   0.000  0.00  "
+          "0.00");
 
   zdock::pdb::Record author(zdock::pdb::RecordType::AUTHOR);
   author.as<zdock::pdb::AuthorRecord>().continuation = 2;
@@ -1298,8 +1304,7 @@ TEST_CASE("Records stream through operator<< as their rendered text",
 }
 
 TEST_CASE("write_into renders the same bounded text as chars",
-          "[record-parity]") {
-  // Invariant: the allocation-free renderer produces exactly the chars()
+          "[record-parity]") {  // Invariant: the allocation-free renderer produces exactly the chars()
   // text, NUL-terminated at the trimmed length, writing nothing past the
   // declared record length inside the 83-byte buffer.
   const std::vector<std::string> lines = {
@@ -1329,9 +1334,226 @@ TEST_CASE("write_into renders the same bounded text as chars",
     for (std::size_t i = 81; i < sizeof(buf); ++i)
       REQUIRE(buf[i] == '#'); // nothing written past the record length
   }
-  // Families without write tables format as empty.
+  // Families without write tables format as empty; atoms now render their
+  // default payload.
   zdock::pdb::Record atom(zdock::pdb::RecordType::ATOM);
   char buf[83];
-  REQUIRE(atom.write_into(buf, zdock::pdb::WriteContext{}) == 0);
-  REQUIRE(buf[0] == '\0');
+  REQUIRE(atom.write_into(buf, zdock::pdb::WriteContext{}) ==
+          std::strlen("ATOM      0              0       0.000   0.000   "
+                      "0.000  0.00  0.00"));
+  REQUIRE(std::string(buf) ==
+          "ATOM      0              0       0.000   0.000   0.000  0.00  "
+          "0.00");
+}
+
+// ---------------------------------------------------------------------------
+// ATOM family, the ZDATOM fallback, and the charge cases (Phase 2, commit 5)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Atom columns parse into the pinned typed values",
+          "[record-parity]") {
+  // Invariant: the standard atom layout lands in the typed members at its
+  // wwPDB columns exactly as the legacy parser stores them (the golden
+  // suite's values), with names right-trimmed and codes verbatim.
+  zdock::pdb::ParseContext context;
+  const auto atom = zdock::pdb::Record::parse(
+      "ATOM    352  N   MET b   1      20.321  -9.325  38.937  1.00 15.91"
+      "           N",
+      context);
+  REQUIRE(atom.has_value());
+  REQUIRE(atom->type() == zdock::pdb::RecordType::ATOM);
+  REQUIRE(atom->holds<zdock::pdb::AtomRecord>());
+  const zdock::pdb::AtomRecord &a = atom->as<zdock::pdb::AtomRecord>();
+  REQUIRE(a.serialNum == 352);
+  REQUIRE(a.name == " N");
+  REQUIRE(a.altLoc == ' ');
+  REQUIRE(a.residue.name == "MET");
+  REQUIRE(a.residue.chainId == 'b');
+  REQUIRE(a.residue.seqNum == 1);
+  REQUIRE(a.residue.insertCode == ' ');
+  REQUIRE(a.xyz[0] == 20.321);
+  REQUIRE(a.xyz[1] == -9.325);
+  REQUIRE(a.xyz[2] == 38.937);
+  REQUIRE(a.occupancy.value_or(-1.0) == 1.0);
+  REQUIRE(a.tempFactor.value_or(-1.0) == 15.91);
+  REQUIRE(a.element == " N");
+  REQUIRE(a.charge.empty());
+  REQUIRE_FALSE(a.zdatom.has_value());
+
+  // HETATM and SIGATM classify to their own types over the same layout.
+  for (const char *line : {
+           "HETATM 9999  O   HOH A 999       1.500  -2.250   3.750  0.50 "
+           "20.00           O",
+           "SIGATM    1  N   ALA A   1       0.020   0.020   0.020  0.00  "
+           "1.00",
+       }) {
+    CAPTURE(line);
+    const auto parsed = zdock::pdb::Record::parse(line, context);
+    REQUIRE(parsed.has_value());
+    REQUIRE(parsed->holds<zdock::pdb::AtomRecord>());
+  }
+}
+
+TEST_CASE("Atom lines fall back to ZDATOM and to junk like the legacy parse",
+          "[record-parity]") {
+  // Invariant: an atom line that fails the standard layout parses with the
+  // 82-column ZDATOM extension (type retained), one that fails both falls
+  // back to the junk record, and a truncated line parses as ATOM with
+  // defaults -- all byte-for-byte with the legacy path.
+  zdock::pdb::ParseContext context;
+
+  const char *zdatomLine =
+      "ATOM      1  CA  ALA A   1       1.000   2.000   3.000  1     1 1.23"
+      "     ALA  1.50";
+  const auto z = zdock::pdb::Record::parse(zdatomLine, context);
+  REQUIRE(z.has_value());
+  REQUIRE(z->type() == zdock::pdb::RecordType::ATOM);
+  REQUIRE(z->asAtom().zdatom.has_value());
+  REQUIRE(z->asAtom().zdatom->type == 1);
+  REQUIRE(z->asAtom().zdatom->surface == 1);
+  REQUIRE(z->asAtom().zdatom->rad == 1.23);
+  REQUIRE(z->asAtom().zdatom->segid == " ALA");
+  REQUIRE(z->asAtom().zdatom->chg == 1.5);
+  REQUIRE(z->chars() == std::string(
+      libpdb::PDB(zdatomLine).chars()));
+
+  // The junk fallback for lines that fit neither layout.
+  for (const char *junkLine : {
+           "ATOM   1X",
+           "ATOM      1  CA  ALA A   1       1.000   2.000   3.000  1.00 "
+           "10.00\r\n",
+       }) {
+    CAPTURE(junkLine);
+    REQUIRE_FALSE(zdock::pdb::Record::parse(junkLine, context).has_value());
+    REQUIRE(zdock::pdb::Record::unknownFrom(junkLine).chars() ==
+            std::string(libpdb::PDB(junkLine).chars()));
+  }
+
+  // Truncated atom lines parse with defaults, not junk.
+  const auto truncated = zdock::pdb::Record::parse("ATOM", context);
+  REQUIRE(truncated.has_value());
+  REQUIRE(truncated->type() == zdock::pdb::RecordType::ATOM);
+  REQUIRE(truncated->asAtom().serialNum == 0);
+  REQUIRE(truncated->asAtom().xyz[0] == 0.0);
+  REQUIRE(truncated->chars() == std::string(libpdb::PDB("ATOM").chars()));
+}
+
+TEST_CASE("ZDATOM charges survive the pinned cases", "[record-parity]") {
+  // Invariant: the pinned charge forms render across the full 82-column
+  // layout, the zero-less input normalizes to "-0.15", and a charge too
+  // wide for %5.2f renders as asterisks and the rendered line re-parses
+  // as UNKNOWN junk (the read itself accepts the value; only the render
+  // overflows) -- every parsable rendering matches the legacy text
+  // byte-for-byte.
+  const std::string base = "ATOM      1  CA  ALA A   1       1.000   2.000"
+                           "   3.000  1     1 1.23     ALA ";
+  struct ChargeCase {
+    const char *suffix;
+    double charge;
+    const char *rendered;
+  };
+  const std::vector<ChargeCase> cases = {
+      {" 1.50", 1.5, " 1.50"},
+      {" 0.25", 0.25, " 0.25"},
+      {"-0.45", -0.45, "-0.45"},
+      {" -.15", -0.15, "-0.15"},
+      {"-12.3", -12.3, "*****"},
+  };
+  zdock::pdb::ParseContext context;
+  for (const auto &c : cases) {
+    const std::string line = base + c.suffix;
+    CAPTURE(line);
+    const auto parsed = zdock::pdb::Record::parse(line, context);
+    const libpdb::PDB legacy(line.c_str());
+    REQUIRE(parsed.has_value());
+    REQUIRE(parsed->asAtom().zdatom->chg == c.charge);
+    REQUIRE(parsed->chars() == base + c.rendered);
+    REQUIRE(parsed->chars() == std::string(legacy.chars()));
+    // the rendered line re-parses and re-renders stably; the asterisk
+    // rendering degrades to the junk fallback exactly as the legacy one
+    // does
+    zdock::pdb::ParseContext again;
+    const auto reread = zdock::pdb::Record::parse(parsed->chars(), again);
+    if (std::string(c.rendered) == "*****") {
+      REQUIRE_FALSE(reread.has_value());
+      REQUIRE(zdock::pdb::Record::unknownFrom(parsed->chars()).chars() ==
+              std::string(libpdb::PDB(parsed->chars().c_str()).chars()));
+    } else {
+      REQUIRE(reread.has_value());
+      REQUIRE(reread->asAtom().zdatom->chg == c.charge);
+      REQUIRE(reread->chars() == parsed->chars());
+    }
+  }
+}
+
+TEST_CASE("Clean ZDATOM parse leaves occupancy unset", "[record-payload]") {
+  // Invariant (deliberate deviation): the ZDATOM fallback parses on a
+  // fresh record, so occupancy stays unset instead of carrying the failed
+  // standard attempt's partial write; ZDATOM text never renders occupancy,
+  // so no golden line changes.
+  zdock::pdb::ParseContext context;
+  const auto z = zdock::pdb::Record::parse(
+      "ATOM      1  CA  ALA A   1       1.000   2.000   3.000  1     1 1.23"
+      "     ALA  1.50",
+      context);
+  REQUIRE(z.has_value());
+  REQUIRE_FALSE(z->asAtom().occupancy.has_value());
+  REQUIRE_FALSE(z->asAtom().tempFactor.has_value());
+}
+
+TEST_CASE("Real mark_sur fixtures match legacy and round-trip",
+          "[record-parity]") {
+  // Invariant: every real 82-column ZDATOM line from the stored example
+  // results (1UDH/1POH and blank segment ids, zero-less and normalized
+  // charge forms) parses to the same type and byte-identical text as the
+  // legacy parser, and the rendered line re-parses and re-renders
+  // stably under both paths.
+  std::ifstream in(test::getpath("ZDATOM/mark_sur.pdb"));
+  REQUIRE(in);
+  std::string line;
+  while (std::getline(in, line)) {
+    CAPTURE(line);
+    REQUIRE(line.size() == 82);
+    zdock::pdb::ParseContext context;
+    const auto parsed = zdock::pdb::Record::parse(line, context);
+    const libpdb::PDB legacy(line.c_str());
+    REQUIRE(parsed.has_value());
+    REQUIRE(static_cast<int>(parsed->type()) ==
+            static_cast<int>(legacy.type()));
+    REQUIRE(parsed->asAtom().zdatom.has_value());
+    REQUIRE(parsed->chars() == std::string(legacy.chars()));
+    zdock::pdb::ParseContext again;
+    const auto reread = zdock::pdb::Record::parse(parsed->chars(), again);
+    REQUIRE(reread.has_value());
+    REQUIRE(reread->asAtom().zdatom.has_value());
+    REQUIRE(reread->asAtom().zdatom->chg ==
+            parsed->asAtom().zdatom->chg);
+    REQUIRE(reread->chars() == parsed->chars());
+    libpdb::PDB legacyReread(parsed->chars().c_str());
+    REQUIRE(std::string(legacyReread.chars()) == parsed->chars());
+  }
+}
+
+TEST_CASE("ZDATOM records render 82 columns inside the write buffer",
+          "[record-parity]") {
+  // Invariant: the 82-column ZDATOM layout renders fully (the pinned
+  // full-width case), writes nothing past the declared length in the
+  // 83-byte buffer, and standard atoms stay at 80 columns.
+  zdock::pdb::ParseContext context;
+  const auto z = zdock::pdb::Record::parse(
+      "ATOM      1  CA  ALA A   1      12.345  -6.789  10.000  1     1 1.23"
+      "     ALA  1.50",
+      context);
+  REQUIRE(z.has_value());
+  REQUIRE(z->chars().size() == 82);
+  REQUIRE(z->chars() ==
+          "ATOM      1  CA  ALA A   1      12.345  -6.789  10.000 "
+          " 1     1 1.23     ALA  1.50");
+  char buf[83];
+  std::memset(buf, '#', sizeof(buf));
+  const std::size_t n = z->write_into(buf, zdock::pdb::WriteContext{});
+  REQUIRE(n == 82);
+  REQUIRE(buf[82] == '\0');
+  for (std::size_t i = 83 - 1; i > 82; --i)
+    REQUIRE(buf[i] == '#');
 }

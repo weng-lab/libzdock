@@ -89,6 +89,18 @@ bool ColumnReader::matchLiteral(char expected) noexcept {
   return atEnd(); // a literal past end-of-line is tolerated
 }
 
+bool ColumnReader::matchLiterals(char expected, int count) noexcept {
+  for (int i = 0; i < count; ++i) {
+    if (cursor_ < line_.size() && line_[cursor_] != '\0' &&
+        line_[cursor_] != '\n') {
+      if (line_[cursor_] != expected)
+        return false;
+      ++cursor_;
+    }
+  }
+  return true;
+}
+
 bool ColumnReader::beginField() {
   if (atEnd())
     return false;

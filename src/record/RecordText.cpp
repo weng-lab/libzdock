@@ -95,6 +95,60 @@ constexpr ColumnSpec kMdltypCols[] = {
     {10, 70, ColumnKind::Str, 0, true, ' ', false, 70},
 };
 
+// Standard ATOM/HETATM/SIGATM layout (read and write columns coincide;
+// the write styles ride along). The Literal runs are the format's literal
+// spaces, which the legacy walk matched one by one -- a non-space there is
+// a hard mismatch driving the fallback chain.
+constexpr ColumnSpec kAtomCols[] = {
+    {0, 6, ColumnKind::Skip},
+    {6, 5, ColumnKind::Int},
+    {11, 1, ColumnKind::Literal, 0, false, ' '},
+    {12, 4, ColumnKind::Str, 0, true, ' ', false, -1},
+    {16, 1, ColumnKind::Char},
+    {17, 4, ColumnKind::Str, 0, true, ' ', false, -1},
+    {21, 1, ColumnKind::Char},
+    {22, 4, ColumnKind::Int},
+    {26, 1, ColumnKind::Char},
+    {27, 3, ColumnKind::Literal, 0, false, ' '},
+    {30, 8, ColumnKind::Real, 3},
+    {38, 8, ColumnKind::Real, 3},
+    {46, 8, ColumnKind::Real, 3},
+    {54, 6, ColumnKind::Real, 2},
+    {60, 6, ColumnKind::Real, 2},
+    {66, 10, ColumnKind::Literal, 0, false, ' '},
+    {76, 2, ColumnKind::Str},
+    {78, 2, ColumnKind::Str},
+};
+
+// The distinct 82-column ZDATOM layout (mark_sur extension): type,
+// surface, radius, segment id, and charge instead of occupancy,
+// tempFactor, element, and charge. The declared record length is 82.
+constexpr ColumnSpec kZdatomCols[] = {
+    {0, 6, ColumnKind::Skip},
+    {6, 5, ColumnKind::Int},
+    {11, 1, ColumnKind::Literal, 0, false, ' '},
+    {12, 4, ColumnKind::Str, 0, true, ' ', false, -1},
+    {16, 1, ColumnKind::Char},
+    {17, 4, ColumnKind::Str, 0, true, ' ', false, -1},
+    {21, 1, ColumnKind::Char},
+    {22, 4, ColumnKind::Int},
+    {26, 1, ColumnKind::Char},
+    {27, 3, ColumnKind::Literal, 0, false, ' '},
+    {30, 8, ColumnKind::Real, 3},
+    {38, 8, ColumnKind::Real, 3},
+    {46, 8, ColumnKind::Real, 3},
+    {54, 1, ColumnKind::Literal, 0, false, ' '},
+    {55, 2, ColumnKind::Int},
+    {57, 4, ColumnKind::Literal, 0, false, ' '},
+    {61, 2, ColumnKind::Int},
+    {63, 1, ColumnKind::Literal, 0, false, ' '},
+    {64, 4, ColumnKind::Real, 2},
+    {68, 4, ColumnKind::Literal, 0, false, ' '},
+    {72, 4, ColumnKind::Str},
+    {76, 1, ColumnKind::Literal, 0, false, ' '},
+    {77, 5, ColumnKind::Real, 2},
+};
+
 // Continuation-plus-text families: one typed int and one string, bound to
 // the payload members directly (no offsets, no varargs). The record-name
 // region before the first column is skipped, its width taken from the
@@ -125,6 +179,152 @@ void writeContText(const Record &record, ColumnWriter &writer,
 // column of its family.
 void assertPrefix(const char *prefix, const ColumnSpec *cols) {
   assert(std::strlen(prefix) == cols[0].offset);
+}
+
+// The atom payload binder: reads the standard layout columns in table
+// order into the typed members. Occupancy and tempFactor are set only
+// when their columns parsed or defaulted.
+bool parseAtomColumns(ColumnReader &reader, Record &record,
+                      const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  std::int64_t serial = 0;
+  if (!reader.readInt(cols[1].width, &serial))
+    return false;
+  AtomRecord &atom = record.as<AtomRecord>();
+  atom.serialNum = static_cast<int>(serial);
+  if (!reader.matchLiterals(cols[2].fill, cols[2].width))
+    return false;
+  atom.name = reader.readString(cols[3].width);
+  atom.altLoc = reader.readChars(cols[4].width)[0];
+  atom.residue.name = reader.readString(cols[5].width);
+  atom.residue.chainId = reader.readChars(cols[6].width)[0];
+  std::int64_t seq = 0;
+  if (!reader.readInt(cols[7].width, &seq))
+    return false;
+  atom.residue.seqNum = static_cast<int>(seq);
+  atom.residue.insertCode = reader.readChars(cols[8].width)[0];
+  if (!reader.matchLiterals(cols[9].fill, cols[9].width))
+    return false;
+  double value = 0.0;
+  if (!reader.readReal(cols[10].width, &value))
+    return false;
+  atom.xyz[0] = value;
+  if (!reader.readReal(cols[11].width, &value))
+    return false;
+  atom.xyz[1] = value;
+  if (!reader.readReal(cols[12].width, &value))
+    return false;
+  atom.xyz[2] = value;
+  if (!reader.readReal(cols[13].width, &value))
+    return false;
+  atom.occupancy = value;
+  if (!reader.readReal(cols[14].width, &value))
+    return false;
+  atom.tempFactor = value;
+  if (!reader.matchLiterals(cols[15].fill, cols[15].width))
+    return false;
+  atom.element = reader.readString(cols[16].width);
+  atom.charge = reader.readString(cols[17].width);
+  return true;
+}
+
+// The ZDATOM payload binder: fills the mark_sur extension on a fresh
+// record, so a failed standard attempt leaves nothing behind.
+bool parseZdatomColumns(ColumnReader &reader, Record &record,
+                        const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  std::int64_t serial = 0;
+  if (!reader.readInt(cols[1].width, &serial))
+    return false;
+  AtomRecord &atom = record.as<AtomRecord>();
+  atom.serialNum = static_cast<int>(serial);
+  if (!reader.matchLiterals(cols[2].fill, cols[2].width))
+    return false;
+  atom.name = reader.readString(cols[3].width);
+  atom.altLoc = reader.readChars(cols[4].width)[0];
+  atom.residue.name = reader.readString(cols[5].width);
+  atom.residue.chainId = reader.readChars(cols[6].width)[0];
+  std::int64_t seq = 0;
+  if (!reader.readInt(cols[7].width, &seq))
+    return false;
+  atom.residue.seqNum = static_cast<int>(seq);
+  atom.residue.insertCode = reader.readChars(cols[8].width)[0];
+  if (!reader.matchLiterals(cols[9].fill, cols[9].width))
+    return false;
+  double value = 0.0;
+  if (!reader.readReal(cols[10].width, &value))
+    return false;
+  atom.xyz[0] = value;
+  if (!reader.readReal(cols[11].width, &value))
+    return false;
+  atom.xyz[1] = value;
+  if (!reader.readReal(cols[12].width, &value))
+    return false;
+  atom.xyz[2] = value;
+  if (!reader.matchLiterals(cols[13].fill, cols[13].width))
+    return false;
+  Zdatom &zdatom = atom.zdatom.emplace();
+  std::int64_t small = 0;
+  if (!reader.readInt(cols[14].width, &small))
+    return false;
+  zdatom.type = static_cast<int>(small);
+  if (!reader.matchLiterals(cols[15].fill, cols[15].width))
+    return false;
+  if (!reader.readInt(cols[16].width, &small))
+    return false;
+  zdatom.surface = static_cast<int>(small);
+  if (!reader.matchLiterals(cols[17].fill, cols[17].width))
+    return false;
+  if (!reader.readReal(cols[18].width, &value))
+    return false;
+  zdatom.rad = value;
+  if (!reader.matchLiterals(cols[19].fill, cols[19].width))
+    return false;
+  zdatom.segid = reader.readString(cols[20].width);
+  if (!reader.matchLiterals(cols[21].fill, cols[21].width))
+    return false;
+  if (!reader.readReal(cols[22].width, &value))
+    return false;
+  zdatom.chg = value;
+  return true;
+}
+
+void writeAtomColumns(const AtomRecord &atom, ColumnWriter &writer,
+                      const ColumnSpec *cols) {
+  writer.writeInt(atom.serialNum, cols[1]);
+  writer.writeString(atom.name, cols[3]);
+  writer.writeChar(atom.altLoc, cols[4]);
+  writer.writeString(atom.residue.name, cols[5]);
+  writer.writeChar(atom.residue.chainId, cols[6]);
+  writer.writeInt(atom.residue.seqNum, cols[7]);
+  writer.writeChar(atom.residue.insertCode, cols[8]);
+  writer.writeReal(atom.xyz[0], cols[10]);
+  writer.writeReal(atom.xyz[1], cols[11]);
+  writer.writeReal(atom.xyz[2], cols[12]);
+  writer.writeReal(atom.occupancy.value_or(0.0), cols[13]);
+  writer.writeReal(atom.tempFactor.value_or(0.0), cols[14]);
+  writer.writeString(atom.element, cols[16]);
+  writer.writeString(atom.charge, cols[17]);
+}
+
+void writeZdatomColumns(const AtomRecord &atom, ColumnWriter &writer,
+                        const ColumnSpec *cols) {
+  const Zdatom &zdatom = *atom.zdatom;
+  writer.writeInt(atom.serialNum, cols[1]);
+  writer.writeString(atom.name, cols[3]);
+  writer.writeChar(atom.altLoc, cols[4]);
+  writer.writeString(atom.residue.name, cols[5]);
+  writer.writeChar(atom.residue.chainId, cols[6]);
+  writer.writeInt(atom.residue.seqNum, cols[7]);
+  writer.writeChar(atom.residue.insertCode, cols[8]);
+  writer.writeReal(atom.xyz[0], cols[10]);
+  writer.writeReal(atom.xyz[1], cols[11]);
+  writer.writeReal(atom.xyz[2], cols[12]);
+  writer.writeInt(zdatom.type, cols[14]);
+  writer.writeInt(zdatom.surface, cols[16]);
+  writer.writeReal(zdatom.rad, cols[18]);
+  writer.writeString(zdatom.segid, cols[20]);
+  writer.writeReal(zdatom.chg, cols[22]);
 }
 
 } // namespace
@@ -188,6 +388,24 @@ std::optional<Record> Record::parse(std::string_view line,
       return std::nullopt;
     return record;
   }
+  case RecordType::ATOM:
+  case RecordType::HETATM:
+  case RecordType::SIGATM: {
+    { // the standard 80-column layout
+      ColumnReader reader(line);
+      Record record(type);
+      if (parseAtomColumns(reader, record, kAtomCols))
+        return record;
+    }
+    { // the ZDATOM fallback: a fresh record, so the failed standard
+      // attempt leaves no partially written fields behind
+      ColumnReader reader(line);
+      Record record(type);
+      if (parseZdatomColumns(reader, record, kZdatomCols))
+        return record;
+    }
+    return std::nullopt; // the caller falls back to the junk record
+  }
   default:
     // Families whose layout tables land in later Phase 2 commits are not
     // parsed yet.
@@ -214,12 +432,14 @@ std::string Record::chars(const WriteContext &context) const {
 
 std::size_t Record::write_into(char (&out)[83],
                                const WriteContext & /*context*/) const {
-  // The declared record length; the ZDATOM layout extends to 82 columns in
-  // a later commit and still fits the buffer.
-  constexpr std::size_t kLength = 80;
-  static_assert(kLength + 1 <= sizeof(out), "record buffer too small");
-  std::memset(out, ' ', kLength);
-  ColumnWriter writer(out, kLength);
+  // The declared record length: 80 columns for every standard record, 82
+  // for a ZDATOM-marked atom; the buffer accommodates the widest layout
+  // plus a terminator.
+  const std::size_t length =
+      isAtom() && asAtom().zdatom.has_value() ? 82 : 80;
+  static_assert(82 + 1 <= sizeof(out), "record buffer too small");
+  std::memset(out, ' ', length);
+  ColumnWriter writer(out, length);
   switch (type_) {
   case RecordType::UNKNOWN: {
     const UnknownRecord &payload = as<UnknownRecord>();
@@ -234,6 +454,16 @@ std::size_t Record::write_into(char (&out)[83],
     break;
   case RecordType::ENDMDL:
     writer.writeLiteral(0, "ENDMDL");
+    break;
+  case RecordType::ATOM:
+  case RecordType::HETATM:
+  case RecordType::SIGATM:
+    writer.writeLiteral(0, "ATOM  ");
+    if (asAtom().zdatom.has_value()) {
+      writeZdatomColumns(asAtom(), writer, kZdatomCols);
+    } else {
+      writeAtomColumns(asAtom(), writer, kAtomCols);
+    }
     break;
   case RecordType::AUTHOR:
     assertPrefix("AUTHOR  ", kAuthorCols);
@@ -277,12 +507,12 @@ std::size_t Record::write_into(char (&out)[83],
     out[0] = '\0';
     return 0;
   }
-  std::size_t length = kLength;
-  while (length > 1 &&
-         std::isspace(static_cast<unsigned char>(out[length - 1])))
-    --length;
-  out[length] = '\0';
-  return length;
+  std::size_t trimmed = length;
+  while (trimmed > 1 &&
+         std::isspace(static_cast<unsigned char>(out[trimmed - 1])))
+    --trimmed;
+  out[trimmed] = '\0';
+  return trimmed;
 }
 
 } // namespace zdock::pdb

@@ -23,10 +23,14 @@ inline constexpr int kMaxRealDigits = 10;
 inline constexpr int kMaxIntDigits = 18;
 
 // Column kinds of a record layout. Skip columns advance without reading
-// (the record-name field, blank gaps); Int and Real columns convert with
-// the shared fixed-format parser; Str columns carry trailing-blank-
-// stripped text; Char columns capture verbatim, space-padded.
-enum class ColumnKind : std::uint8_t { Skip, Int, Real, Str, Char };
+// (the record-name field, blank gaps); Literal columns expect a run of one
+// specific character (the format's literal spaces, end-of-line tolerated
+// per character); Int and Real columns convert with the shared
+// fixed-format parser; Str columns carry trailing-blank-stripped text;
+// Char columns capture verbatim, space-padded. On the write side a
+// Literal column is indistinguishable from Skip: the record line is
+// pre-filled with the literal character.
+enum class ColumnKind : std::uint8_t { Skip, Literal, Int, Real, Str, Char };
 
 // One fixed-width column of a record layout: its start offset in the
 // 0-based record line, its width, and its kind. The write-side emitter
@@ -59,6 +63,12 @@ public:
   // Consume one literal character; tolerated without consuming at
   // end-of-line. Returns false on a mismatch.
   bool matchLiteral(char expected) noexcept;
+
+  // Consume a run of one literal character (the format's literal spaces);
+  // a mismatch before end-of-line is a hard mismatch, characters at
+  // end-of-line are tolerated, exactly as the legacy format walk matched
+  // its literal characters one by one.
+  bool matchLiterals(char expected, int count) noexcept;
 
   bool readInt(int width, std::int64_t *value);     // default 0
   bool readReal(int width, double *value);          // default 0.0
