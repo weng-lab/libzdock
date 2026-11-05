@@ -113,6 +113,24 @@ Characterization findings log (updated as batches complete):
   The mechanical sizeof/alignof audit over every read-format conversion
   found no `%Ns` destination smaller than width + 1 and no int/double
   destination other than the pinned AUTHOR member.
+- Column-table discipline (commit 6): every separator literal in a read
+  format must be matched by its binder — the legacy formats carry
+  literals *inside* residue groups (`%4s%c %4d%c` in HELIX, SSBOND,
+  CMPONT), *between* groups (TER, OBSLTE, SPRSDE, SPLIT, REVDAT, AGGRGT,
+  SEQRES), and *around* values, and an unmatched literal shifts every
+  later field. The dangerous case is a shifted walk that still renders
+  byte-identically (CMPONT's doubled separator spaces): text parity alone
+  does not prove field parity, so the commit-6 tests compare payload
+  fields against the legacy struct members, not just the rendered text.
+- Write-style splits inside one family (commit 6): the description family
+  reads identically but writes in two styles — FTNOTE and REMARK render
+  `%3D` and a left-justified text while AGRDES, SYMDES, MTXDES, and
+  CMPDES render a plain `%3d` and a right-justified 68-column text — and
+  MODEL, REVDAT, OBSLTE, SPRSDE, and SPLIT need dual read/write tables
+  because their read and write geometries differ. SHEET mixes `%4d` and
+  `%4D` within one record, and the AGRDES-style text columns are
+  right-justified on write while the other families' name columns are
+  `%-4s` left-justified.
 - Quirk (pinned): a failed standard ATOM parse partially writes occupancy
   from its first `%6f` field before the ZDATOM fallback runs, so ZDATOM
   records surface a leaked occupancy value.

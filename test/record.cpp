@@ -1557,3 +1557,199 @@ TEST_CASE("ZDATOM records render 82 columns inside the write buffer",
   for (std::size_t i = 83 - 1; i > 82; --i)
     REQUIRE(buf[i] == '#');
 }
+
+// ---------------------------------------------------------------------------
+// Residue-heavy and structural families (Phase 2, commit 6)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Structural families parse and format byte-for-byte against legacy",
+          "[record-parity]") {
+  // Invariant: every structural, residue-heavy, and single-value record
+  // line (the characterization fixtures plus continued and zero-valued
+  // forms) parses to the same type and renders byte-identically under the
+  // new tables and the legacy path, including the %D zero-as-blank
+  // continuations and the MODEL read/write column asymmetry.
+  const std::string spaces23(23, ' ');
+  const std::vector<std::string> lines = {
+      "HELIX    1  H1 ALA A   10  LEU A   15  1                        "
+      "             6",
+      "HELIX    0  H1 ALA A   10  LEU A   15  0                        "
+      "             0",
+      "SHEET    1  S1 5 ALA A  10  LEU A  15  0  N  ALA A  10   O  LEU"
+      " A  15",
+      "SHEET    0  S1 0 ALA A   0  LEU A   0  0  N  ALA A   0   O  LEU"
+      " A   0",
+      "SITE     1 CAT  2 GLY A  10  ALA A  15  VAL A  20  LEU A  25",
+      "SITE     0 CAT  0", // truncated: count zero, no residues
+      "SSBOND   1 CYS A   10    CYS A   25 " + spaces23 + "  1555   1555"
+      "  2.05",
+      "SSBOND   0 CYS A   10    CYS A   25 " + spaces23 + "     0     0"
+      "  0.00",
+      "TER       1      ALA A  10",
+      "TER       0      ALA A   0",
+      "TURN     1  T1 ALA A  10  LEU A  15     TURN",
+      "TURN     0  T1 ALA A  10  LEU A  15     ",
+      "CMPONT   1  ALAA    1   ALAA    2",
+      "CONECT    1    2    3    4    5    6    7    8",
+      "CONECT    0    0    0    0    0    0    0    0    0    0    0",
+      "CRYST1   78.900   78.900   85.700  90.00  90.00  90.00 P 21 21 21"
+      "    8",
+      "MTRIX1   1  1.000000  0.000000  0.000000        0.00000",
+      "MTRIX1   0  0.000000  0.000000  0.000000        0.00000        0",
+      "ORIGX1      1.000000  0.000000  0.000000        0.00000",
+      "SCALE1      0.017400  0.000000  0.000000        0.00000",
+      "SYMOP1   1  1.000000  0.000000  0.000000        0.00000",
+      "REVDAT   1   29-MAR-95 1LYZ    1       REVDAT",
+      "REVDAT   0   00-XXX-00 0XXX    0       ",
+      "SEQRES   1 A    2  GLY  ALA",
+      "SEQRES   0 A    0  ",
+      "SPLIT    1 1ABZ 2CDZ",
+      "SPLIT    0 ",
+      "OBSLTE   1 24-JAN-95 1LYZ      2LYZ",
+      "OBSLTE   0 00-XXX-00 0XXX     ",
+      "SPRSDE   1 24-JAN-95 1LYZ      2LYZ",
+      "MASTER        2    0    1    1    1    1    1    0  126    1   10"
+      "    1",
+      "MASTER        0    0    0    0    0    0    0    0    0    0    0"
+      "    0",
+      "AGGRGT   1   2   3   4   0   0   0   0   0   0   0   0   0   0   0"
+      "   0",
+      "AGGRGT   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0"
+      "   0",
+      "TRNSFM   1   1   1",
+      "TRNSFM   0   0   0",
+      "TVECT    1   0.10000   0.20000   0.30000VECTOR",
+      "TVECT    0   0.00000   0.00000   0.00000",
+      "HET    NAG  A   1      14     N-ACETYL-D-GLUCOSAMINE",
+      "HET    NAG  A   1      14", // truncated: no description text
+      "FORMUL   2  HOH  1*(H2 O)",
+      "FORMUL   0    0  0 ",
+      "HEADER    TRANSFERASE24-JAN-95   1LYZ",
+      "HEADER                        ",
+      "CAVEAT   1 1LYZ    SOME WARNING TEXT",
+      "CAVEAT   0 0XXX    ",
+      "JRNL        TO BE PUBLISHED",
+      "JRNL        ",
+      "MODEL        1",
+      "MODEL    ",
+      "NUMMDL    2",
+      "NUMMDL    ",
+      "EXPDTA   1X-RAY DIFFRACTION",
+      "EXPDTA   0",
+      "AGRDES   1                                             AN AGGREGATE"
+      " DESCRIPTION",
+      "AGRDES   0 ",
+      "SYMDES   1                                               A SYMMETRY"
+      " DESCRIPTION",
+      "MTXDES   1                                                 A MATRIX"
+      " DESCRIPTION",
+      "CMPDES   1                                                A COMPONENT"
+      " DESCRIPTION",
+      "FTNOTE   1 A FOOTNOTE",
+      "REMARK   1 "
+      "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+      "RR",
+      "REMARK   0 ",
+  };
+  for (const auto &line : lines) {
+    CAPTURE(line);
+    zdock::pdb::ParseContext context;
+    const auto parsed = zdock::pdb::Record::parse(line, context);
+    const libpdb::PDB legacy(line.c_str());
+    REQUIRE(parsed.has_value());
+    // the enumerations mirror one-for-one in declaration order
+    REQUIRE(static_cast<int>(parsed->type()) ==
+            static_cast<int>(legacy.type()));
+    REQUIRE(parsed->chars() == std::string(legacy.chars()));
+    // the rendered line re-parses and re-renders stably under both paths
+    zdock::pdb::ParseContext again;
+    const auto reread = zdock::pdb::Record::parse(parsed->chars(), again);
+    REQUIRE(reread.has_value());
+    REQUIRE(reread->chars() == parsed->chars());
+    libpdb::PDB legacyReread(parsed->chars().c_str());
+    REQUIRE(std::string(legacyReread.chars()) == parsed->chars());
+  }
+}
+
+TEST_CASE("Structural family fields parse into the pinned typed values",
+          "[record-parity]") {
+  // Invariant: representative members land in their typed payload fields
+  // at their wwPDB columns, matching the golden struct assertions.
+  zdock::pdb::ParseContext context;
+  const std::string spaces23(23, ' ');
+
+  const auto helix = zdock::pdb::Record::parse(
+      "HELIX    1  H1 ALA A   10  LEU A   15  1                       "
+      "          6",
+      context);
+  REQUIRE(helix.has_value());
+  REQUIRE(helix->as<zdock::pdb::HelixRecord>().serialNum == 1);
+  REQUIRE(helix->as<zdock::pdb::HelixRecord>().id == " H1");
+  REQUIRE(helix->as<zdock::pdb::HelixRecord>().residues[0].name == "ALA");
+  REQUIRE(helix->as<zdock::pdb::HelixRecord>().residues[0].seqNum == 10);
+  REQUIRE(helix->as<zdock::pdb::HelixRecord>().residues[1].name == "LEU");
+  REQUIRE(helix->as<zdock::pdb::HelixRecord>().type == 1);
+  REQUIRE(helix->as<zdock::pdb::HelixRecord>().length == 6);
+
+  const auto conectRecord =
+      zdock::pdb::Record::parse("CONECT    1    2    3    4    5    6    7"
+                                "    8",
+                                context);
+  REQUIRE(conectRecord.has_value());
+  REQUIRE(conectRecord->as<zdock::pdb::ConectRecord>().serialNum == 1);
+  REQUIRE(conectRecord->as<zdock::pdb::ConectRecord>().covalent[0] == 2);
+  REQUIRE(conectRecord->as<zdock::pdb::ConectRecord>().covalent[3] == 5);
+  REQUIRE(conectRecord->as<zdock::pdb::ConectRecord>().bonds[0].hydrogen[0] ==
+          6);
+  REQUIRE(conectRecord->as<zdock::pdb::ConectRecord>().bonds[0].hydrogen[1] ==
+          7);
+  REQUIRE(conectRecord->as<zdock::pdb::ConectRecord>().bonds[0].salt == 8);
+  // the line ends after bonds[0].salt; bonds[1] parses with defaults
+  REQUIRE(conectRecord->as<zdock::pdb::ConectRecord>().bonds[1].hydrogen[0] ==
+          0);
+  REQUIRE(conectRecord->as<zdock::pdb::ConectRecord>().bonds[1].salt == 0);
+
+  const auto cmpont =
+      zdock::pdb::Record::parse("CMPONT   1  ALAA    1   ALAA    2", context);
+  REQUIRE(cmpont.has_value());
+  REQUIRE(cmpont->as<zdock::pdb::CmpontRecord>().seqNum == 1);
+  REQUIRE(cmpont->as<zdock::pdb::CmpontRecord>().residues[0].name == " ALA");
+  REQUIRE(cmpont->as<zdock::pdb::CmpontRecord>().residues[0].chainId == 'A');
+  REQUIRE(cmpont->as<zdock::pdb::CmpontRecord>().residues[0].seqNum == 1);
+  REQUIRE(cmpont->as<zdock::pdb::CmpontRecord>().residues[1].name == " ALA");
+  REQUIRE(cmpont->as<zdock::pdb::CmpontRecord>().residues[1].seqNum == 2);
+
+  const auto ssbond = zdock::pdb::Record::parse(
+      "SSBOND   1 CYS A   10    CYS A   25 " + spaces23 + "  1555   1555"
+      "  2.05",
+      context);
+  REQUIRE(ssbond.has_value());
+  REQUIRE(ssbond->as<zdock::pdb::SsbondRecord>().seqNum == 1);
+  REQUIRE(ssbond->as<zdock::pdb::SsbondRecord>().residues[0].name == "CYS");
+  REQUIRE(ssbond->as<zdock::pdb::SsbondRecord>().residues[0].seqNum == 10);
+  REQUIRE(ssbond->as<zdock::pdb::SsbondRecord>().residues[1].name == "CYS");
+  REQUIRE(ssbond->as<zdock::pdb::SsbondRecord>().residues[1].seqNum == 25);
+  REQUIRE(ssbond->as<zdock::pdb::SsbondRecord>().sym1 == 1555);
+  REQUIRE(ssbond->as<zdock::pdb::SsbondRecord>().sym2 == 1555);
+  REQUIRE(ssbond->as<zdock::pdb::SsbondRecord>().length == 2.05);
+
+  const auto cryst1 = zdock::pdb::Record::parse(
+      "CRYST1   78.900   78.900   85.700  90.00  90.00  90.00 P 21 21 21"
+      "    8",
+      context);
+  REQUIRE(cryst1.has_value());
+  REQUIRE(cryst1->as<zdock::pdb::Cryst1Record>().a == 78.9);
+  REQUIRE(cryst1->as<zdock::pdb::Cryst1Record>().gamma == 90.0);
+  REQUIRE(cryst1->as<zdock::pdb::Cryst1Record>().spaceGrp == "P 21 21 21");
+  REQUIRE(cryst1->as<zdock::pdb::Cryst1Record>().z == 8);
+
+  const auto model = zdock::pdb::Record::parse("MODEL        1", context);
+  REQUIRE(model.has_value());
+  REQUIRE(model->as<zdock::pdb::ModelRecord>().num == 1);
+
+  const auto caveat = zdock::pdb::Record::parse(
+      "CAVEAT   1 1LYZ    SOME WARNING TEXT", context);
+  REQUIRE(caveat.has_value());
+  REQUIRE(caveat->as<zdock::pdb::CaveatRecord>().id == "1LYZ");
+  REQUIRE(caveat->as<zdock::pdb::CaveatRecord>().text == "SOME WARNING TEXT");
+}
