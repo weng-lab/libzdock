@@ -889,6 +889,27 @@ constexpr ColumnSpec kAgrdesPlainWriteCols[] = {
     {11, 68, ColumnKind::Str},
 };
 
+// ANISOU and SIGUIJ share the atom-layout identification columns and the
+// six %7D thermal tensors (zero rendered as blanks on write).
+constexpr ColumnSpec kAnisouCols[] = {
+    {0, 6, ColumnKind::Skip},
+    {6, 5, ColumnKind::Int},
+    {11, 1, ColumnKind::Literal, 0, false, ' '},
+    {12, 4, ColumnKind::Str, 0, true},
+    {16, 1, ColumnKind::Char},
+    {17, 4, ColumnKind::Str, 0, true},
+    {21, 1, ColumnKind::Char},
+    {22, 4, ColumnKind::Int},
+    {26, 1, ColumnKind::Char},
+    {27, 1, ColumnKind::Literal, 0, false, ' '},
+    {28, 7, ColumnKind::Int, 0, false, ' ', true},
+    {35, 7, ColumnKind::Int, 0, false, ' ', true},
+    {42, 7, ColumnKind::Int, 0, false, ' ', true},
+    {49, 7, ColumnKind::Int, 0, false, ' ', true},
+    {56, 7, ColumnKind::Int, 0, false, ' ', true},
+    {63, 7, ColumnKind::Int, 0, false, ' ', true},
+};
+
 // MODEL reads its number from columns 7-14 (non-standard layout used by
 // the repository fixtures) but writes %5d at columns 10-14; the pinned
 // quirk round-trips because both parse to the same value.
@@ -1889,6 +1910,44 @@ void writeAgrdesColumns(const AgrdesRecord &a, ColumnWriter &writer,
   writer.writeString(a.text, cols[3]);
 }
 
+bool parseAnisouColumns(ColumnReader &reader, Record &record,
+                        const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  AnisouRecord &a = record.as<AnisouRecord>();
+  std::int64_t serial = 0;
+  if (!reader.readInt(cols[1].width, &serial))
+    return false;
+  a.serialNum = static_cast<int>(serial);
+  RETURN_ON_LITERAL(reader, cols, 2);
+  a.name = reader.readString(cols[3].width);
+  a.altLoc = reader.readChars(cols[4].width)[0];
+  a.residue.name = reader.readString(cols[5].width);
+  a.residue.chainId = reader.readChars(cols[6].width)[0];
+  std::int64_t seq = 0;
+  if (!reader.readInt(cols[7].width, &seq)) {
+      return false;
+  }
+  a.residue.seqNum = static_cast<int>(seq);
+  a.residue.insertCode = reader.readChars(cols[8].width)[0];
+  RETURN_ON_LITERAL(reader, cols, 9);
+  for (std::size_t i = 0; i < 6; ++i)
+    RETURN_ON_INT(reader, cols, 10 + i, &a.u[i]);
+  return true;
+}
+
+void writeAnisouColumns(const AnisouRecord &a, ColumnWriter &writer,
+                        const ColumnSpec *cols) {
+  writer.writeInt(a.serialNum, cols[1]);
+  writer.writeString(a.name, cols[3]);
+  writer.writeChar(a.altLoc, cols[4]);
+  writer.writeString(a.residue.name, cols[5]);
+  writer.writeChar(a.residue.chainId, cols[6]);
+  writer.writeInt(a.residue.seqNum, cols[7]);
+  writer.writeChar(a.residue.insertCode, cols[8]);
+  for (std::size_t i = 0; i < 6; ++i)
+    writer.writeInt(a.u[i], cols[10 + i]);
+}
+
 bool parseModelColumns(ColumnReader &reader, Record &record,
                        const ColumnSpec *cols) {
   reader.skipChars(cols[0].width);
@@ -2286,15 +2345,11 @@ bool parseUserGfxLabel5(std::string_view line, Record &record) {
   std::string_view rest = line.substr(std::min<std::size_t>(15, line.size()));
   UserGfxLabelRecord &l = record.as<UserGfxLabelRecord>();
   double xyz[3] = {0.0, 0.0, 0.0};
-  bool haveXyz = true;
   for (int i = 0; i < 3; ++i) {
-    if (!scanWhitespaceReal(rest, &xyz[i])) {
-      haveXyz = false;
-      break;
-    }
+    if (!scanWhitespaceReal(rest, &xyz[i]))
+      return true; // matching failure: everything keeps its default
   }
-  if (haveXyz)
-    l.xyz = std::array<double, 3>{xyz[0], xyz[1], xyz[2]};
+  l.xyz = std::array<double, 3>{xyz[0], xyz[1], xyz[2]};
   // the scanset takes the rest of the line verbatim, bounded to 26
   std::size_t i = 0;
   while (i < rest.size() && rest[i] == ' ')
@@ -2998,6 +3053,16 @@ std::optional<Record> Record::parse(std::string_view line,
       return std::nullopt;
     return record;
   }
+  case RecordType::ANISOU:
+  case RecordType::SIGUIJ: {
+    ColumnReader reader(line);
+    Record record(type);
+    const bool ok = parseAnisouColumns(reader, record, kAnisouCols);
+    fprintf(stderr, "anisou binder ok=%d\n", (int)ok);
+    if (!ok)
+      return std::nullopt;
+    return record;
+  }
   case RecordType::NUMMDL: {
     ColumnReader reader(line);
     Record record(type);
@@ -3618,7 +3683,9 @@ std::size_t Record::write_into(char (&out)[83],
   case RecordType::ATOM:
   case RecordType::HETATM:
   case RecordType::SIGATM:
-    writer.writeLiteral(0, "ATOM  ");
+    writer.writeLiteral(0, type_ == RecordType::ATOM     ? "ATOM  "
+                           : type_ == RecordType::HETATM ? "HETATM"
+                                                         : "SIGATM");
     if (asAtom().zdatom.has_value()) {
       writeZdatomColumns(asAtom(), writer, kZdatomCols);
     } else {
@@ -3795,6 +3862,12 @@ std::size_t Record::write_into(char (&out)[83],
     assertPrefix("MODEL    ", kModelWriteCols);
     writer.writeLiteral(0, "MODEL    ");
     writeModelColumns(as<ModelRecord>(), writer, kModelWriteCols);
+    break;
+  case RecordType::ANISOU:
+  case RecordType::SIGUIJ:
+    assertPrefix("ANISOU", kAnisouCols);
+    writer.writeLiteral(0, type_ == RecordType::ANISOU ? "ANISOU" : "SIGUIJ");
+    writeAnisouColumns(as<AnisouRecord>(), writer, kAnisouCols);
     break;
   case RecordType::NUMMDL:
     assertPrefix("NUMMDL    ", kNummdlWriteCols);

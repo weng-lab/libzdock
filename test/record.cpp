@@ -1063,6 +1063,44 @@ TEST_CASE("v5 GFX LABEL quoting degenerates across cycles",
   libpdb::PDB::PdbrunInputVersion(6);
   libpdb::PDB::PdbrunOutputVersion(6);
 }
+
+TEST_CASE("Standing parity harness: every fixture under both PDBRUN versions",
+          "[record-parity]") {
+  // Invariant: for every characterization fixture line (standard records,
+  // USER records, CRLF and charge forms, overlong junk) and BOTH PDBRUN
+  // versions, the new parser yields the same record type and renders
+  // byte-for-byte what the legacy parser renders -- the standing
+  // differential test Phase 3 re-runs after the consumer switch.
+  for (const auto &fixture : differentialLines()) {
+    for (const int version : {5, 6}) {
+      CAPTURE(fixture.first);
+      CAPTURE(version);
+      zdock::pdb::ParseContext context;
+      context.pdbrunVersion = version;
+      libpdb::PDB::PdbrunInputVersion(version);
+      libpdb::PDB::PdbrunOutputVersion(version);
+      const auto parsed = zdock::pdb::Record::parse(fixture.first, context);
+      const libpdb::PDB legacy(fixture.first.c_str());
+      zdock::pdb::WriteContext writeContext;
+      writeContext.pdbrunVersion = version;
+      if (parsed.has_value()) {
+        REQUIRE(static_cast<int>(parsed->type()) ==
+                static_cast<int>(legacy.type()));
+        REQUIRE(parsed->chars(writeContext) ==
+                std::string(legacy.chars()));
+      } else {
+        // a rejection is only allowed when the legacy parse also fell
+        // back to the junk record
+        REQUIRE(static_cast<int>(legacy.type()) ==
+                static_cast<int>(libpdb::PDB::UNKNOWN));
+        REQUIRE(zdock::pdb::Record::unknownFrom(fixture.first)
+                    .chars(writeContext) == std::string(legacy.chars()));
+      }
+    }
+  }
+  libpdb::PDB::PdbrunInputVersion(6);
+  libpdb::PDB::PdbrunOutputVersion(6);
+}
 TEST_CASE("Three-way field agreement across the characterization corpus",
           "[record-differential]") {
   // Invariant: for every numeric field of every characterization fixture
