@@ -74,7 +74,7 @@ DEPS := $(OBJECTS:.o=.d)
 BINS := $(addprefix $(BIN_DIR)/,$(TOOL_NAMES))
 TEST_BIN := $(TEST_DIR)/test
 
-.PHONY: all check-deps test cpp-test python-check python-test doc clean
+.PHONY: all check-deps test cpp-test python-check python-test compare-parsers doc clean
 
 all: check-deps $(BINS)
 
@@ -121,6 +121,13 @@ $(OBJ_DIR)/catch_amalgamated.o: $(CATCH_CPP)
 
 cpp-test: check-deps $(TEST_BIN)
 	$(TEST_BIN)
+
+# Legacy-vs-modern parser comparison harness over a PDB file or directory
+# tree (see tools/compare_parsers.cpp for usage).
+compare-parsers: check-deps $(LIBARCH) | $(BIN_DIR)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXXSTANDARD) $(WARNINGS) \
+	  -o $(BIN_DIR)/compare_parsers tools/compare_parsers.cpp $(LIBARCH) \
+	  $(LDLIBS)
 
 python-test: all
 	$(UV) --directory $(PYTHON_DIR) run python -m unittest discover -s tests -v
