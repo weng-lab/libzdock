@@ -97,12 +97,16 @@ Characterization findings log (updated as batches complete):
   (`FieldReader.cpp:40`, first exposed when the commit-4 parity fixture
   parsed a truncated AUTHOR through the legacy parser; the sweep's
   FieldReader-level walk stores into aligned locals and cannot see it).
-- Defect (audit, UBSan-invisible): the v5 libc `sscanf` paths pass unbounded
-  `%s` conversions — `USER  CNAME`/`USER  COLOR`/`USER  GFX COLOR` into
-  39-byte name/spec members and `USER  GFX FONT` into a 54-byte name — so a
-  long whitespace-delimited token can overrun the member and the record
-  object. Logged for Phase 3/4; the modern class reads these with bounded
-  token parsers.
+- Defect (fixed): the v5 libc `sscanf` paths passed unbounded `%s`
+  conversions — `USER  CNAME`/`USER  COLOR`/`USER  GFX COLOR` into 39-byte
+  name/spec members and `USER  GFX FONT` into a 54-byte name — so a long
+  whitespace-delimited token could overrun the member and the record object
+  (AddressSanitizer stack-buffer-overflow, reachable through `operator>>`
+  with a 201-byte write after a file set v5 mode with `USER  PDBRUN  5`).
+  All four reads are now bounded to their destination size (`%38s`/`%53s`);
+  long tokens truncate to the bound, the trailing numeric conversions no
+  longer match and their members keep their defaults, and short-token
+  behavior is unchanged (regression test in the characterization suite).
 - Audit correction: the planned "CAVEAT `%4s` NUL one-past" quirk does not
   exist — `PName` is `char[5]` (verified by sizeof, a byte-level parse
   probe, and the original import), so `%4s` plus its NUL is an exact fit.
@@ -605,7 +609,7 @@ class, its tables, and its tests are not modified after commit 1 lands.
 | Global PDBRUN input/output version state (leaks across files and instances) | drop for the new class (`ParseContext` per file, output version per call); legacy keeps the globals until retirement, so multi-file callers become order-independent at Phase 3 | Phase 2/3 |
 | AUTHOR misaligned `%2d` store (the only sanitizer finding) | fix in the new class (typed `int` continuation); legacy keeps it pinned — the finding leaves the serving path at Phase 3 and the sanitizer baseline at Phase 4 retirement (§5, §6). Both store sites are logged in the findings log | Phase 2 fix, Phase 4 removal |
 | CAVEAT `%4s` NUL clobber | claim withdrawn (audit correction): `PName` is `char[5]`, so `%4s` plus its NUL is an exact fit and no clobber exists; the new class's `std::string` id is simply correct | audit correction |
-| v5 libc unbounded `%s` into USER CNAME/COLOR/GFX COLOR/GFX FONT | logged (UBSan-invisible overrun hazard); the modern class uses bounded token parsers; legacy keeps it until retirement | Phase 3/4 |
+| v5 libc unbounded `%s` into USER CNAME/COLOR/GFX COLOR/GFX FONT | fixed (bounded `%38s`/`%53s` reads; long tokens truncate, numerics keep defaults); modern class unaffected (bounded token parsers) | fixed |
 | ZDATOM leaked occupancy from the failed standard parse | drop (clean ZDATOM parse leaves occupancy unset); record text never renders ZDATOM occupancy | Phase 2 |
 | `*****` charge renders and re-parses as UNKNOWN | keep through parity, then **follow-up defect: fail loudly after parity** — a charge too wide for `%5.2f` silently loses its value when the rendered line is re-read; after the parity harness exists, surface the overflow as an error/diagnostic instead of silent degradation (tracked as §6.4 follow-up) | follow-up defect |
 | UNKNOWN junk right-aligned in 72 columns with `*` overflow | keep; enforced by the parity harness | kept |

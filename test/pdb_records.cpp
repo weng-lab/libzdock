@@ -268,6 +268,69 @@ TEST_CASE("v5 GFX LABEL quoting degenerates across cycles",
   PDB::PdbrunOutputVersion(6);
 }
 
+TEST_CASE("v5 libc %s reads are bounded to their destinations",
+          "[pdb-records]") {
+  // Invariant: the four v5 libc sscanf paths whose %s conversions had no
+  // width (USER CNAME/COLOR/GFX COLOR name/spec[39] and USER GFX FONT
+  // name[54]) now read at most destination-size-minus-one characters, so a
+  // long token cannot run past the record object (an AddressSanitizer
+  // stack-buffer-overflow before the bound); the numeric conversions that
+  // follow no longer match, and their members keep their defaults.
+  const std::string token(200, 'A');
+  struct LongTokenCase {
+    std::string line;
+    PDB::RecordType type;
+    int bound; // characters captured into the destination
+  };
+  const std::vector<LongTokenCase> cases = {
+      {"USER  CNAME " + token, PDB::USER_CNAME, 38},
+      {"USER  COLOR " + token, PDB::USER_COLOR, 38},
+      {"USER  GFX COLOR " + token, PDB::USER_GFX_COLOR, 38},
+      {"USER  GFX FONT " + token, PDB::USER_GFX_FONT, 53},
+  };
+  PDB::PdbrunInputVersion(5);
+  PDB::PdbrunOutputVersion(5);
+  for (const auto &c : cases) {
+    CAPTURE(c.line);
+    PDB record(c.line.c_str());
+    REQUIRE(record.type() == c.type);
+    const char *text = nullptr;
+    if (record.type() == PDB::USER_CNAME) {
+      text = record.userCName.name;
+      REQUIRE(record.userCName.rgb[0] == 0.0);
+      REQUIRE(record.userCName.rgb[1] == 0.0);
+      REQUIRE(record.userCName.rgb[2] == 0.0);
+    } else if (record.type() == PDB::USER_COLOR) {
+      text = record.userColor.spec;
+      REQUIRE(record.userColor.rgb[0] == 0.0);
+      REQUIRE(record.userColor.rgb[1] == 0.0);
+      REQUIRE(record.userColor.rgb[2] == 0.0);
+    } else if (record.type() == PDB::USER_GFX_COLOR) {
+      text = record.userGfxColor.spec;
+      REQUIRE(record.userGfxColor.rgb[0] == 0.0);
+      REQUIRE(record.userGfxColor.rgb[1] == 0.0);
+      REQUIRE(record.userGfxColor.rgb[2] == 0.0);
+    } else {
+      text = record.userGfxFont.name;
+      REQUIRE(record.userGfxFont.size == 0);
+    }
+    REQUIRE(std::string(text) == std::string(c.bound, 'A'));
+  }
+
+  // Short tokens parse exactly as before the bound: the whole token is
+  // captured and the numeric conversions still match.
+  PDB cname("USER  CNAME RED 0.100 0.200 0.300");
+  REQUIRE(cname.type() == PDB::USER_CNAME);
+  REQUIRE(std::string(cname.userCName.name) == "RED");
+  REQUIRE(cname.userCName.rgb[0] == 0.1);
+  PDB font("USER  GFX FONT Helvetica 10");
+  REQUIRE(font.type() == PDB::USER_GFX_FONT);
+  REQUIRE(std::string(font.userGfxFont.name) == "Helvetica");
+  REQUIRE(font.userGfxFont.size == 10);
+  PDB::PdbrunInputVersion(6);
+  PDB::PdbrunOutputVersion(6);
+}
+
 TEST_CASE("Atom records parse their fixed columns", "[pdb-records]") {
   // Invariant: ATOM fields land in the struct members at their wwPDB
   // columns; string fields are right-trimmed on read (" N  " -> " N").
