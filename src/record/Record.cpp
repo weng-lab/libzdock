@@ -175,4 +175,159 @@ std::string to_string(RecordType type) {
   return "<invalid>";
 }
 
+RecordPayload payloadFor(RecordType type) {
+  switch (type) {
+  case RecordType::END:
+  case RecordType::ENDMDL:
+  case RecordType::USER_GFX_END:
+    return Monostate{};
+  case RecordType::ANISOU:
+  case RecordType::SIGUIJ:
+    return AnisouRecord{};
+  case RecordType::ATOM:
+  case RecordType::HETATM:
+  case RecordType::SIGATM:
+  case RecordType::ZDATOM:
+    return AtomRecord{};
+  case RecordType::AUTHOR:
+    return AuthorRecord{};
+  case RecordType::CAVEAT:
+    return CaveatRecord{};
+  case RecordType::COMPND:
+    return CompndRecord{};
+  case RecordType::CONECT:
+    return ConectRecord{};
+  case RecordType::CRYST1:
+    return Cryst1Record{};
+  case RecordType::FORMUL:
+    return FormulRecord{};
+  case RecordType::FTNOTE:
+  case RecordType::REMARK:
+  case RecordType::SYMDES:
+  case RecordType::MTXDES:
+  case RecordType::CMPDES:
+  case RecordType::AGRDES:
+    return AgrdesRecord{};
+  case RecordType::HEADER:
+    return HeaderRecord{};
+  case RecordType::HELIX:
+    return HelixRecord{};
+  case RecordType::HET:
+    return HetRecord{};
+  case RecordType::JRNL:
+    return JrnlRecord{};
+  case RecordType::KEYWDS:
+    return KeywdsRecord{};
+  case RecordType::MASTER:
+    return MasterRecord{};
+  case RecordType::MDLTYP:
+    return MdltypRecord{};
+  case RecordType::MODEL:
+    return ModelRecord{};
+  case RecordType::MTRIX:
+    return MtrixRecord{};
+  case RecordType::NUMMDL:
+    return NummdlRecord{};
+  case RecordType::OBSLTE:
+    return ObslteRecord{};
+  case RecordType::ORIGX:
+    return OrigxRecord{};
+  case RecordType::REVDAT:
+    return RevdatRecord{};
+  case RecordType::SCALE:
+    return ScaleRecord{};
+  case RecordType::SEQRES:
+    return SeqresRecord{};
+  case RecordType::SHEET:
+    return SheetRecord{};
+  case RecordType::SITE:
+    return SiteRecord{};
+  case RecordType::SOURCE:
+    return SourceRecord{};
+  case RecordType::SPLIT:
+    return SplitRecord{};
+  case RecordType::SPRSDE:
+    return SprsdeRecord{};
+  case RecordType::SSBOND:
+    return SsbondRecord{};
+  case RecordType::SYMOP:
+    return SymopRecord{};
+  case RecordType::TER:
+    return TerRecord{};
+  case RecordType::TITLE:
+    return TitleRecord{};
+  case RecordType::TRNSFM:
+    return TrnsfmRecord{};
+  case RecordType::TURN:
+    return TurnRecord{};
+  case RecordType::TVECT:
+    return TvectRecord{};
+  case RecordType::USER:
+    return UserRecord{};
+  case RecordType::USER_PDBRUN:
+    return UserPdbrunRecord{};
+  case RecordType::USER_EYEPOS:
+  case RecordType::USER_ATPOS:
+    return UserEyePosRecord{};
+  case RecordType::USER_WINDOW:
+    return UserWindowRecord{};
+  case RecordType::USER_FOCUS:
+    return UserFocusRecord{};
+  case RecordType::USER_VIEWPORT:
+    return UserViewportRecord{};
+  case RecordType::USER_BGCOLOR:
+    return UserBgColorRecord{};
+  case RecordType::USER_ANGLE:
+    return UserAngleRecord{};
+  case RecordType::USER_DISTANCE:
+    return UserDistanceRecord{};
+  case RecordType::USER_FILE:
+    return UserFileRecord{};
+  case RecordType::USER_MARKNAME:
+  case RecordType::USER_MARK:
+    return UserMarknameRecord{};
+  case RecordType::USER_CNAME:
+    return UserCNameRecord{};
+  case RecordType::USER_COLOR:
+  case RecordType::USER_GFX_COLOR:
+    return UserColorRecord{};
+  case RecordType::USER_RADIUS:
+    return UserRadiusRecord{};
+  case RecordType::USER_OBJECT:
+  case RecordType::USER_ENDOBJ:
+    return UserObjectRecord{};
+  case RecordType::USER_CHAIN:
+    return UserChainRecord{};
+  case RecordType::USER_GFX_BEGIN:
+    return UserGfxBeginRecord{};
+  case RecordType::USER_GFX_FONT:
+    return UserGfxFontRecord{};
+  case RecordType::USER_GFX_LABEL:
+    return UserGfxLabelRecord{};
+  case RecordType::USER_GFX_NORMAL:
+  case RecordType::USER_GFX_VERTEX:
+  case RecordType::USER_GFX_TEXTPOS:
+  case RecordType::USER_GFX_MOVE:
+  case RecordType::USER_GFX_DRAW:
+  case RecordType::USER_GFX_MARKER:
+  case RecordType::USER_GFX_POINT:
+    return UserGfxPointRecord{};
+  case RecordType::AGGRGT:
+    return AggrgtRecord{};
+  case RecordType::EXPDTA:
+    return ExpdtaRecord{};
+  case RecordType::CMPONT:
+    return CmpontRecord{};
+  case RecordType::UNKNOWN:
+    return UnknownRecord{};
+  default:
+    return UnknownRecord{};
+  }
+}
+
+Record::Record() : Record(RecordType::UNKNOWN) {}
+
+Record::Record(RecordType type)
+    : type_(type), payload_(payloadFor(type)) {}
+
 } // namespace zdock::pdb

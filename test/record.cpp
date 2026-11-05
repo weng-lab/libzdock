@@ -933,3 +933,203 @@ TEST_CASE("Three-way field agreement on randomized supported fields",
     REQUIRE(static_cast<std::int64_t>(reference) == mv);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Typed payloads and the Record variant (Phase 2 section 4.2, commit 3)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Record selects the payload its record kind selects",
+          "[record-payload]") {
+  // Invariant: constructing a Record for any record kind yields the typed
+  // payload that kind carries, with identical layouts sharing one struct
+  // exactly as the legacy typedefs did.
+  const std::vector<RecordType> allTypes = {
+      RecordType::UNKNOWN,      RecordType::ANISOU,
+      RecordType::ATOM,         RecordType::AUTHOR,
+      RecordType::CAVEAT,       RecordType::COMPND,
+      RecordType::CONECT,       RecordType::CRYST1,
+      RecordType::END,          RecordType::FORMUL,
+      RecordType::FTNOTE,       RecordType::HEADER,
+      RecordType::HELIX,        RecordType::HET,
+      RecordType::HETATM,       RecordType::JRNL,
+      RecordType::KEYWDS,       RecordType::MASTER,
+      RecordType::MDLTYP,       RecordType::MTRIX,
+      RecordType::NUMMDL,       RecordType::OBSLTE,
+      RecordType::ORIGX,        RecordType::REMARK,
+      RecordType::REVDAT,       RecordType::SCALE,
+      RecordType::SEQRES,       RecordType::SHEET,
+      RecordType::SIGATM,       RecordType::SIGUIJ,
+      RecordType::SITE,         RecordType::SOURCE,
+      RecordType::SPLIT,        RecordType::SPRSDE,
+      RecordType::SSBOND,       RecordType::TER,
+      RecordType::TITLE,        RecordType::TURN,
+      RecordType::TVECT,        RecordType::USER,
+      RecordType::MODEL,        RecordType::ENDMDL,
+      RecordType::EXPDTA,       RecordType::SYMDES,
+      RecordType::SYMOP,        RecordType::MTXDES,
+      RecordType::CMPDES,       RecordType::CMPONT,
+      RecordType::TRNSFM,       RecordType::AGRDES,
+      RecordType::AGGRGT,       RecordType::ZDATOM,
+      RecordType::USER_PDBRUN,  RecordType::USER_EYEPOS,
+      RecordType::USER_ATPOS,   RecordType::USER_WINDOW,
+      RecordType::USER_FOCUS,   RecordType::USER_VIEWPORT,
+      RecordType::USER_BGCOLOR, RecordType::USER_ANGLE,
+      RecordType::USER_DISTANCE, RecordType::USER_FILE,
+      RecordType::USER_MARKNAME, RecordType::USER_MARK,
+      RecordType::USER_CNAME,   RecordType::USER_COLOR,
+      RecordType::USER_RADIUS,  RecordType::USER_OBJECT,
+      RecordType::USER_ENDOBJ,  RecordType::USER_CHAIN,
+      RecordType::USER_GFX_BEGIN, RecordType::USER_GFX_END,
+      RecordType::USER_GFX_COLOR, RecordType::USER_GFX_NORMAL,
+      RecordType::USER_GFX_VERTEX, RecordType::USER_GFX_FONT,
+      RecordType::USER_GFX_TEXTPOS, RecordType::USER_GFX_LABEL,
+      RecordType::USER_GFX_MOVE, RecordType::USER_GFX_DRAW,
+      RecordType::USER_GFX_MARKER, RecordType::USER_GFX_POINT,
+  };
+  for (const RecordType t : allTypes) {
+    CAPTURE(zdock::pdb::to_string(t));
+    REQUIRE_NOTHROW(zdock::pdb::Record(t));
+  }
+
+  struct KindCheck {
+    RecordType type;
+    bool (*holds)(const zdock::pdb::Record &);
+  };
+  const auto holdsMonostate = [](const zdock::pdb::Record &r) {
+    return r.holds<zdock::pdb::Monostate>();
+  };
+  const auto holdsUnknown = [](const zdock::pdb::Record &r) {
+    return r.holds<zdock::pdb::UnknownRecord>();
+  };
+  const auto holdsAtom = [](const zdock::pdb::Record &r) {
+    return r.holds<zdock::pdb::AtomRecord>();
+  };
+  const auto holdsAnisou = [](const zdock::pdb::Record &r) {
+    return r.holds<zdock::pdb::AnisouRecord>();
+  };
+  const auto holdsAgrdes = [](const zdock::pdb::Record &r) {
+    return r.holds<zdock::pdb::AgrdesRecord>();
+  };
+  const auto holdsEyePos = [](const zdock::pdb::Record &r) {
+    return r.holds<zdock::pdb::UserEyePosRecord>();
+  };
+  const auto holdsMarkname = [](const zdock::pdb::Record &r) {
+    return r.holds<zdock::pdb::UserMarknameRecord>();
+  };
+  const auto holdsColor = [](const zdock::pdb::Record &r) {
+    return r.holds<zdock::pdb::UserColorRecord>();
+  };
+  const auto holdsObject = [](const zdock::pdb::Record &r) {
+    return r.holds<zdock::pdb::UserObjectRecord>();
+  };
+  const auto holdsGfxPoint = [](const zdock::pdb::Record &r) {
+    return r.holds<zdock::pdb::UserGfxPointRecord>();
+  };
+  const std::vector<KindCheck> kinds = {
+      {RecordType::UNKNOWN, holdsUnknown},
+      {RecordType::END, holdsMonostate},
+      {RecordType::ENDMDL, holdsMonostate},
+      {RecordType::USER_GFX_END, holdsMonostate},
+      {RecordType::ATOM, holdsAtom},
+      {RecordType::HETATM, holdsAtom},
+      {RecordType::SIGATM, holdsAtom},
+      {RecordType::ZDATOM, holdsAtom},
+      {RecordType::ANISOU, holdsAnisou},
+      {RecordType::SIGUIJ, holdsAnisou},
+      {RecordType::AGRDES, holdsAgrdes},
+      {RecordType::CMPDES, holdsAgrdes},
+      {RecordType::MTXDES, holdsAgrdes},
+      {RecordType::SYMDES, holdsAgrdes},
+      {RecordType::FTNOTE, holdsAgrdes},
+      {RecordType::REMARK, holdsAgrdes},
+      {RecordType::USER_EYEPOS, holdsEyePos},
+      {RecordType::USER_ATPOS, holdsEyePos},
+      {RecordType::USER_MARKNAME, holdsMarkname},
+      {RecordType::USER_MARK, holdsMarkname},
+      {RecordType::USER_COLOR, holdsColor},
+      {RecordType::USER_GFX_COLOR, holdsColor},
+      {RecordType::USER_OBJECT, holdsObject},
+      {RecordType::USER_ENDOBJ, holdsObject},
+      {RecordType::USER_GFX_NORMAL, holdsGfxPoint},
+      {RecordType::USER_GFX_VERTEX, holdsGfxPoint},
+      {RecordType::USER_GFX_TEXTPOS, holdsGfxPoint},
+      {RecordType::USER_GFX_MOVE, holdsGfxPoint},
+      {RecordType::USER_GFX_DRAW, holdsGfxPoint},
+      {RecordType::USER_GFX_MARKER, holdsGfxPoint},
+      {RecordType::USER_GFX_POINT, holdsGfxPoint},
+  };
+  for (const auto &kind : kinds) {
+    CAPTURE(zdock::pdb::to_string(kind.type));
+    const zdock::pdb::Record record(kind.type);
+    REQUIRE(record.type() == kind.type);
+    REQUIRE(kind.holds(record));
+  }
+
+  // distinct single-kind payloads
+  REQUIRE(zdock::pdb::Record(RecordType::AUTHOR).holds<zdock::pdb::AuthorRecord>());
+  REQUIRE(zdock::pdb::Record(RecordType::TITLE).holds<zdock::pdb::TitleRecord>());
+  REQUIRE(zdock::pdb::Record(RecordType::COMPND).holds<zdock::pdb::CompndRecord>());
+  REQUIRE(zdock::pdb::Record(RecordType::KEYWDS).holds<zdock::pdb::KeywdsRecord>());
+  REQUIRE(zdock::pdb::Record(RecordType::SOURCE).holds<zdock::pdb::SourceRecord>());
+  REQUIRE(zdock::pdb::Record(RecordType::MDLTYP).holds<zdock::pdb::MdltypRecord>());
+  REQUIRE(zdock::pdb::Record(RecordType::EXPDTA).holds<zdock::pdb::ExpdtaRecord>());
+  REQUIRE(zdock::pdb::Record(RecordType::USER).holds<zdock::pdb::UserRecord>());
+}
+
+TEST_CASE("Atom accessors are typed and wrong-kind access is an error",
+          "[record-payload]") {
+  // Invariant: asAtom returns the atom payload for every atom kind and is
+  // a typed runtime error on any other record, replacing the silent union
+  // misread the legacy layout permitted.
+  for (const RecordType t :
+       {RecordType::ATOM, RecordType::HETATM, RecordType::SIGATM}) {
+    zdock::pdb::Record record(t);
+    REQUIRE(record.isAtom());
+    record.asAtom().serialNum = 7;
+    REQUIRE(record.asAtom().serialNum == 7);
+  }
+
+  zdock::pdb::Record title(RecordType::TITLE);
+  REQUIRE_FALSE(title.isAtom());
+  REQUIRE_THROWS_AS(title.asAtom(), std::bad_variant_access);
+
+  zdock::pdb::Record fallback;
+  REQUIRE(fallback.type() == RecordType::UNKNOWN);
+  REQUIRE_FALSE(fallback.isAtom());
+}
+
+TEST_CASE("Payload fields default to the parsed field defaults",
+          "[record-payload]") {
+  // Invariant: fresh payloads carry the parsed field defaults -- zero
+  // numbers, blank codes, empty strings, and unset optionals for
+  // spec-optional or version-conditional columns.
+  using zdock::pdb::AtomRecord;
+  using zdock::pdb::Residue;
+
+  const Residue residue;
+  REQUIRE(residue.name.empty());
+  REQUIRE(residue.chainId == ' ');
+  REQUIRE(residue.seqNum == 0);
+  REQUIRE(residue.insertCode == ' ');
+
+  const AtomRecord atom;
+  REQUIRE(atom.serialNum == 0);
+  REQUIRE(atom.name.empty());
+  REQUIRE(atom.altLoc == ' ');
+  REQUIRE_FALSE(atom.occupancy.has_value());
+  REQUIRE_FALSE(atom.tempFactor.has_value());
+  REQUIRE_FALSE(atom.zdatom.has_value());
+
+  const zdock::pdb::UserAngleRecord angle;
+  REQUIRE_FALSE(angle.which.has_value());
+  REQUIRE(angle.angle == 0.0);
+
+  const zdock::pdb::UserFileRecord file;
+  REQUIRE_FALSE(file.model.has_value());
+
+  const zdock::pdb::UserGfxLabelRecord label;
+  REQUIRE_FALSE(label.xyz.has_value());
+
+  const zdock::pdb::AuthorRecord author; // typed int continuation
+  REQUIRE(author.continuation == 0);
+}
