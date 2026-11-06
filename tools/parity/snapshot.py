@@ -669,6 +669,20 @@ def compare_file(path: str, snap_entry: dict[str, object],
                     f"{path}:{as_int(snap_record['line'])}: snapshot "
                     f"type {snap_type} '{snap_text[:60]}' modern type "
                     f"{modern_type} '{modern_text[:60]}'")
+            # the live comparison reports parsed-field differences
+            # independently of the text class; mirror that when both
+            # sides carry fields
+            if snap_record["fields"] and modern_record["fields"]:
+                equal, differing = fields_equal(snap_record["fields"],
+                                                modern_record["fields"],
+                                                modern_type)
+                if not equal:
+                    counters.field_mismatches += 1
+                    bucket = examples.setdefault("field", [])
+                    if len(bucket) < 5:
+                        bucket.append(f"{path}:"
+                                      f"{as_int(snap_record['line'])}: "
+                                      f"{', '.join(differing[:4])}")
             continue
         if klass in ("parity", "expected_zdatom"):
             equal, differing = fields_equal(snap_record["fields"],
