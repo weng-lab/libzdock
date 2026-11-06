@@ -76,6 +76,10 @@ struct Counters {
   std::size_t fieldMismatches = 0;
   std::size_t stateMismatches = 0;
   std::size_t rejections = 0;
+  // input-quality census, reported separately from parity mismatches
+  // and never part of the exit decision: lines both parsers store as
+  // UNKNOWN or reject even though the line looks like coordinate data
+  std::size_t coordinateUnknowns = 0;
   // baseline classifications
   std::size_t baselineExpectedZdatom = 0;
   std::size_t baselineExpectedV5Token = 0;
@@ -93,6 +97,28 @@ std::string shorten(const std::string &text) {
   if (text.size() <= 72)
     return text;
   return text.substr(0, 72) + "...";
+}
+
+// True when the line's record name is one of the coordinate records:
+// ATOM, HETATM, or a mark_sur/ZDATOM-style line (which also starts
+// with ATOM). Used only for the input-quality census.
+bool looksLikeCoordinate(const std::string &line) {
+  return line.compare(0, 4, "ATOM") == 0 ||
+         line.compare(0, 6, "HETATM") == 0;
+}
+
+// Census signature: record name, line length, and the masked shape of
+// columns 61+ (occupancy, temperature, and whatever tail the file
+// carries). Digit masking happens in the report merger; keeping the
+// head (atom names, coordinates) out of the detail makes same-shaped
+// lines group into one signature.
+std::string coordinateSignature(const std::string &line) {
+  const std::string keyword =
+      line.compare(0, 4, "ATOM") == 0 ? "ATOM" : "HETATM";
+  const std::string tail =
+      line.size() > 60 ? line.substr(60) : std::string();
+  return keyword + " len " + std::to_string(line.size()) +
+         " cols61+ '" + shorten(tail) + "'";
 }
 
 void report(const std::string &where, std::size_t lineNo,
@@ -870,6 +896,23 @@ int main(int argc, char **argv) {
         }
       }
 
+      // input-quality census, independent of parity: a line both
+      // parsers refuse to store as a record (or both store as junk)
+      // that still announces itself as coordinate data means the file
+      // loses atoms; reported separately and never part of the exit
+      // decision
+      const bool legacyUnknown = legacy.type() == libpdb::PDB::UNKNOWN;
+      const bool modernUnknownOrRejected =
+          !parsed.has_value() ||
+          parsed->type() == zdock::pdb::RecordType::UNKNOWN;
+      if (legacyUnknown && modernUnknownOrRejected &&
+          looksLikeCoordinate(line)) {
+        ++counters.coordinateUnknowns;
+        if (!options.quiet)
+          report(where, lineNo, "coordinate unknown",
+                 coordinateSignature(line));
+      }
+
       // advance each side's version state from its own file-derived source
       inVersion = libpdb::PDB::PdbrunInputVersion();
       outVersion = libpdb::PDB::PdbrunOutputVersion();
@@ -962,10 +1005,12 @@ int main(int argc, char **argv) {
   }
 
   printf("files %zu | lines %zu | type mismatches %zu | text mismatches %zu "
-         "| field mismatches %zu | state mismatches %zu | rejections %zu\n",
+         "| field mismatches %zu | state mismatches %zu | rejections %zu "
+         "| coordinate unknowns %zu\n",
          counters.files, counters.lines, counters.typeMismatches,
          counters.textMismatches, counters.fieldMismatches,
-         counters.stateMismatches, counters.rejections);
+         counters.stateMismatches, counters.rejections,
+         counters.coordinateUnknowns);
   if (!options.baseline.empty())
     printf("baseline: expected ZDATOM %zu | expected v5 token %zu | "
            "UNEXPECTED %zu\n",

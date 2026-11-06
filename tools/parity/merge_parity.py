@@ -49,6 +49,10 @@ WHAT_PREFIXES = (
     "text mismatch: ",
     "type mismatch: ",
 )
+# Input-quality census classes: reported separately from parity
+# mismatches and never part of any exit decision.
+INPUT_WHAT_PREFIXES = ("coordinate unknown: ",)
+INPUT_WHATS = ("coordinate unknown",)
 QUOTE_RE = re.compile(r"^legacy '(.*?)' new '(.*)'$", re.DOTALL)
 BASELINE_QUOTE_RE = re.compile(r"^baseline '(.*?)' modern '(.*)'$", re.DOTALL)
 
@@ -151,7 +155,7 @@ def parse_report_line(raw: str) -> Optional[tuple[str, str, str, str]]:
     if match is None:
         return None
     rest = match.group("rest")
-    for prefix in WHAT_PREFIXES:
+    for prefix in INPUT_WHAT_PREFIXES + WHAT_PREFIXES:
         if rest.startswith(prefix):
             return (
                 match.group("path"),
@@ -180,6 +184,7 @@ class MergedResult:
     report_lines_unparsed: int = 0
     files_with_mismatches: int = 0
     signatures: list[SignatureEntry] = field(default_factory=list)
+    input_signatures: list[SignatureEntry] = field(default_factory=list)
 
     def to_json(self) -> dict[str, object]:
         """Return the JSON-ready structure written to merged.json."""
@@ -200,11 +205,32 @@ class MergedResult:
                 }
                 for entry in self.signatures
             ],
+            "input_signatures": [
+                {
+                    "signature": entry.signature,
+                    "count": entry.count,
+                    "example": entry.example,
+                }
+                for entry in self.input_signatures
+            ],
         }
 
     @classmethod
     def from_json(cls, data: dict[str, object]) -> MergedResult:
         """Rebuild a merged result from its merged.json structure."""
+
+        def entries(key: str) -> list[SignatureEntry]:
+            return [
+                SignatureEntry(
+                    as_str(entry.get("signature", "")),
+                    as_int(entry.get("count", 0)),
+                    as_str(entry.get("example", "")),
+                )
+                for entry in (
+                    as_dict(item) for item in as_list(data.get(key, []))
+                )
+            ]
+
         return cls(
             sources=[as_str(entry) for entry in as_list(data.get("sources", []))],
             totals={
@@ -213,16 +239,8 @@ class MergedResult:
             },
             report_lines_unparsed=as_int(data.get("report_lines_unparsed", 0)),
             files_with_mismatches=as_int(data.get("files_with_mismatches", 0)),
-            signatures=[
-                SignatureEntry(
-                    as_str(entry.get("signature", "")),
-                    as_int(entry.get("count", 0)),
-                    as_str(entry.get("example", "")),
-                )
-                for entry in (
-                    as_dict(item) for item in as_list(data.get("signatures", []))
-                )
-            ],
+            signatures=entries("signatures"),
+            input_signatures=entries("input_signatures"),
         )
 
 
@@ -247,12 +265,20 @@ def load_run_totals(results_dir: Path) -> dict[str, int]:
 
 
 class SignatureAccumulator:
-    """Collects normalized signatures, counts, and example locations."""
+    """Collects normalized signatures, counts, and example locations.
+
+    Parity mismatches and input-quality census reports are kept in
+    separate tables: the census describes the input corpus, not parser
+    divergence, and is never part of an exit decision.
+    """
 
     def __init__(self) -> None:
         self.counts: Counter[str] = Counter()
         self.examples: dict[str, str] = {}
         self.mismatched_files: set[str] = set()
+        self.input_counts: Counter[str] = Counter()
+        self.input_examples: dict[str, str] = {}
+        self.input_files: dict[str, set[str]] = {}
         self.unparsed_lines = 0
 
     def add_report(self, raw: str) -> None:
@@ -264,8 +290,14 @@ class SignatureAccumulator:
             return
         path, line, what, detail = parsed
         signature = signature_for(what, detail)
+        location = f"{path}:{line}"
+        if what in INPUT_WHATS:
+            self.input_counts[signature] += 1
+            self.input_examples.setdefault(signature, location)
+            self.input_files.setdefault(signature, set()).add(path)
+            return
         self.counts[signature] += 1
-        self.examples.setdefault(signature, f"{path}:{line}")
+        self.examples.setdefault(signature, location)
         self.mismatched_files.add(path)
 
     def add_dir(self, results_dir: Path) -> None:
@@ -290,6 +322,12 @@ def merge_dirs(dirs: list[Path]) -> MergedResult:
         SignatureEntry(signature, count, accumulator.examples[signature])
         for signature, count in accumulator.counts.most_common()
     ]
+    merged.input_signatures = [
+        SignatureEntry(
+            signature, count, accumulator.input_examples[signature]
+        )
+        for signature, count in accumulator.input_counts.most_common()
+    ]
     return merged
 
 
@@ -303,10 +341,17 @@ def print_merge(merged: MergedResult, top: int) -> None:
     )
     if not merged.signatures:
         print("no mismatch reports found (quiet run or full parity)")
-        return
     for entry in merged.signatures[:top]:
         print(f"{entry.count:>9}  {truncate(entry.signature, 110)}")
         print(f"            e.g. {entry.example}")
+    if merged.input_signatures:
+        print(
+            "input-quality census (separate from parser mismatches; never "
+            "part of any exit decision):"
+        )
+        for entry in merged.input_signatures[:top]:
+            print(f"{entry.count:>9}  {truncate(entry.signature, 110)}")
+            print(f"            e.g. {entry.example}")
 
 
 def print_total_deltas(left: MergedResult, right: MergedResult) -> None:
@@ -353,6 +398,20 @@ def compare(left: MergedResult, right: MergedResult, top: int) -> int:
         ordered = sorted(items.items(), key=lambda pair: pair[1], reverse=True)
         for signature, delta in ordered[:top]:
             print(f"  {label}: {delta:+d}  {truncate(signature, 110)}")
+    left_input = Counter({entry.signature: entry.count for entry in left.input_signatures})
+    right_input = Counter(
+        {entry.signature: entry.count for entry in right.input_signatures}
+    )
+    input_delta = {
+        signature: right_input[signature] - left_input[signature]
+        for signature in set(left_input) | set(right_input)
+        if right_input[signature] != left_input[signature]
+    }
+    if input_delta:
+        print("input-quality census deltas (informational):")
+        for signature in sorted(input_delta, key=lambda sig: input_delta[sig],
+                                reverse=True)[:top]:
+            print(f"  {input_delta[signature]:+d}  {truncate(signature, 110)}")
     return 0 if not introduced else 1
 
 

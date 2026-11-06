@@ -53,6 +53,7 @@ SUMMARY_RE = re.compile(
     r"\| field mismatches (?P<field_mismatches>\d+) "
     r"\| state mismatches (?P<state_mismatches>\d+) "
     r"\| rejections (?P<rejections>\d+)"
+    r"(?: \| coordinate unknowns (?P<coordinate_unknowns>\d+))?"
 )
 BASELINE_RE = re.compile(
     r"baseline: expected ZDATOM (?P<zdatom>\d+) "
@@ -185,7 +186,11 @@ def parse_summary(text: str) -> Optional[dict[str, int]]:
     match = SUMMARY_RE.search(text)
     if match is None:
         return None
-    counters = {name: int(match.group(name)) for name in COUNT_FIELDS}
+    counters = {
+        name: int(match.group(name) or 0)
+        for name in COUNT_FIELDS
+        if match.group(name) is not None
+    }
     baseline = BASELINE_RE.search(text)
     if baseline is not None:
         counters["baseline_expected_zdatom"] = int(baseline.group("zdatom"))
@@ -549,7 +554,8 @@ def report_run(output: Path, summary: RunSummary, interrupted: bool) -> int:
         f"text mismatches {totals['text_mismatches']} | "
         f"field mismatches {totals['field_mismatches']} | "
         f"state mismatches {totals['state_mismatches']} | "
-        f"rejections {totals['rejections']}"
+        f"rejections {totals['rejections']} | "
+        f"coordinate unknowns {totals.get('coordinate_unknowns', 0)}"
     )
     if summary.shard_errors:
         print(

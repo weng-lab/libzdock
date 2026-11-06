@@ -6,7 +6,9 @@
 
 from __future__ import annotations
 
-# The harness summary counter names, in output order.
+# The harness summary counter names, in output order. The trailing
+# input-quality counters are optional: results produced before they
+# existed simply omit them.
 COUNT_FIELDS = (
     "files",
     "lines",
@@ -15,6 +17,7 @@ COUNT_FIELDS = (
     "field_mismatches",
     "state_mismatches",
     "rejections",
+    "coordinate_unknowns",
 )
 
 

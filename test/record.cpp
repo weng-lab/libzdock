@@ -1934,6 +1934,121 @@ TEST_CASE("Structural families parse and format byte-for-byte against legacy",
   }
 }
 
+TEST_CASE("HEADER writes its date left-justified like the legacy writer",
+          "[record-parity]") {
+  // Invariant: HEADER reads a 9-column date but writes an 11-column
+  // left-justified date plus a literal space, so a classification that
+  // overflows its 40 columns and spills characters into the date field
+  // renders back at the spill position -- the rendered line is the
+  // input line again, byte-for-byte, under both paths. The expected
+  // line is assembled from the layout: 10-byte prefix, 40-column
+  // classification (the 42-character name keeps its first 40 here and
+  // its last two ride in the date field), then the date and idCode
+  // fields, all left-justified.
+  const std::string input = "HEADER    TEN ELEVEN TWELVE THIRTEEN FOURTEEN "
+                            "FIFTEE"; // 42-character classification
+  REQUIRE(input.size() == 52);
+  zdock::pdb::ParseContext context;
+  const auto parsed = zdock::pdb::Record::parse(input, context);
+  const libpdb::PDB legacy(input.c_str());
+  REQUIRE(parsed.has_value());
+  REQUIRE(static_cast<int>(parsed->type()) ==
+          static_cast<int>(legacy.type()));
+  const auto &h = parsed->as<zdock::pdb::HeaderRecord>();
+  REQUIRE(h.classification == "TEN ELEVEN TWELVE THIRTEEN FOURTEEN FIFT");
+  REQUIRE(h.timestamp == "EE");
+  REQUIRE(h.id == "");
+  REQUIRE(parsed->chars() == input);
+  REQUIRE(parsed->chars() == std::string(legacy.chars()));
+  // the rendered line re-parses to the same fields under both paths
+  zdock::pdb::ParseContext again;
+  const auto reread = zdock::pdb::Record::parse(parsed->chars(), again);
+  REQUIRE(reread.has_value());
+  REQUIRE(reread->as<zdock::pdb::HeaderRecord>().classification ==
+          h.classification);
+  REQUIRE(reread->as<zdock::pdb::HeaderRecord>().timestamp == h.timestamp);
+  REQUIRE(reread->chars() == parsed->chars());
+  libpdb::PDB legacyReread(parsed->chars().c_str());
+  REQUIRE(std::string(legacyReread.chars()) == parsed->chars());
+}
+
+TEST_CASE("ANISOU and SIGUIJ render parsed zeros differently", "[record-parity]") {
+  // Invariant: the two families write the same u-column layout with
+  // different zero emitters -- legacy ANISOU uses plain %7d (a parsed
+  // zero is a right-justified 0, so the line keeps its full width) and
+  // legacy SIGUIJ uses %7D (a parsed zero is a blank field, so trailing
+  // zeros trim away) -- and each form round-trips stably. The expected
+  // lines are assembled from the layout columns: 6-byte prefix, %5d
+  // serial, space, %-4s name, %c altLoc, %-4s residue, %c chain, %4d
+  // sequence, %c insert code, space, then %7d/%7D u columns (u[0] plus
+  // five more).
+  const std::string head =
+      "    1"     // %5d serial
+      " "         // literal space
+      " N  "      // %-4s atom name
+      " "         // %c altLoc
+      "GLY "      // %-4s residue name
+      "A"         // %c chain id
+      "  12"      // %4d sequence
+      "  "        // %c insert code + literal space
+      "   1234";  // %7d u[0]
+  const std::string zeroPlain = "      0"; // %7d of 0
+  const std::string zeroBlank = "       "; // %7D of 0
+  // u payloads written into u[1..5]; u[0] is 1234 in the head
+  const std::string allZeroAnisou =
+      "ANISOU" + head + zeroPlain + zeroPlain + zeroPlain + zeroPlain +
+      zeroPlain;
+  const std::string allZeroSiguij =
+      "SIGUIJ" + head + zeroBlank + zeroBlank + zeroBlank + zeroBlank +
+      zeroBlank;
+  const std::string mixedAnisou = "ANISOU" + head + zeroPlain + "   -567" +
+                                  "      8" + zeroPlain + "   9012";
+  const std::string mixedSiguij = "SIGUIJ" + head + zeroBlank + "   -567" +
+                                  "      8" + zeroBlank + "   9012";
+  struct Fixture {
+    std::string line;   // the input line to parse
+    std::string render; // the hand-derived canonical render
+    std::array<int, 6> u;
+  };
+  const std::vector<Fixture> anisouFixtures = {
+      {allZeroAnisou, allZeroAnisou, {1234, 0, 0, 0, 0, 0}},
+      {mixedAnisou, mixedAnisou, {1234, 0, -567, 8, 0, 9012}},
+  };
+  const std::vector<Fixture> siguijFixtures = {
+      // the all-blank u tail parses as zeros and trims away on render
+      {allZeroSiguij, "SIGUIJ" + head, {1234, 0, 0, 0, 0, 0}},
+      {mixedSiguij, mixedSiguij, {1234, 0, -567, 8, 0, 9012}},
+  };
+  for (const auto &fixtures : {anisouFixtures, siguijFixtures}) {
+    for (const auto &fixture : fixtures) {
+      CAPTURE(fixture.line);
+      zdock::pdb::ParseContext context;
+      const auto parsed = zdock::pdb::Record::parse(fixture.line, context);
+      const libpdb::PDB legacy(fixture.line.c_str());
+      REQUIRE(parsed.has_value());
+      REQUIRE(static_cast<int>(parsed->type()) ==
+              static_cast<int>(legacy.type()));
+      // the render matches the hand-derived canonical form and the
+      // legacy writer byte-for-byte
+      REQUIRE(parsed->chars() == fixture.render);
+      REQUIRE(parsed->chars() == std::string(legacy.chars()));
+      const auto &a = parsed->as<zdock::pdb::AnisouRecord>();
+      for (std::size_t i = 0; i < 6; ++i)
+        REQUIRE(a.u[i] == fixture.u[i]);
+      // the rendered line re-parses to the same payload under both paths
+      zdock::pdb::ParseContext again;
+      const auto reread = zdock::pdb::Record::parse(parsed->chars(), again);
+      REQUIRE(reread.has_value());
+      const auto &b = reread->as<zdock::pdb::AnisouRecord>();
+      for (std::size_t i = 0; i < 6; ++i)
+        REQUIRE(b.u[i] == a.u[i]);
+      REQUIRE(reread->chars() == parsed->chars());
+      libpdb::PDB legacyReread(parsed->chars().c_str());
+      REQUIRE(std::string(legacyReread.chars()) == parsed->chars());
+    }
+  }
+}
+
 TEST_CASE("Structural family fields parse into the pinned typed values",
           "[record-parity]") {
   // Invariant: representative members land in their typed payload fields

@@ -812,6 +812,20 @@ constexpr ColumnSpec kHeaderCols[] = {
     {62, 4, ColumnKind::Str},
 };
 
+// HEADER writes a different geometry than it reads: the legacy writer
+// renders the date left-justified in 11 columns followed by a literal
+// space (so a short or spilled date sits at the left of its field),
+// while the reader slices a 9-column date. Well-formed 9-character
+// dates render identically either way; an overlong classification that
+// spills into the date columns does not.
+constexpr ColumnSpec kHeaderWriteCols[] = {
+    {0, 10, ColumnKind::Skip},
+    {10, 40, ColumnKind::Str, 0, true},
+    {50, 11, ColumnKind::Str, 0, true},
+    {61, 1, ColumnKind::Literal, 0, false, ' '},
+    {62, 4, ColumnKind::Str, 0, true},
+};
+
 constexpr ColumnSpec kCaveatCols[] = {
     {0, 8, ColumnKind::Skip},
     {8, 2, ColumnKind::Int, 0, false, ' ', true},
@@ -847,6 +861,27 @@ constexpr ColumnSpec kAgrdesPlainWriteCols[] = {
 // ANISOU and SIGUIJ share the atom-layout identification columns and the
 // six %7D thermal tensors (zero rendered as blanks on write).
 constexpr ColumnSpec kAnisouCols[] = {
+    {0, 6, ColumnKind::Skip},
+    {6, 5, ColumnKind::Int},
+    {11, 1, ColumnKind::Literal, 0, false, ' '},
+    {12, 4, ColumnKind::Str, 0, true},
+    {16, 1, ColumnKind::Char},
+    {17, 4, ColumnKind::Str, 0, true},
+    {21, 1, ColumnKind::Char},
+    {22, 4, ColumnKind::Int},
+    {26, 1, ColumnKind::Char},
+    {27, 1, ColumnKind::Literal, 0, false, ' '},
+    {28, 7, ColumnKind::Int},
+    {35, 7, ColumnKind::Int},
+    {42, 7, ColumnKind::Int},
+    {49, 7, ColumnKind::Int},
+    {56, 7, ColumnKind::Int},
+    {63, 7, ColumnKind::Int},
+};
+
+// SIGUIJ writes the same layout as ANISOU except that the u columns use
+// the zero-as-blank emitter (%7D), as the legacy write table does.
+constexpr ColumnSpec kSiguijWriteCols[] = {
     {0, 6, ColumnKind::Skip},
     {6, 5, ColumnKind::Int},
     {11, 1, ColumnKind::Literal, 0, false, ' '},
@@ -3798,9 +3833,9 @@ std::size_t Record::write_into(char (&out)[83],
     writeFormulColumns(as<FormulRecord>(), writer, kFormulCols);
     break;
   case RecordType::HEADER:
-    assertPrefix("HEADER    ", kHeaderCols);
+    assertPrefix("HEADER    ", kHeaderWriteCols);
     writer.writeLiteral(0, "HEADER    ");
-    writeHeaderColumns(as<HeaderRecord>(), writer, kHeaderCols);
+    writeHeaderColumns(as<HeaderRecord>(), writer, kHeaderWriteCols);
     break;
   case RecordType::CAVEAT:
     assertPrefix("CAVEAT  ", kCaveatCols);
@@ -3819,9 +3854,18 @@ std::size_t Record::write_into(char (&out)[83],
     break;
   case RecordType::ANISOU:
   case RecordType::SIGUIJ:
-    assertPrefix("ANISOU", kAnisouCols);
-    writer.writeLiteral(0, type_ == RecordType::ANISOU ? "ANISOU" : "SIGUIJ");
-    writeAnisouColumns(as<AnisouRecord>(), writer, kAnisouCols);
+    // the u columns write differently: legacy ANISOU renders %7d (a
+    // parsed zero is a right-justified 0) while legacy SIGUIJ renders
+    // %7D (a parsed zero is a blank field)
+    if (type_ == RecordType::ANISOU) {
+      assertPrefix("ANISOU", kAnisouCols);
+      writer.writeLiteral(0, "ANISOU");
+      writeAnisouColumns(as<AnisouRecord>(), writer, kAnisouCols);
+    } else {
+      assertPrefix("SIGUIJ", kSiguijWriteCols);
+      writer.writeLiteral(0, "SIGUIJ");
+      writeAnisouColumns(as<AnisouRecord>(), writer, kSiguijWriteCols);
+    }
     break;
   case RecordType::NUMMDL:
     assertPrefix("NUMMDL    ", kNummdlWriteCols);
