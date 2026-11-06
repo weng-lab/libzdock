@@ -1282,9 +1282,13 @@ int dumpJsonFile(const std::string &path) {
       std::printf(",");
     first = false;
     if (parsed.has_value()) {
+      // the render takes the file-derived PDBRUN output version, the
+      // same threading the live comparison uses
+      zdock::pdb::WriteContext writeContext;
+      writeContext.pdbrunVersion = context.pdbrunVersion;
       std::printf("{\"line\":%zu,\"type\":%d,\"text\":%s,\"fields\":%s}",
                   lineNo, static_cast<int>(parsed->type()),
-                  jsonStr(parsed->chars()).c_str(),
+                  jsonStr(parsed->chars(writeContext)).c_str(),
                   emitModernFields(*parsed).c_str());
     } else {
       // a line that parses as no record carries the junk fallback text
