@@ -7,10 +7,7 @@
 
 #include "Test.hpp"
 #include "Columns.hpp"
-#include "FieldReader.hpp"
 #include "Record.hpp"
-#include "RecordClassifier.hpp"
-#include "pdb++.h"
 
 #include <algorithm>
 #include <cmath>
