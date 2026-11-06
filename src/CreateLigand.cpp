@@ -8,7 +8,6 @@
 #include <string>
 #include <unistd.h>
 
-namespace p = libpdb;
 namespace zdock {
 
 CreateLigand::CreateLigand(const std::string &zdockoutput,

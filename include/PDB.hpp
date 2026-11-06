@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "pdb++.h"
+#include "Record.hpp"
 #include <Eigen/Dense>
 #include <iostream>
 #include <memory>
@@ -54,12 +54,12 @@ public:
   //! Coordinate (x, y, z)
   typedef Eigen::Vector3d Coord;
   //! Shared Pointer type for PDB record
-  typedef std::shared_ptr<libpdb::PDB> Record;
+  typedef std::shared_ptr<zdock::pdb::Record> Record;
   //! Shared Pointer type for Model
   typedef std::shared_ptr<zdock::Model> Model;
 
 protected:
-  typedef std::unordered_map<const libpdb::PDB *, Record> RecordMap;
+  typedef std::unordered_map<const zdock::pdb::Record *, Record> RecordMap;
 
   void copyFrom_(const PDB &p, RecordMap &records);
 
@@ -70,7 +70,7 @@ protected:
   // atomic inserts...
   std::mutex lock_; //!< lock for atomic updates
   //! Atom filter function
-  std::function<bool(const libpdb::PDB &)> filter_;
+  std::function<bool(const zdock::pdb::Record &)> filter_;
 
 public:
   PDB(); //!< Constructor
@@ -81,8 +81,8 @@ public:
    * @param filter filter function for ATOM/HETATM records
    */
   PDB(const std::string &filename,
-      std::function<bool(const libpdb::PDB &)> filter =
-          [](const libpdb::PDB &) { return true; });
+      std::function<bool(const zdock::pdb::Record &)> filter =
+          [](const zdock::pdb::Record &) { return true; });
   /**
    * @brief Assignment operator
    * @param p other PDB object
@@ -106,7 +106,7 @@ public:
   //! get ATOM/HETATM by RecordCoord coordinate
   const Record &operator[](const RecordCoord &coord) const;
   //! append record, from actual object, optionally to model by number
-  void append(const libpdb::PDB &, const int model = 0);
+  void append(const zdock::pdb::Record &, const int model = 0);
   //! append record, from shared pointer, optionally to model by number
   void append(const Record &, const int model = 0);
   //! get centroid (i.e. mean x, y, z) of structure

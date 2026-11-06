@@ -8,7 +8,6 @@
 #include <string>
 #include <unistd.h>
 
-namespace p = libpdb;
 namespace zdock {
 
 CreateMultimer::CreateMultimer(const std::string &zdockoutput,
@@ -55,9 +54,11 @@ void CreateMultimer::doCreate() {
     for (int i = 0; i < z.symmetry(); ++i) {
       rec.setMatrix(t.txMultimer(m, pred, i));
       for (const auto &x : (allrecords_ ? rec.records() : rec.atoms())) {
-        if (p::PDB::ATOM == x->type() || p::PDB::HETATM == x->type()) {
-          x->atom.serialNum = ++serial;
-          x->atom.residue.chainId = TransformMultimer::CHAINS[i].c_str()[0];
+        if (zdock::pdb::RecordType::ATOM == x->type() ||
+            zdock::pdb::RecordType::HETATM == x->type()) {
+          x->asAtom().serialNum = ++serial;
+          x->asAtom().residue.chainId =
+              TransformMultimer::CHAINS[i].c_str()[0];
         }
         std::cout << *x << '\n'; // no flush
       }
@@ -65,8 +66,10 @@ void CreateMultimer::doCreate() {
   } else {
     rec.setMatrix(t.txMultimer(m, pred, mer_));
     for (const auto &x : (allrecords_ ? rec.records() : rec.atoms())) {
-      if (p::PDB::ATOM == x->type() || p::PDB::HETATM == x->type()) {
-        x->atom.residue.chainId = TransformMultimer::CHAINS[mer_].c_str()[0];
+      if (zdock::pdb::RecordType::ATOM == x->type() ||
+          zdock::pdb::RecordType::HETATM == x->type()) {
+        x->asAtom().residue.chainId =
+            TransformMultimer::CHAINS[mer_].c_str()[0];
       }
       std::cout << *x << '\n'; // no flush
     }

@@ -4,7 +4,6 @@
 #include "TransformLigand.hpp"
 
 namespace e = Eigen;
-namespace p = libpdb;
 
 namespace zdock {
 

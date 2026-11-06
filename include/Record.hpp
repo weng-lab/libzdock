@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cstdint>
+#include <iosfwd>
 #include <optional>
 #include <ostream>
 #include <string>
@@ -651,5 +652,12 @@ inline std::ostream &operator<<(std::ostream &s, const Record &record) {
   s << record.chars();
   return s;
 }
+
+// The pinned input-line semantics, carried over from the retired
+// libpdb operator>>: read one record line through a 4x81-character
+// std::istream::getline buffer, strip exactly one trailing CR, and
+// fail the stream for lines that do not fit (production read loops
+// stop at that point). Returns false when the stream failed.
+bool readRecordLine(std::istream &in, std::string &line);
 
 } // namespace zdock::pdb

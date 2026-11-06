@@ -61,8 +61,9 @@ void Pruning::prune() {
   }
 
   // read pdb file (CA only!)
-  PDB pdb(strucfn_,
-          [](const auto &r) { return Utils::trim_copy(r.atom.name) == "CA"; });
+  PDB pdb(strucfn_, [](const auto &r) {
+    return Utils::trim_copy(r.asAtom().name) == "CA";
+  });
   const double strucsize = pdb.matrix().cols();
 
   // pre-compute all poses

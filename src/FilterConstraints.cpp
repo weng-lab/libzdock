@@ -9,7 +9,6 @@
 #include <unistd.h>
 
 namespace e = Eigen;
-namespace p = libpdb;
 
 namespace zdock {
 

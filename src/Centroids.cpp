@@ -8,7 +8,6 @@
 #include <cmath>
 #include <unistd.h>
 
-namespace p = libpdb;
 namespace e = Eigen;
 
 namespace zdock {
@@ -37,19 +36,20 @@ void Centroids::doCentroids() {
 
   // load ligand
   PDB lig(ligfn), out;
-  p::PDB x(p::PDB::HETATM);
+  zdock::pdb::Record x(zdock::pdb::RecordType::HETATM);
   const TransformLigand txl(z);
   const e::Vector3d v = lig.centroid();
   for (size_t i = 0; i < n_; ++i) {
     const zdock::Prediction &pred = z.predictions()[i];
     e::Vector3d pose = txl.txLigand(v, pred);
-    x.atom = templateAtom_;
-    x.atom.serialNum = static_cast<int>(i) + 1;
-    x.atom.residue.chainId = chain_.c_str()[0];
-    x.atom.residue.seqNum = static_cast<int>(i) + 1;
-    x.atom.xyz[0] = pose(0);
-    x.atom.xyz[1] = pose(1);
-    x.atom.xyz[2] = pose(2);
+    x.asAtom() = templateAtom_;
+    auto &atom = x.asAtom();
+    atom.serialNum = static_cast<int>(i) + 1;
+    atom.residue.chainId = chain_.c_str()[0];
+    atom.residue.seqNum = static_cast<int>(i) + 1;
+    atom.xyz[0] = pose(0);
+    atom.xyz[1] = pose(1);
+    atom.xyz[2] = pose(2);
     out.append(x);
   }
   for (const auto &x : out.atoms()) {

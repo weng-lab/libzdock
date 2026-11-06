@@ -7,12 +7,12 @@
 #include <algorithm>
 #include <fstream>
 
-namespace p = ::libpdb;
+namespace p = ::zdock::pdb;
 namespace e = ::Eigen;
 
 namespace zdock {
 
-PDB::PDB() : filter_([](const libpdb::PDB &) { return true; }) {}
+PDB::PDB() : filter_([](const zdock::pdb::Record &) { return true; }) {}
 
 PDB::PDB(const PDB &other) {
   RecordMap records;
@@ -20,7 +20,7 @@ PDB::PDB(const PDB &other) {
 }
 
 PDB::PDB(const std::string &filename,
-         std::function<bool(const libpdb::PDB &)> filter)
+         std::function<bool(const zdock::pdb::Record &)> filter)
     : filter_(filter) {
   read_(filename);
 }
@@ -46,7 +46,7 @@ void PDB::copyFrom_(const PDB &other, RecordMap &clonedRecords) {
       return existing->second;
     }
 
-    const Record clone = std::make_shared<libpdb::PDB>(*record);
+    const Record clone = std::make_shared<zdock::pdb::Record>(*record);
     clonedRecords.emplace(record.get(), clone);
     return clone;
   };
@@ -76,30 +76,37 @@ void PDB::copyFrom_(const PDB &other, RecordMap &clonedRecords) {
 }
 
 void PDB::read_(const std::string &fn) {
-  p::PDB record;
   size_t m = 0;
   std::ifstream infile(fn);
   if (infile.is_open()) {
     records_.clear();
-    while (infile >> record) {
-      switch (record.type()) {
-      case p::PDB::UNKNOWN:
-        break; // ignore unknown
-      case p::PDB::MODEL:
-        m = record.model.num;
+    std::string line;
+    p::ParseContext context;
+    // each side reads with the pinned operator>> line semantics; lines
+    // that parse as no record at all were stored as UNKNOWN by the
+    // legacy reader and are dropped here, and an overlong line fails
+    // the stream and stops the loop exactly as it always has
+    while (p::readRecordLine(infile, line)) {
+      const auto record = p::Record::parse(line, context);
+      if (!record.has_value()) {
+        continue; // unparsable: dropped, counted on the context
+      }
+      switch (record->type()) {
+      case p::RecordType::MODEL:
+        m = record->as<p::ModelRecord>().num;
         while (models_.size() < m) {
           // TODO: probably make this a map instead...
           models_.push_back(std::make_shared<zdock::Model>());
         }
         break;
-      case p::PDB::ENDMDL:
+      case p::RecordType::ENDMDL:
         m = 0; // ground level
         break;
       default:
         break;
       }
-      if (p::PDB::UNKNOWN != record.type()) {
-        append(record, m);
+      if (p::RecordType::UNKNOWN != record->type()) {
+        append(record.value(), m);
       }
     }
   } else {
@@ -107,8 +114,8 @@ void PDB::read_(const std::string &fn) {
   }
 }
 
-void PDB::append(const libpdb::PDB &record, const int model) {
-  append(std::make_shared<libpdb::PDB>(record), model);
+void PDB::append(const p::Record &record, const int model) {
+  append(std::make_shared<p::Record>(record), model);
 }
 
 void PDB::append(const Record &r, const int model) {
@@ -117,15 +124,17 @@ void PDB::append(const Record &r, const int model) {
     throw Exception("PDB model index is out of range");
   }
   switch (r->type()) {
-  case p::PDB::UNKNOWN:
+  case p::RecordType::UNKNOWN:
     break; // silently drop 'UNKNOWN' type records
-  case p::PDB::ATOM:
-  case p::PDB::HETATM:
+  case p::RecordType::ATOM:
+  case p::RecordType::HETATM:
     if (filter_(*r)) {
       if (0 == model) {
         atoms_.push_back(r);
         matrix_.conservativeResize(matrix_.rows(), matrix_.cols() + 1);
-        matrix_.col(matrix_.cols() - 1) = e::Vector3d(r->atom.xyz);
+        const auto &atom = r->asAtom();
+        matrix_.col(matrix_.cols() - 1) =
+            e::Vector3d(atom.xyz[0], atom.xyz[1], atom.xyz[2]);
       } else {
         models_[model - 1]->append(r);
         models_[model - 1]->modelNum_ = model;
@@ -135,7 +144,7 @@ void PDB::append(const Record &r, const int model) {
   default:
     break;
   }
-  if (p::PDB::UNKNOWN != r->type()) {
+  if (p::RecordType::UNKNOWN != r->type()) {
     records_.push_back(r);
   }
 }
@@ -156,9 +165,10 @@ const PDB::Matrix &PDB::setMatrix(const Matrix &m) {
       throw Exception("PDB coordinate matrix dimensions do not match its atoms");
     }
     for (size_t i = 0; i < atoms_.size(); ++i) {
-      atoms_[i]->atom.xyz[0] = m(0, i);
-      atoms_[i]->atom.xyz[1] = m(1, i);
-      atoms_[i]->atom.xyz[2] = m(2, i);
+      auto &atom = atoms_[i]->asAtom();
+      atom.xyz[0] = m(0, i);
+      atom.xyz[1] = m(1, i);
+      atom.xyz[2] = m(2, i);
     }
     matrix_ = m;
     return matrix_;
@@ -175,7 +185,7 @@ const std::vector<PDB::Record> &PDB::atoms() const { return atoms_; }
 
 const PDB::Record &PDB::operator[](const int serial) const {
   for (const auto &a : atoms_) {
-    if (serial == a->atom.serialNum) {
+    if (serial == a->asAtom().serialNum) {
       return a;
     }
   }
@@ -184,10 +194,10 @@ const PDB::Record &PDB::operator[](const int serial) const {
 
 const PDB::Record &PDB::operator[](const RecordCoord &coord) const {
   const Record &x = (*this)[coord.serialNum];
-  if (Utils::trim_copy(x->atom.name) == coord.atomName &&
-      Utils::trim_copy(x->atom.residue.name) == coord.resName &&
-      x->atom.residue.chainId == coord.chain &&
-      x->atom.residue.seqNum == coord.resNum) {
+  if (Utils::trim_copy(x->asAtom().name) == coord.atomName &&
+      Utils::trim_copy(x->asAtom().residue.name) == coord.resName &&
+      x->asAtom().residue.chainId == coord.chain &&
+      x->asAtom().residue.seqNum == coord.resNum) {
     return x;
   } else {
     throw AtomNotFoundException("Atom not found.");

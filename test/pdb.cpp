@@ -20,7 +20,7 @@ TEST_CASE("PDB atoms can be located by stable identity", "[pdb]") {
   coordinate.resNum = 1;
 
   REQUIRE(pdb[coordinate] == bySerial);
-  REQUIRE(bySerial->atom.serialNum == 352);
+  REQUIRE(bySerial->asAtom().serialNum == 352);
 }
 
 TEST_CASE("PDB atom lookup rejects absent or mismatched identities", "[pdb]") {
@@ -41,8 +41,8 @@ TEST_CASE("PDB filters affect atoms but preserve input records", "[pdb]") {
   // Invariant: filtering selects coordinates without discarding parsed records.
   const std::string filename = test::getpath("2OOB/ligand.pdb");
   const zdock::PDB unfiltered(filename);
-  const zdock::PDB alphaCarbons(filename, [](const libpdb::PDB &record) {
-    return zdock::Utils::trim_copy(record.atom.name) == "CA";
+  const zdock::PDB alphaCarbons(filename, [](const zdock::pdb::Record &record) {
+    return zdock::Utils::trim_copy(record.asAtom().name) == "CA";
   });
 
   REQUIRE(alphaCarbons.atoms().size() < unfiltered.atoms().size());
@@ -50,7 +50,7 @@ TEST_CASE("PDB filters affect atoms but preserve input records", "[pdb]") {
   REQUIRE(alphaCarbons.matrix().cols() ==
           static_cast<long>(alphaCarbons.atoms().size()));
   for (const auto &atom : alphaCarbons.atoms()) {
-    REQUIRE(zdock::Utils::trim_copy(atom->atom.name) == "CA");
+    REQUIRE(zdock::Utils::trim_copy(atom->asAtom().name) == "CA");
   }
 }
 
@@ -66,17 +66,17 @@ TEST_CASE("PDB value operations preserve observable coordinates", "[pdb]") {
   REQUIRE(assigned.matrix().isApprox(original.matrix()));
   REQUIRE(assigned.records().size() == original.records().size());
 
-  const double originalX = original.atoms()[0]->atom.xyz[0];
-  copied.atoms()[0]->atom.xyz[0] += 10.0;
-  assigned.atoms()[0]->atom.xyz[0] += 20.0;
-  REQUIRE(original.atoms()[0]->atom.xyz[0] == originalX);
+  const double originalX = original.atoms()[0]->asAtom().xyz[0];
+  copied.atoms()[0]->asAtom().xyz[0] += 10.0;
+  assigned.atoms()[0]->asAtom().xyz[0] += 20.0;
+  REQUIRE(original.atoms()[0]->asAtom().xyz[0] == originalX);
   REQUIRE(copied.atoms()[0] != original.atoms()[0]);
   REQUIRE(assigned.atoms()[0] != original.atoms()[0]);
 }
 
 TEST_CASE("PDB copies preserve a filter's selected record graph", "[pdb]") {
   // Invariant: copies preserve prior selections without running the filter again.
-  auto firstAtomOnly = [seen = size_t{0}](const libpdb::PDB &) mutable {
+  auto firstAtomOnly = [seen = size_t{0}](const zdock::pdb::Record &) mutable {
     return seen++ == 0;
   };
   const zdock::PDB original(test::getpath("2OOB/ligand.pdb"), firstAtomOnly);

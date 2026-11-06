@@ -33,28 +33,22 @@ private:
   /**
    * @brief Template ATOM for centroids
    */
-  const libpdb::PDB::Atom templateAtom_ = {
-      0,    // serialNum
-      "N",  // name
-      '\0', // altLoc
-      {
-          "HOH",       // name,
-          'Z',         // chainId,
-          0,           // seqNum
-          '\0'         // insertCode
-      },               // residue
-      {0.0, 0.0, 0.0}, // xyz
-      1.0,             // occupancy
-      0.0,             // tempFactor
-      "N",             // element
-      "\0",            // charge
-      false,           // iszdatom
-      0,               // type
-      0,               // surface
-      0.0,             // rad
-      "\0",            // segid
-      0.0              // chg
-  };
+  const zdock::pdb::AtomRecord templateAtom_ = [] {
+    zdock::pdb::AtomRecord atom;
+    atom.serialNum = 0;
+    atom.name = "N";
+    atom.altLoc = '\0';
+    atom.residue.name = "HOH";
+    atom.residue.chainId = 'Z';
+    atom.residue.seqNum = 0;
+    atom.residue.insertCode = '\0';
+    atom.xyz = {0.0, 0.0, 0.0};
+    atom.occupancy = 1.0;
+    atom.tempFactor = 0.0;
+    atom.element = "N";
+    atom.charge = "";
+    return atom;
+  }();
 
 public:
   /**
