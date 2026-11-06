@@ -163,6 +163,11 @@ struct AtomRecord {
   std::optional<double> tempFactor;
   std::string element;
   std::string charge;
+  // wwPDB segID (columns 73-76), kept when present on a line whose tail
+  // breaks the pinned blank-column literal; empty for records parsed
+  // through the strict standard layout, which requires those columns
+  // blank
+  std::string segid;
   std::optional<Zdatom> zdatom;
 };
 
@@ -568,6 +573,11 @@ using RecordPayload = std::variant<
 // themselves land in a later Phase 2 commit.)
 struct ParseContext {
   int pdbrunVersion = 6;
+  // Input-quality diagnostic: the number of lines this context has seen
+  // that announce themselves as coordinate data (ATOM, HETATM, or a
+  // mark_sur line) yet parse as no record at all -- the caller's signal
+  // that a file is losing atoms, never silently swallowed as UNKNOWN.
+  std::size_t coordinateRejections = 0;
 };
 
 struct WriteContext {
@@ -609,6 +619,12 @@ public:
   // updates the context owned by the caller, never process-global state.
   static std::optional<Record> parse(std::string_view line,
                                      ParseContext &context);
+
+  // True when the line announces itself as coordinate data: an ATOM or
+  // HETATM record name (mark_sur lines included -- they also start with
+  // ATOM). Callers use it together with ParseContext::
+  // coordinateRejections to warn or fail loudly when a file loses atoms.
+  static bool looksLikeCoordinate(std::string_view line);
 
   // The UNKNOWN junk fallback: the line right-aligned in 72 columns with
   // '*' overflow, exactly as the legacy setUnknown produced.

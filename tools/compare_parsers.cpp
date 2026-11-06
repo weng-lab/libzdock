@@ -80,9 +80,16 @@ struct Counters {
   // and never part of the exit decision: lines both parsers store as
   // UNKNOWN or reject even though the line looks like coordinate data
   std::size_t coordinateUnknowns = 0;
+  // deliberate modern gains: lines the legacy parser stores as UNKNOWN
+  // junk while the modern parser classifies as the standard ATOM/
+  // HETATM record they announce -- the expected difference of the
+  // segid/element salvage change, grouped and reported, never part of
+  // the exit decision
+  std::size_t modernGains = 0;
   // baseline classifications
   std::size_t baselineExpectedZdatom = 0;
   std::size_t baselineExpectedV5Token = 0;
+  std::size_t baselineExpectedModernGain = 0;
   std::size_t baselineUnexpected = 0;
 };
 
@@ -103,8 +110,7 @@ std::string shorten(const std::string &text) {
 // ATOM, HETATM, or a mark_sur/ZDATOM-style line (which also starts
 // with ATOM). Used only for the input-quality census.
 bool looksLikeCoordinate(const std::string &line) {
-  return line.compare(0, 4, "ATOM") == 0 ||
-         line.compare(0, 6, "HETATM") == 0;
+  return zdock::pdb::Record::looksLikeCoordinate(line);
 }
 
 // Census signature: record name, line length, and the masked shape of
@@ -716,7 +722,13 @@ bool compareFields(const libpdb::PDB &legacy, const zdock::pdb::Record &modern,
 // Classifies a difference between the current and the bb0032c baseline:
 // the pre-fb720ad ZDATOM 80-column truncation and the pre-ea22558 unbounded
 // v5 USER %s reads are expected; everything else is unexpected.
-enum class BaselineClass { PARITY, EXPECTED_ZDATOM, EXPECTED_V5_TOKEN, UNEXPECTED };
+enum class BaselineClass {
+  PARITY,
+  EXPECTED_ZDATOM,
+  EXPECTED_V5_TOKEN,
+  EXPECTED_MODERN_GAIN,
+  UNEXPECTED
+};
 
 BaselineClass classifyBaseline(const std::string &line,
                                const std::string &current,
@@ -734,6 +746,11 @@ BaselineClass classifyBaseline(const std::string &line,
         (current.size() == 82 && baseline.size() == 80 &&
          current.substr(0, 80) == baseline))
       return BaselineClass::EXPECTED_ZDATOM;
+    // the segid/element salvage: the bb0032c parser stores the line as
+    // UNKNOWN junk while the modern parser classifies the standard
+    // record it announces
+    if (baseline.rfind("UNKNOWN:", 0) == 0)
+      return BaselineClass::EXPECTED_MODERN_GAIN;
   }
   if ((line.rfind("USER  CNAME ", 0) == 0 || line.rfind("USER  COLOR ", 0) == 0 ||
        line.rfind("USER  GFX COLOR ", 0) == 0 ||
@@ -870,29 +887,46 @@ int main(int argc, char **argv) {
                        " | " + shorten(line));
         }
       } else {
-        const std::string newText = parsed->chars(writeContext);
+        const bool modernStandardAtom =
+            (parsed->type() == zdock::pdb::RecordType::ATOM ||
+             parsed->type() == zdock::pdb::RecordType::HETATM ||
+             parsed->type() == zdock::pdb::RecordType::SIGATM) &&
+            !parsed->asAtom().zdatom.has_value();
+        if (legacy.type() == libpdb::PDB::UNKNOWN && modernStandardAtom) {
+          // the deliberate salvage gain: the legacy parser stores the
+          // line as junk while the modern parser classifies the
+          // standard-coordinate record it announces; grouped and
+          // reported, never a parity failure
+          ++counters.modernGains;
+          if (!options.quiet)
+            report(where, lineNo, "modern gain",
+                   coordinateSignature(line));
+        } else {
+          const std::string newText = parsed->chars(writeContext);
 
-        if (static_cast<int>(parsed->type()) !=
-            static_cast<int>(legacy.type())) {
-          ++counters.typeMismatches;
-          parity = false;
-          if (!options.quiet)
-            report(where, lineNo, "type mismatch",
-                   "legacy " + std::to_string((int)legacy.type()) + " new " +
-                       std::to_string((int)parsed->type()) + " | " +
-                       shorten(line));
-        }
-        if (newText != legacyText) {
-          ++counters.textMismatches;
-          parity = false;
-          if (!options.quiet)
-            report(where, lineNo, "text mismatch",
-                   "legacy '" + shorten(legacyText) + "' new '" +
-                       shorten(newText) + "'");
-        }
-        if (!compareFields(legacy, *parsed, where, lineNo, options.quiet)) {
-          ++counters.fieldMismatches;
-          parity = false;
+          if (static_cast<int>(parsed->type()) !=
+              static_cast<int>(legacy.type())) {
+            ++counters.typeMismatches;
+            parity = false;
+            if (!options.quiet)
+              report(where, lineNo, "type mismatch",
+                     "legacy " + std::to_string((int)legacy.type()) +
+                         " new " + std::to_string((int)parsed->type()) +
+                         " | " + shorten(line));
+          }
+          if (newText != legacyText) {
+            ++counters.textMismatches;
+            parity = false;
+            if (!options.quiet)
+              report(where, lineNo, "text mismatch",
+                     "legacy '" + shorten(legacyText) + "' new '" +
+                         shorten(newText) + "'");
+          }
+          if (!compareFields(legacy, *parsed, where, lineNo,
+                             options.quiet)) {
+            ++counters.fieldMismatches;
+            parity = false;
+          }
         }
       }
 
@@ -987,11 +1021,15 @@ int main(int argc, char **argv) {
                                 ? "expected ZDATOM difference"
                                 : klass == BaselineClass::EXPECTED_V5_TOKEN
                                       ? "expected v5 token difference"
+                                : klass == BaselineClass::EXPECTED_MODERN_GAIN
+                                      ? "expected modern gain"
                                       : "UNEXPECTED baseline difference";
         if (klass == BaselineClass::EXPECTED_ZDATOM)
           ++counters.baselineExpectedZdatom;
         else if (klass == BaselineClass::EXPECTED_V5_TOKEN)
           ++counters.baselineExpectedV5Token;
+        else if (klass == BaselineClass::EXPECTED_MODERN_GAIN)
+          ++counters.baselineExpectedModernGain;
         else {
           ++counters.baselineUnexpected;
           if (!options.quiet)
@@ -1006,16 +1044,16 @@ int main(int argc, char **argv) {
 
   printf("files %zu | lines %zu | type mismatches %zu | text mismatches %zu "
          "| field mismatches %zu | state mismatches %zu | rejections %zu "
-         "| coordinate unknowns %zu\n",
+         "| coordinate unknowns %zu | modern gains %zu\n",
          counters.files, counters.lines, counters.typeMismatches,
          counters.textMismatches, counters.fieldMismatches,
          counters.stateMismatches, counters.rejections,
-         counters.coordinateUnknowns);
+         counters.coordinateUnknowns, counters.modernGains);
   if (!options.baseline.empty())
     printf("baseline: expected ZDATOM %zu | expected v5 token %zu | "
-           "UNEXPECTED %zu\n",
+           "expected modern gain %zu | UNEXPECTED %zu\n",
            counters.baselineExpectedZdatom, counters.baselineExpectedV5Token,
-           counters.baselineUnexpected);
+           counters.baselineExpectedModernGain, counters.baselineUnexpected);
   const bool parity =
       counters.typeMismatches == 0 && counters.textMismatches == 0 &&
       counters.fieldMismatches == 0 && counters.stateMismatches == 0 &&

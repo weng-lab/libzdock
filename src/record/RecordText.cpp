@@ -299,6 +299,59 @@ constexpr ColumnSpec kAtomCols[] = {
     {78, 2, ColumnKind::Str},
 };
 
+// The ATOM write layout: the read layout's ten blank columns at 67-76
+// become six blanks plus the wwPDB segID (73-76, left-justified), which
+// is written only when a salvaged record carries one; an empty segid
+// renders four blanks, byte-identical to the pinned writer.
+constexpr ColumnSpec kAtomWriteCols[] = {
+    {0, 6, ColumnKind::Skip},
+    {6, 5, ColumnKind::Int},
+    {11, 1, ColumnKind::Literal, 0, false, ' '},
+    {12, 4, ColumnKind::Str, 0, true, ' ', false, -1},
+    {16, 1, ColumnKind::Char},
+    {17, 4, ColumnKind::Str, 0, true, ' ', false, -1},
+    {21, 1, ColumnKind::Char},
+    {22, 4, ColumnKind::Int},
+    {26, 1, ColumnKind::Char},
+    {27, 3, ColumnKind::Literal, 0, false, ' '},
+    {30, 8, ColumnKind::Real, 3},
+    {38, 8, ColumnKind::Real, 3},
+    {46, 8, ColumnKind::Real, 3},
+    {54, 6, ColumnKind::Real, 2},
+    {60, 6, ColumnKind::Real, 2},
+    {66, 6, ColumnKind::Literal, 0, false, ' '},
+    {72, 4, ColumnKind::Str, 0, true, ' ', false, -1},
+    {76, 2, ColumnKind::Str},
+    {78, 2, ColumnKind::Str},
+};
+
+// The salvage read layout for standard ATOM/HETATM lines whose wwPDB
+// segID (73-76) breaks the pinned blank-column literal: the standard
+// columns through the coordinates are required, occupancy and
+// tempFactor parse when their columns hold reals, and the tail columns
+// carry the segID, element, and charge without the blank requirement.
+constexpr ColumnSpec kAtomSalvageCols[] = {
+    {0, 6, ColumnKind::Skip},
+    {6, 5, ColumnKind::Int},
+    {11, 1, ColumnKind::Literal, 0, false, ' '},
+    {12, 4, ColumnKind::Str, 0, true, ' ', false, -1},
+    {16, 1, ColumnKind::Char},
+    {17, 4, ColumnKind::Str, 0, true, ' ', false, -1},
+    {21, 1, ColumnKind::Char},
+    {22, 4, ColumnKind::Int},
+    {26, 1, ColumnKind::Char},
+    {27, 3, ColumnKind::Literal, 0, false, ' '},
+    {30, 8, ColumnKind::Real, 3},
+    {38, 8, ColumnKind::Real, 3},
+    {46, 8, ColumnKind::Real, 3},
+    {54, 6, ColumnKind::Real, 2},
+    {60, 6, ColumnKind::Real, 2},
+    {66, 6, ColumnKind::Skip},
+    {72, 4, ColumnKind::Str, 0, true, ' ', false, -1},
+    {76, 2, ColumnKind::Str},
+    {78, 2, ColumnKind::Str},
+};
+
 // The distinct 82-column ZDATOM layout (mark_sur extension): type,
 // surface, radius, segment id, and charge instead of occupancy,
 // tempFactor, element, and charge. The declared record length is 82.
@@ -1009,6 +1062,66 @@ bool parseAtomColumns(ColumnReader &reader, Record &record,
   return true;
 }
 
+// The salvage binder: the standard head (serial through the
+// coordinates) is required, occupancy and tempFactor are set when
+// their columns hold reals (a failed readReal has already advanced the
+// cursor past its field), and the wwPDB tail columns are kept when
+// present instead of requiring the pinned blank-column literal.
+bool parseAtomSalvageColumns(ColumnReader &reader, Record &record,
+                             const ColumnSpec *cols) {
+  reader.skipChars(cols[0].width);
+  std::int64_t serial = 0;
+  if (!reader.readInt(cols[1].width, &serial))
+    return false;
+  AtomRecord &atom = record.as<AtomRecord>();
+  atom.serialNum = static_cast<int>(serial);
+  if (!reader.matchLiterals(cols[2].fill, cols[2].width))
+    return false;
+  atom.name = reader.readString(cols[3].width);
+  atom.altLoc = reader.readChars(cols[4].width)[0];
+  atom.residue.name = reader.readString(cols[5].width);
+  atom.residue.chainId = reader.readChars(cols[6].width)[0];
+  std::int64_t seq = 0;
+  if (!reader.readInt(cols[7].width, &seq))
+    return false;
+  atom.residue.seqNum = static_cast<int>(seq);
+  atom.residue.insertCode = reader.readChars(cols[8].width)[0];
+  if (!reader.matchLiterals(cols[9].fill, cols[9].width))
+    return false;
+  double value = 0.0;
+  if (!reader.readReal(cols[10].width, &value))
+    return false;
+  atom.xyz[0] = value;
+  if (!reader.readReal(cols[11].width, &value))
+    return false;
+  atom.xyz[1] = value;
+  if (!reader.readReal(cols[12].width, &value))
+    return false;
+  atom.xyz[2] = value;
+  if (reader.readReal(cols[13].width, &value))
+    atom.occupancy = value;
+  if (reader.readReal(cols[14].width, &value))
+    atom.tempFactor = value;
+  reader.skipChars(cols[15].width);
+  atom.segid = reader.readString(cols[16].width);
+  atom.element = reader.readString(cols[17].width);
+  atom.charge = reader.readString(cols[18].width);
+  // the salvage exists to keep a tail the strict layout refuses; a line
+  // whose tail carries no segID, element, or charge has nothing to keep
+  // and stays on the junk path (truncated standard lines never reach
+  // this binder, and pinned CRLF junk keeps its fallback). An overflow
+  // '*' in the tail marks an unrepresentable value -- the pinned
+  // loud-degradation case -- and must not be reclassified as a clean
+  // record.
+  if (atom.segid.empty() && atom.element.empty() && atom.charge.empty())
+    return false;
+  if (atom.segid.find('*') != std::string::npos ||
+      atom.element.find('*') != std::string::npos ||
+      atom.charge.find('*') != std::string::npos)
+    return false;
+  return true;
+}
+
 // The ZDATOM payload binder: fills the mark_sur extension on a fresh
 // record, so a failed standard attempt leaves nothing behind.
 bool parseZdatomColumns(ColumnReader &reader, Record &record,
@@ -1084,8 +1197,9 @@ void writeAtomColumns(const AtomRecord &atom, ColumnWriter &writer,
   writer.writeReal(atom.xyz[2], cols[12]);
   writer.writeReal(atom.occupancy.value_or(0.0), cols[13]);
   writer.writeReal(atom.tempFactor.value_or(0.0), cols[14]);
-  writer.writeString(atom.element, cols[16]);
-  writer.writeString(atom.charge, cols[17]);
+  writer.writeString(atom.segid, cols[16]);
+  writer.writeString(atom.element, cols[17]);
+  writer.writeString(atom.charge, cols[18]);
 }
 
 void writeZdatomColumns(const AtomRecord &atom, ColumnWriter &writer,
@@ -2855,6 +2969,19 @@ std::optional<Record> Record::parse(std::string_view line,
       if (parseZdatomColumns(reader, record, kZdatomCols))
         return record;
     }
+    { // the salvage fallback: a standard head whose wwPDB segID (73-76)
+      // and element (77-78) tail breaks the pinned blank-column
+      // literal, yet fails the numeric mark_sur tail -- classified as
+      // the standard record it announces itself as, with the tail
+      // fields kept; a genuine numeric ZDATOM line never reaches this
+      // path because the ZDATOM parse above accepts it
+      ColumnReader reader(line);
+      Record record(type);
+      if (parseAtomSalvageColumns(reader, record, kAtomSalvageCols))
+        return record;
+    }
+    if (Record::looksLikeCoordinate(line))
+      context.coordinateRejections += 1;
     return std::nullopt; // the caller falls back to the junk record
   }
   case RecordType::HELIX: {
@@ -3279,6 +3406,11 @@ std::optional<Record> Record::parse(std::string_view line,
   }
 }
 
+bool Record::looksLikeCoordinate(std::string_view line) {
+  return line.compare(0, 4, "ATOM") == 0 ||
+         line.compare(0, 6, "HETATM") == 0;
+}
+
 Record Record::unknownFrom(std::string_view line) {
   Record record(RecordType::UNKNOWN);
   std::string junk(kJunkWidth, ' ');
@@ -3678,7 +3810,7 @@ std::size_t Record::write_into(char (&out)[83],
     if (asAtom().zdatom.has_value()) {
       writeZdatomColumns(asAtom(), writer, kZdatomCols);
     } else {
-      writeAtomColumns(asAtom(), writer, kAtomCols);
+      writeAtomColumns(asAtom(), writer, kAtomWriteCols);
     }
     break;
   case RecordType::AUTHOR:

@@ -53,6 +53,12 @@ WHAT_PREFIXES = (
 # mismatches and never part of any exit decision.
 INPUT_WHAT_PREFIXES = ("coordinate unknown: ",)
 INPUT_WHATS = ("coordinate unknown",)
+# Deliberate modern gains: legacy stores the line as junk while the
+# modern parser classifies the standard coordinate record it announces
+# (the segid/element salvage); expected differences, grouped, never
+# part of any exit decision.
+GAIN_WHAT_PREFIXES = ("modern gain: ",)
+GAIN_WHATS = ("modern gain",)
 QUOTE_RE = re.compile(r"^legacy '(.*?)' new '(.*)'$", re.DOTALL)
 BASELINE_QUOTE_RE = re.compile(r"^baseline '(.*?)' modern '(.*)'$", re.DOTALL)
 
@@ -155,7 +161,7 @@ def parse_report_line(raw: str) -> Optional[tuple[str, str, str, str]]:
     if match is None:
         return None
     rest = match.group("rest")
-    for prefix in INPUT_WHAT_PREFIXES + WHAT_PREFIXES:
+    for prefix in GAIN_WHAT_PREFIXES + INPUT_WHAT_PREFIXES + WHAT_PREFIXES:
         if rest.startswith(prefix):
             return (
                 match.group("path"),
@@ -185,6 +191,7 @@ class MergedResult:
     files_with_mismatches: int = 0
     signatures: list[SignatureEntry] = field(default_factory=list)
     input_signatures: list[SignatureEntry] = field(default_factory=list)
+    gain_signatures: list[SignatureEntry] = field(default_factory=list)
 
     def to_json(self) -> dict[str, object]:
         """Return the JSON-ready structure written to merged.json."""
@@ -212,6 +219,14 @@ class MergedResult:
                     "example": entry.example,
                 }
                 for entry in self.input_signatures
+            ],
+            "gain_signatures": [
+                {
+                    "signature": entry.signature,
+                    "count": entry.count,
+                    "example": entry.example,
+                }
+                for entry in self.gain_signatures
             ],
         }
 
@@ -241,6 +256,7 @@ class MergedResult:
             files_with_mismatches=as_int(data.get("files_with_mismatches", 0)),
             signatures=entries("signatures"),
             input_signatures=entries("input_signatures"),
+            gain_signatures=entries("gain_signatures"),
         )
 
 
@@ -279,6 +295,9 @@ class SignatureAccumulator:
         self.input_counts: Counter[str] = Counter()
         self.input_examples: dict[str, str] = {}
         self.input_files: dict[str, set[str]] = {}
+        self.gain_counts: Counter[str] = Counter()
+        self.gain_examples: dict[str, str] = {}
+        self.gain_files: dict[str, set[str]] = {}
         self.unparsed_lines = 0
 
     def add_report(self, raw: str) -> None:
@@ -295,6 +314,11 @@ class SignatureAccumulator:
             self.input_counts[signature] += 1
             self.input_examples.setdefault(signature, location)
             self.input_files.setdefault(signature, set()).add(path)
+            return
+        if what in GAIN_WHATS:
+            self.gain_counts[signature] += 1
+            self.gain_examples.setdefault(signature, location)
+            self.gain_files.setdefault(signature, set()).add(path)
             return
         self.counts[signature] += 1
         self.examples.setdefault(signature, location)
@@ -328,6 +352,10 @@ def merge_dirs(dirs: list[Path]) -> MergedResult:
         )
         for signature, count in accumulator.input_counts.most_common()
     ]
+    merged.gain_signatures = [
+        SignatureEntry(signature, count, accumulator.gain_examples[signature])
+        for signature, count in accumulator.gain_counts.most_common()
+    ]
     return merged
 
 
@@ -344,6 +372,14 @@ def print_merge(merged: MergedResult, top: int) -> None:
     for entry in merged.signatures[:top]:
         print(f"{entry.count:>9}  {truncate(entry.signature, 110)}")
         print(f"            e.g. {entry.example}")
+    if merged.gain_signatures:
+        print(
+            "expected modern gains (legacy junk vs modern standard-atom "
+            "salvage; grouped, never part of any exit decision):"
+        )
+        for entry in merged.gain_signatures[:top]:
+            print(f"{entry.count:>9}  {truncate(entry.signature, 110)}")
+            print(f"            e.g. {entry.example}")
     if merged.input_signatures:
         print(
             "input-quality census (separate from parser mismatches; never "

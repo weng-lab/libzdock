@@ -692,6 +692,34 @@ formatting case now restores the version and the USER-comparison cases
 pin the legacy globals explicitly (ten consecutive full-suite runs
 green).
 
+Behavior change (deliberate modern deviation, corpus decision): the
+migrated-input census showed 877,932 ATOM/HETATM lines in 397 files
+that both parsers stored as UNKNOWN junk -- standard coordinate lines
+whose wwPDB tail (segID at 73-76, element at 77-78, charge at 79-80)
+breaks the legacy standard layout's pinned ten-blank literal at 67-76,
+routed to the mark_sur ZDATOM row whose numeric tail then rejects the
+letters. Since the corpus decision is that these are valid inputs, the
+modern parser gained a salvage step after the standard and ZDATOM
+attempts: when the standard columns through the coordinates parse, the
+line classifies as the ATOM/HETATM it announces, with segID, element,
+and charge kept (occupancy/tempFactor parsed when their columns hold
+reals) and the write layout rendering the segID back at 73-76 so the
+form round-trips. A genuine numeric ZDATOM line never reaches the
+salvage (the ZDATOM attempt precedes it), the pinned CRLF-junk and
+`*****` charge-overflow renders stay on the junk path (a tail with no
+segID/element/charge, or containing the `*` overflow marker, is never
+salvaged), and a coordinate-looking line that still parses as no record
+increments the caller-visible `ParseContext::coordinateRejections`
+(the loud, non-silent path; `Record::looksLikeCoordinate` is the
+public predicate). The corpus rerun reports 866,460 salvaged lines in
+394 files -- reported by the harness as expected modern gains, grouped
+by tail shape and never part of an exit decision, with the bb0032c
+baseline pass independently classifying the same 866,460 as expected
+and 0 unexpected -- and the remaining census is 11,472 lines in 3
+files: 7,614 mark_sur lines whose y/z coordinates overflow to `*****`
+(unrepresentable values) and 3,858 mmCIF-converted lines whose fields
+sit at shifted non-fixed-format columns; both stay loud by design.
+
 Each commit touches only `include/Record.hpp`, new files under
 `src/pdb/` (or a new `src/record/`), and `test/record.cpp`; the legacy
 class, its tables, and its tests are not modified after commit 1 lands.

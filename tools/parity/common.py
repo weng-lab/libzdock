@@ -18,6 +18,7 @@ COUNT_FIELDS = (
     "state_mismatches",
     "rejections",
     "coordinate_unknowns",
+    "modern_gains",
 )
 
 

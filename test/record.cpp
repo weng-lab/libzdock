@@ -1701,6 +1701,128 @@ TEST_CASE("Atom lines fall back to ZDATOM and to junk like the legacy parse",
   REQUIRE(truncated->chars() == std::string(libpdb::PDB("ATOM").chars()));
 }
 
+TEST_CASE("Standard atom lines with a wwPDB tail salvage their fields",
+          "[record-parity]") {
+  // Invariant: an ATOM/HETATM line that fails the pinned blank-column
+  // literal at 67-76 because it carries a wwPDB segID (73-76, left-
+  // justified), element (77-78, right-justified), and optionally a
+  // charge (79-80), and that also fails the numeric mark_sur tail,
+  // parses as the standard record it announces with the tail fields
+  // kept, renders byte-identically to its input, and round-trips
+  // stably. The legacy parser stores such lines as junk -- the
+  // deliberate modern gain, asserted here as a classification
+  // difference rather than text parity. Each fixture is assembled from
+  // the layout: 6-byte prefix, %5d serial, space, %-4s name, %c altLoc,
+  // %-4s residue, %c chain, %4d sequence, %c insert code, three spaces,
+  // %8.3f coordinates, %6.2f occupancy, %6.2f tempFactor, six blanks,
+  // %-4s segID, %2s element, %2s charge.
+  const std::string head =
+      "    1"  // %5d serial
+      " "      // literal space
+      " CA "   // %-4s atom name
+      " "      // %c altLoc
+      "ALA "   // %-4s residue name
+      "A"      // %c chain id
+      "   1"   // %4d sequence
+      " "      // %c insert code
+      "   "    // literal spaces
+      "   1.000" "   2.000" "   3.000" // %8.3f coordinates
+      "  1.00" " 22.00";               // %6.2f occupancy, tempFactor
+  struct Fixture {
+    const char *prefix; // "ATOM  " or "HETATM"
+    const char *tail;   // segID, element, charge as rendered
+    const char *segid;
+    const char *element; // read with the leading blank kept, as the
+                         // strict layout reads it
+    const char *charge;
+  };
+  const std::vector<Fixture> fixtures = {
+      // the dominant corpus shape: chain-letter segID, one-letter element
+      {"ATOM  ", "      A    C", "A", " C", ""},
+      // a segID carrying digits ("1SG"-style masked shape)
+      {"ATOM  ", "      1AB  N", "1AB", " N", ""},
+      // a charge in columns 79-80 (right-justified like the element)
+      {"ATOM  ", "      A    C2-", "A", " C", "2-"},
+      // the HETATM shape
+      {"HETATM", "      W    O", "W", " O", ""},
+  };
+  for (const Fixture &fixture : fixtures) {
+    const std::string line =
+        std::string(fixture.prefix) + head + fixture.tail;
+    CAPTURE(line);
+    zdock::pdb::ParseContext context;
+    const auto parsed = zdock::pdb::Record::parse(line, context);
+    const libpdb::PDB legacy(line.c_str());
+    REQUIRE(parsed.has_value());
+    REQUIRE((parsed->type() == zdock::pdb::RecordType::ATOM ||
+             parsed->type() == zdock::pdb::RecordType::HETATM));
+    // the deliberate divergence from legacy: junk on the old path
+    REQUIRE(legacy.type() == libpdb::PDB::UNKNOWN);
+    const auto &atom = parsed->asAtom();
+    REQUIRE_FALSE(atom.zdatom.has_value());
+    REQUIRE(atom.serialNum == 1);
+    REQUIRE(atom.name == " CA");
+    REQUIRE(atom.residue.name == "ALA");
+    REQUIRE(atom.residue.chainId == 'A');
+    REQUIRE(atom.residue.seqNum == 1);
+    REQUIRE(atom.xyz[0] == 1.0);
+    REQUIRE(atom.xyz[1] == 2.0);
+    REQUIRE(atom.xyz[2] == 3.0);
+    REQUIRE(atom.occupancy.value_or(-1.0) == 1.0);
+    REQUIRE(atom.tempFactor.value_or(-1.0) == 22.0);
+    REQUIRE(atom.segid == fixture.segid);
+    REQUIRE(atom.element == fixture.element);
+    REQUIRE(atom.charge == fixture.charge);
+    // the render restores the input byte-for-byte and round-trips
+    REQUIRE(parsed->chars() == line);
+    zdock::pdb::ParseContext again;
+    const auto reread = zdock::pdb::Record::parse(parsed->chars(), again);
+    REQUIRE(reread.has_value());
+    REQUIRE(reread->asAtom().segid == atom.segid);
+    REQUIRE(reread->asAtom().element == atom.element);
+    REQUIRE(reread->chars() == parsed->chars());
+    // the tail stays out of the coordinate-rejection census
+    REQUIRE(context.coordinateRejections == 0);
+  }
+}
+
+TEST_CASE("Unparsable coordinate lines are counted, not silent",
+          "[record-parity]") {
+  // Invariant: a coordinate-looking line that no layout accepts returns
+  // no record, increments the caller's ParseContext rejection counter
+  // (the warning/error hook), and is distinguishable from non-
+  // coordinate junk, which does not count; the pinned charge-overflow
+  // render degrades to junk and counts too.
+  const std::string brokenCoords = "ATOM      1  CA  ALA A   1      XX.000"
+                                   "   2.000   3.000  1.00 22.00      A"
+                                   "    C";
+  zdock::pdb::ParseContext context;
+  REQUIRE_FALSE(zdock::pdb::Record::parse(brokenCoords, context).has_value());
+  REQUIRE(context.coordinateRejections == 1);
+  REQUIRE(zdock::pdb::Record::looksLikeCoordinate(brokenCoords));
+
+  const std::string junk = "GARBAGE AND NOT A RECORD AT ALL";
+  const auto junkRecord = zdock::pdb::Record::parse(junk, context);
+  REQUIRE(junkRecord.has_value());
+  REQUIRE(junkRecord->type() == zdock::pdb::RecordType::UNKNOWN);
+  REQUIRE(context.coordinateRejections == 1); // unchanged
+  REQUIRE_FALSE(zdock::pdb::Record::looksLikeCoordinate(junk));
+
+  // the pinned '*****' charge-overflow render degrades loudly and counts
+  const std::string overflow =
+      "ATOM      1  CA  ALA A   1       1.000   2.000   3.000  1     1 "
+      "1.23     ALA -12.3";
+  zdock::pdb::ParseContext overflowContext;
+  const auto rendered = zdock::pdb::Record::parse(overflow, overflowContext);
+  REQUIRE(rendered.has_value());
+  const std::string stars = rendered->chars();
+  REQUIRE(stars.find("*****") != std::string::npos);
+  zdock::pdb::ParseContext rereadContext;
+  REQUIRE(
+      !zdock::pdb::Record::parse(stars, rereadContext).has_value());
+  REQUIRE(rereadContext.coordinateRejections == 1);
+}
+
 TEST_CASE("ZDATOM charges survive the pinned cases", "[record-parity]") {
   // Invariant: the pinned charge forms render across the full 82-column
   // layout, the zero-less input normalizes to "-0.15", and a charge too

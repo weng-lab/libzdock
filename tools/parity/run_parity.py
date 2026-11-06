@@ -54,11 +54,13 @@ SUMMARY_RE = re.compile(
     r"\| state mismatches (?P<state_mismatches>\d+) "
     r"\| rejections (?P<rejections>\d+)"
     r"(?: \| coordinate unknowns (?P<coordinate_unknowns>\d+))?"
+    r"(?: \| modern gains (?P<modern_gains>\d+))?"
 )
 BASELINE_RE = re.compile(
     r"baseline: expected ZDATOM (?P<zdatom>\d+) "
-    r"\| expected v5 token (?P<v5_token>\d+) "
-    r"\| UNEXPECTED (?P<unexpected>\d+)"
+    r"\| expected v5 token (?P<v5_token>\d+)"
+    r"(?: \| expected modern gain (?P<modern_gain>\d+))?"
+    r" \| UNEXPECTED (?P<unexpected>\d+)"
 )
 
 
@@ -195,6 +197,9 @@ def parse_summary(text: str) -> Optional[dict[str, int]]:
     if baseline is not None:
         counters["baseline_expected_zdatom"] = int(baseline.group("zdatom"))
         counters["baseline_expected_v5_token"] = int(baseline.group("v5_token"))
+        counters["baseline_expected_modern_gain"] = int(
+            baseline.group("modern_gain") or 0
+        )
         counters["baseline_unexpected"] = int(baseline.group("unexpected"))
     return counters
 
@@ -555,7 +560,8 @@ def report_run(output: Path, summary: RunSummary, interrupted: bool) -> int:
         f"field mismatches {totals['field_mismatches']} | "
         f"state mismatches {totals['state_mismatches']} | "
         f"rejections {totals['rejections']} | "
-        f"coordinate unknowns {totals.get('coordinate_unknowns', 0)}"
+        f"coordinate unknowns {totals.get('coordinate_unknowns', 0)} | "
+        f"modern gains {totals.get('modern_gains', 0)}"
     )
     if summary.shard_errors:
         print(
