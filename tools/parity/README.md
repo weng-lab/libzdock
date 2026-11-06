@@ -93,3 +93,69 @@ Exit codes of the runner: 0 = all shards ran, 1 = shard errors, 2 = usage or
 setup error, 130 = interrupted (resumable). Results stay out of the
 repository, matching the rewrite plan's rule that mismatch reports are not
 committed.
+
+## Legacy output snapshot (`snapshot.py`)
+
+The legacy libpdb++ parser is being retired; its frozen output keeps the
+parity checks runnable after removal. The snapshot lives outside the
+repository — `parity-private/legacy-snapshot/` at first, moving to
+`/zdockdata` on CephFS — and never enters git.
+
+One-time build: the snapshot's dump side is the bb0032c parser (tag
+`legacy-final`), built out-of-tree against a bb0032c worktree with a
+small generated meta header (commit, flags, harness version):
+
+```console
+git worktree add /path/bb0032c legacy-final
+git -C /path/bb0032c submodule update --init --recursive
+make -C /path/bb0032c all
+printf '#define HARNESS_COMMIT "legacy-final (bb0032c)"\n#define HARNESS_FLAGS "-O2 -std=c++14"\n#define HARNESS_VERSION "<harness commit>"\n' > /path/harness_meta.h
+g++ -O2 -std=c++14 -Wall -Wextra -pedantic -include /path/harness_meta.h \
+    -I/path/bb0032c/contrib/eigen -I/path/bb0032c/include \
+    tools/compare_parsers_dump.cpp /path/bb0032c/lib/libzdock.a \
+    -o /path/baseline_dump
+make zstdio   # the zstd stream filter (uses the system libzstd)
+```
+
+Generate — run the bb0032c dump over the corpus and freeze its records
+(zstd-compressed JSON Lines; ~1 GiB chunks that never split an input
+file; each chunk written to a temporary name and renamed when complete,
+so an interrupted run never leaves a partial chunk that looks finished;
+a manifest lists every chunk's SHA-256/size/record count and every
+input file's path/hash/chunk, all paths relative to the snapshot
+directory, plus the dump's commit, compiler, flags, and harness
+version):
+
+```console
+python3 tools/parity/snapshot.py generate --input /corpus/input \
+    --dump /path/baseline_dump --output /path/legacy-snapshot --jobs 4
+```
+
+Verify — re-hash every chunk and reconcile it against the manifest
+(sizes, record and file counts, per-file paths and hashes), reporting
+any chunk the manifest does not know about:
+
+```console
+python3 tools/parity/snapshot.py verify --snapshot /path/legacy-snapshot
+```
+
+Compare — check the modern parser against the snapshot **without
+building any legacy code**: the frozen raw input lines are re-parsed by
+the modern harness (`bin/compare_parsers --dump-json`), and every
+difference is classified into the same expected-difference groups as
+the live bb0032c comparison (the pinned pre-`fb720ad` ZDATOM 80-column
+clamp, the pre-`ea22558` unbounded v5 USER token reads, and the
+deliberate segid/element salvage gains). Parsed-field differences and
+anything else are unexpected and fail the run. The compare is
+self-sufficient — the live corpus is never touched, so the snapshot
+stays valid when files move or vanish:
+
+```console
+python3 tools/parity/snapshot.py compare \
+    --snapshot /path/legacy-snapshot --jobs 4
+```
+
+Exit codes for all three modes: 0 = success, 1 = mismatches or
+verification failure, 2 = usage or setup error, 130 = interrupted
+(generate leaves only `.tmp` partials and no manifest; remove the
+output directory to restart).

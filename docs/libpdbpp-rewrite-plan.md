@@ -720,6 +720,33 @@ files: 7,614 mark_sur lines whose y/z coordinates overflow to `*****`
 (unrepresentable values) and 3,858 mmCIF-converted lines whose fields
 sit at shifted non-fixed-format columns; both stay loud by design.
 
+Legacy output snapshot (pre-removal freeze): before the legacy parser
+is retired, its observable output is frozen so the parity checks stay
+runnable with no legacy code in the tree. bb0032c is tagged
+`legacy-final`; `tools/parity/snapshot.py` generates a snapshot from an
+out-of-tree bb0032c build of `tools/compare_parsers_dump.cpp` (one JSON
+Line per input file: raw line, record type, parsed fields in the same
+names and formats the harness compares, and rendered text) as
+zstd-compressed ~1 GiB chunks that never split an input file, each
+written to a temporary name and renamed only when complete; the
+manifest lists every chunk's SHA-256/size/record count and every input
+file's path/hash/chunk with the dump's commit, compiler, flags, and
+harness version, all relative to the snapshot directory so it can move
+(to `/zdockdata` on CephFS; no corpus data is committed). `verify`
+re-hashes every chunk and reconciles it against the manifest; `compare`
+re-parses the frozen raw lines with the modern parser and applies the
+same expected-difference groups as the live bb0032c comparison --
+self-sufficient, so it stays valid when the live corpus changes (the
+corpus was observed churning during generation: directories deleted
+and restored by another process; capture-once semantics plus the
+missing-at-generation manifest list keep the freeze consistent). The
+full-corpus snapshot is 7 chunks, 7,099 MiB compressed, 219,219,231
+records, 78,188 files, 0 missing; its compare reproduces the live
+bb0032c run exactly (213,942,533 expected ZDATOM clamp differences,
+866,460 expected salvage gains, 0 unexpected, 11,472 coordinate
+unknowns) and detects the planted type, field, text, and PDBRUN-state
+errors identically.
+
 Each commit touches only `include/Record.hpp`, new files under
 `src/pdb/` (or a new `src/record/`), and `test/record.cpp`; the legacy
 class, its tables, and its tests are not modified after commit 1 lands.

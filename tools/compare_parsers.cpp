@@ -28,10 +28,16 @@
 // strip, the stream failure on overlong lines), so CRLF files compare
 // the same way the servers read them.
 //
-// Usage:
+// Modes:
 //   bin/compare_parsers <file-or-directory> [--baseline <exe>]
 //       [--files-from <list>] [--max-files N] [--max-lines N]
 //       [--all-extensions] [--quiet]
+//
+//   bin/compare_parsers --dump-json <file>
+//       emit the modern parser's records for one file as one JSON line
+//       ({"records":[{"line","type","text","fields"},...]}) with the
+//       same field names and value formats the snapshot carries; this
+//       is the modern side of tools/parity/snapshot.py compare.
 //
 // With --files-from, <list> holds one input path per line (visited in
 // listed order instead of a sorted walk); the first argument is then only
@@ -719,6 +725,582 @@ bool compareFields(const libpdb::PDB &legacy, const zdock::pdb::Record &modern,
   return differ.parity;
 }
 
+// ---------------------------------------------------------------------------
+// Modern-side JSON emission for the snapshot compare (tools/parity/
+// snapshot.py): the same field names and value formats the bb0032c
+// dump emits, produced from the modern typed payloads.
+// ---------------------------------------------------------------------------
+
+std::string jsonEscape(const std::string &s) {
+  std::string out;
+  out.reserve(s.size() + 8);
+  for (unsigned char c : s) {
+    switch (c) {
+    case '"':
+      out += "\\\"";
+      break;
+    case '\\':
+      out += "\\\\";
+      break;
+    case '\b':
+      out += "\\b";
+      break;
+    case '\f':
+      out += "\\f";
+      break;
+    case '\n':
+      out += "\\n";
+      break;
+    case '\r':
+      out += "\\r";
+      break;
+    case '\t':
+      out += "\\t";
+      break;
+    default:
+      if (c < 0x20 || c >= 0x80) {
+        // control bytes and non-ASCII bytes escape as \u00XX, matching
+        // the snapshot's dump exactly
+        char buf[8];
+        std::snprintf(buf, sizeof(buf), "\\u%04x", c);
+        out += buf;
+      } else {
+        out += static_cast<char>(c);
+      }
+    }
+  }
+  return out;
+}
+
+std::string jsonStr(const std::string &s) {
+  return "\"" + jsonEscape(s) + "\"";
+}
+
+std::string jsonInt(long v) {
+  return std::to_string(v);
+}
+
+std::string jsonReal(double v) {
+  char buf[40];
+  std::snprintf(buf, sizeof(buf), "%.17g", v);
+  return buf;
+}
+
+std::string jsonChar(char c) { return jsonStr(std::string(1, c)); }
+
+// The modern parsed-field emission for one record: field names mirror
+// the legacy union paths the parity harness compares.
+std::string emitModernFields(const zdock::pdb::Record &r) {
+  std::ostringstream os;
+  os << "{";
+  switch (r.type()) {
+  case zdock::pdb::RecordType::ATOM:
+  case zdock::pdb::RecordType::HETATM:
+  case zdock::pdb::RecordType::SIGATM: {
+    if (r.asAtom().zdatom.has_value()) {
+      const auto &z = *r.asAtom().zdatom;
+      os << "\"zdatom.type\":" << jsonInt(z.type)
+         << ",\"zdatom.surface\":" << jsonInt(z.surface)
+         << ",\"zdatom.rad\":" << jsonReal(z.rad)
+         << ",\"zdatom.segid\":" << jsonStr(z.segid)
+         << ",\"zdatom.chg\":" << jsonReal(z.chg);
+      break;
+    }
+    const auto &a = r.asAtom();
+    os << "\"serialNum\":" << jsonInt(a.serialNum)
+       << ",\"name\":" << jsonStr(a.name)
+       << ",\"altLoc\":" << jsonChar(a.altLoc)
+       << ",\"residue.name\":" << jsonStr(a.residue.name)
+       << ",\"residue.chainId\":" << jsonChar(a.residue.chainId)
+       << ",\"residue.seqNum\":" << jsonInt(a.residue.seqNum)
+       << ",\"residue.insertCode\":" << jsonChar(a.residue.insertCode);
+    for (int i = 0; i < 3; ++i)
+      os << ",\"xyz[" << i << "]\":" << jsonReal(a.xyz[i]);
+    os << ",\"occupancy\":" << jsonReal(a.occupancy.value_or(0.0))
+       << ",\"tempFactor\":" << jsonReal(a.tempFactor.value_or(0.0))
+       << ",\"element\":" << jsonStr(a.element)
+       << ",\"charge\":" << jsonStr(a.charge);
+    break;
+  }
+  case zdock::pdb::RecordType::ANISOU:
+  case zdock::pdb::RecordType::SIGUIJ: {
+    const auto &a = r.as<zdock::pdb::AnisouRecord>();
+    os << "\"serialNum\":" << jsonInt(a.serialNum)
+       << ",\"name\":" << jsonStr(a.name)
+       << ",\"altLoc\":" << jsonChar(a.altLoc)
+       << ",\"residue.name\":" << jsonStr(a.residue.name)
+       << ",\"residue.chainId\":" << jsonChar(a.residue.chainId)
+       << ",\"residue.seqNum\":" << jsonInt(a.residue.seqNum)
+       << ",\"residue.insertCode\":" << jsonChar(a.residue.insertCode);
+    for (int i = 0; i < 6; ++i)
+      os << ",\"u[" << i << "]\":" << jsonInt(a.u[i]);
+    break;
+  }
+  case zdock::pdb::RecordType::AUTHOR: {
+    const auto &a = r.as<zdock::pdb::AuthorRecord>();
+    os << "\"continuation\":" << jsonInt(a.continuation)
+       << ",\"authors\":" << jsonStr(a.authors);
+    break;
+  }
+  case zdock::pdb::RecordType::CAVEAT: {
+    const auto &c = r.as<zdock::pdb::CaveatRecord>();
+    os << "\"continuation\":" << jsonInt(c.continuation)
+       << ",\"id\":" << jsonStr(c.id) << ",\"text\":" << jsonStr(c.text);
+    break;
+  }
+  case zdock::pdb::RecordType::COMPND: {
+    const auto &c = r.as<zdock::pdb::CompndRecord>();
+    os << "\"continuation\":" << jsonInt(c.continuation)
+       << ",\"compound\":" << jsonStr(c.compound);
+    break;
+  }
+  case zdock::pdb::RecordType::CONECT: {
+    const auto &c = r.as<zdock::pdb::ConectRecord>();
+    os << "\"serialNum\":" << jsonInt(c.serialNum);
+    for (int i = 0; i < 4; ++i)
+      os << ",\"covalent[" << i << "]\":" << jsonInt(c.covalent[i]);
+    for (int b = 0; b < 2; ++b) {
+      for (int i = 0; i < 2; ++i)
+        os << ",\"bonds[" << b << "].hydrogen[" << i
+           << "]\":" << jsonInt(c.bonds[b].hydrogen[i]);
+      os << ",\"bonds[" << b << "].salt\":" << jsonInt(c.bonds[b].salt);
+    }
+    break;
+  }
+  case zdock::pdb::RecordType::CRYST1: {
+    const auto &c = r.as<zdock::pdb::Cryst1Record>();
+    os << "\"a\":" << jsonReal(c.a) << ",\"b\":" << jsonReal(c.b)
+       << ",\"c\":" << jsonReal(c.c) << ",\"alpha\":" << jsonReal(c.alpha)
+       << ",\"beta\":" << jsonReal(c.beta) << ",\"gamma\":" << jsonReal(c.gamma)
+       << ",\"spaceGrp\":" << jsonStr(c.spaceGrp) << ",\"z\":" << jsonInt(c.z);
+    break;
+  }
+  case zdock::pdb::RecordType::FORMUL: {
+    const auto &f = r.as<zdock::pdb::FormulRecord>();
+    os << "\"component\":" << jsonInt(f.component)
+       << ",\"hetId\":" << jsonStr(f.hetId)
+       << ",\"continuation\":" << jsonInt(f.continuation)
+       << ",\"exclude\":" << jsonChar(f.exclude)
+       << ",\"formula\":" << jsonStr(f.formula);
+    break;
+  }
+  case zdock::pdb::RecordType::FTNOTE:
+  case zdock::pdb::RecordType::REMARK:
+  case zdock::pdb::RecordType::SYMDES:
+  case zdock::pdb::RecordType::MTXDES:
+  case zdock::pdb::RecordType::CMPDES:
+  case zdock::pdb::RecordType::AGRDES: {
+    const auto &a = r.as<zdock::pdb::AgrdesRecord>();
+    os << "\"num\":" << jsonInt(a.num) << ",\"text\":" << jsonStr(a.text);
+    break;
+  }
+  case zdock::pdb::RecordType::HEADER: {
+    const auto &h = r.as<zdock::pdb::HeaderRecord>();
+    os << "\"classification\":" << jsonStr(h.classification)
+       << ",\"timestamp\":" << jsonStr(h.timestamp)
+       << ",\"id\":" << jsonStr(h.id);
+    break;
+  }
+  case zdock::pdb::RecordType::HELIX: {
+    const auto &h = r.as<zdock::pdb::HelixRecord>();
+    os << "\"serialNum\":" << jsonInt(h.serialNum)
+       << ",\"id\":" << jsonStr(h.id);
+    for (int i = 0; i < 2; ++i)
+      os << ",\"residues[" << i << "].name\":" << jsonStr(h.residues[i].name)
+         << ",\"residues[" << i << "].chainId\":" << jsonChar(h.residues[i].chainId)
+         << ",\"residues[" << i << "].seqNum\":" << jsonInt(h.residues[i].seqNum)
+         << ",\"residues[" << i << "].insertCode\":" << jsonChar(h.residues[i].insertCode);
+    os << ",\"type\":" << jsonInt(h.type)
+       << ",\"comment\":" << jsonStr(h.comment)
+       << ",\"length\":" << jsonInt(h.length);
+    break;
+  }
+  case zdock::pdb::RecordType::HET: {
+    const auto &h = r.as<zdock::pdb::HetRecord>();
+    os << "\"hetGrp.name\":" << jsonStr(h.hetGrp.name)
+       << ",\"hetGrp.chainId\":" << jsonChar(h.hetGrp.chainId)
+       << ",\"hetGrp.seqNum\":" << jsonInt(h.hetGrp.seqNum)
+       << ",\"hetGrp.insertCode\":" << jsonChar(h.hetGrp.insertCode)
+       << ",\"numAtoms\":" << jsonInt(h.numAtoms)
+       << ",\"text\":" << jsonStr(h.text);
+    break;
+  }
+  case zdock::pdb::RecordType::JRNL:
+    os << "\"text\":" << jsonStr(r.as<zdock::pdb::JrnlRecord>().text);
+    break;
+  case zdock::pdb::RecordType::KEYWDS: {
+    const auto &k = r.as<zdock::pdb::KeywdsRecord>();
+    os << "\"continuation\":" << jsonInt(k.continuation)
+       << ",\"keywds\":" << jsonStr(k.keywds);
+    break;
+  }
+  case zdock::pdb::RecordType::MASTER: {
+    const auto &m = r.as<zdock::pdb::MasterRecord>();
+    os << "\"numRemark\":" << jsonInt(m.numRemark)
+       << ",\"numFtnote\":" << jsonInt(m.numFtnote)
+       << ",\"numHet\":" << jsonInt(m.numHet)
+       << ",\"numHelix\":" << jsonInt(m.numHelix)
+       << ",\"numSheet\":" << jsonInt(m.numSheet)
+       << ",\"numTurn\":" << jsonInt(m.numTurn)
+       << ",\"numSite\":" << jsonInt(m.numSite)
+       << ",\"numTransform\":" << jsonInt(m.numTransform)
+       << ",\"numCoordinate\":" << jsonInt(m.numCoordinate)
+       << ",\"numTer\":" << jsonInt(m.numTer)
+       << ",\"numConect\":" << jsonInt(m.numConect)
+       << ",\"numSeqres\":" << jsonInt(m.numSeqres);
+    break;
+  }
+  case zdock::pdb::RecordType::MDLTYP: {
+    const auto &m = r.as<zdock::pdb::MdltypRecord>();
+    os << "\"continuation\":" << jsonInt(m.continuation)
+       << ",\"comment\":" << jsonStr(m.comment);
+    break;
+  }
+  case zdock::pdb::RecordType::MODEL:
+    os << "\"num\":" << jsonInt(r.as<zdock::pdb::ModelRecord>().num);
+    break;
+  case zdock::pdb::RecordType::NUMMDL:
+    os << "\"number\":" << jsonInt(r.as<zdock::pdb::NummdlRecord>().number);
+    break;
+  case zdock::pdb::RecordType::MTRIX: {
+    const auto &m = r.as<zdock::pdb::MtrixRecord>();
+    os << "\"rowNum\":" << jsonInt(m.rowNum)
+       << ",\"serialNum\":" << jsonInt(m.serialNum)
+       << ",\"m1\":" << jsonReal(m.m1) << ",\"m2\":" << jsonReal(m.m2)
+       << ",\"m3\":" << jsonReal(m.m3) << ",\"v\":" << jsonReal(m.v)
+       << ",\"given\":" << jsonInt(m.given);
+    break;
+  }
+  case zdock::pdb::RecordType::OBSLTE: {
+    const auto &o = r.as<zdock::pdb::ObslteRecord>();
+    os << "\"continuation\":" << jsonInt(o.continuation)
+       << ",\"timestamp\":" << jsonStr(o.timestamp)
+       << ",\"oldId\":" << jsonStr(o.oldId);
+    for (int i = 0; i < 9; ++i)
+      os << ",\"idMap[" << i << "]\":" << jsonStr(o.idMap[i]);
+    break;
+  }
+  case zdock::pdb::RecordType::ORIGX: {
+    const auto &o = r.as<zdock::pdb::OrigxRecord>();
+    os << "\"rowNum\":" << jsonInt(o.rowNum) << ",\"o1\":" << jsonReal(o.o1)
+       << ",\"o2\":" << jsonReal(o.o2) << ",\"o3\":" << jsonReal(o.o3)
+       << ",\"t\":" << jsonReal(o.t);
+    break;
+  }
+  case zdock::pdb::RecordType::REVDAT: {
+    const auto &t = r.as<zdock::pdb::RevdatRecord>();
+    os << "\"modification\":" << jsonInt(t.modification)
+       << ",\"continuation\":" << jsonInt(t.continuation)
+       << ",\"timestamp\":" << jsonStr(t.timestamp)
+       << ",\"id\":" << jsonStr(t.id) << ",\"modType\":" << jsonInt(t.modType);
+    for (int i = 0; i < 4; ++i)
+      os << ",\"record[" << i << "]\":" << jsonStr(t.record[i]);
+    break;
+  }
+  case zdock::pdb::RecordType::SCALE: {
+    const auto &s = r.as<zdock::pdb::ScaleRecord>();
+    os << "\"rowNum\":" << jsonInt(s.rowNum) << ",\"s1\":" << jsonReal(s.s1)
+       << ",\"s2\":" << jsonReal(s.s2) << ",\"s3\":" << jsonReal(s.s3)
+       << ",\"u\":" << jsonReal(s.u);
+    break;
+  }
+  case zdock::pdb::RecordType::SEQRES: {
+    const auto &s = r.as<zdock::pdb::SeqresRecord>();
+    os << "\"serialNum\":" << jsonInt(s.serialNum)
+       << ",\"chainId\":" << jsonChar(s.chainId)
+       << ",\"count\":" << jsonInt(s.count);
+    for (int i = 0; i < 13; ++i)
+      os << ",\"names[" << i << "]\":" << jsonStr(s.names[i]);
+    break;
+  }
+  case zdock::pdb::RecordType::SHEET: {
+    const auto &s = r.as<zdock::pdb::SheetRecord>();
+    os << "\"strandNum\":" << jsonInt(s.strandNum)
+       << ",\"id\":" << jsonStr(s.id) << ",\"count\":" << jsonInt(s.count);
+    for (int i = 0; i < 2; ++i)
+      os << ",\"residues[" << i << "].name\":" << jsonStr(s.residues[i].name)
+         << ",\"residues[" << i << "].chainId\":" << jsonChar(s.residues[i].chainId)
+         << ",\"residues[" << i << "].seqNum\":" << jsonInt(s.residues[i].seqNum)
+         << ",\"residues[" << i << "].insertCode\":" << jsonChar(s.residues[i].insertCode);
+    os << ",\"sense\":" << jsonInt(s.sense);
+    for (int i = 0; i < 2; ++i) {
+      os << ",\"atoms[" << i << "].name\":" << jsonStr(s.atoms[i].name)
+         << ",\"atoms[" << i << "].residue.name\":" << jsonStr(s.atoms[i].residue.name)
+         << ",\"atoms[" << i << "].residue.chainId\":" << jsonChar(s.atoms[i].residue.chainId)
+         << ",\"atoms[" << i << "].residue.seqNum\":" << jsonInt(s.atoms[i].residue.seqNum)
+         << ",\"atoms[" << i << "].residue.insertCode\":" << jsonChar(s.atoms[i].residue.insertCode);
+    }
+    break;
+  }
+  case zdock::pdb::RecordType::SITE: {
+    const auto &s = r.as<zdock::pdb::SiteRecord>();
+    os << "\"seqNum\":" << jsonInt(s.seqNum) << ",\"id\":" << jsonStr(s.id)
+       << ",\"count\":" << jsonInt(s.count);
+    for (int i = 0; i < 4; ++i)
+      os << ",\"residues[" << i << "].name\":" << jsonStr(s.residues[i].name)
+         << ",\"residues[" << i << "].chainId\":" << jsonChar(s.residues[i].chainId)
+         << ",\"residues[" << i << "].seqNum\":" << jsonInt(s.residues[i].seqNum)
+         << ",\"residues[" << i << "].insertCode\":" << jsonChar(s.residues[i].insertCode);
+    break;
+  }
+  case zdock::pdb::RecordType::SOURCE: {
+    const auto &s = r.as<zdock::pdb::SourceRecord>();
+    os << "\"continuation\":" << jsonInt(s.continuation)
+       << ",\"name\":" << jsonStr(s.name);
+    break;
+  }
+  case zdock::pdb::RecordType::SPLIT: {
+    const auto &s = r.as<zdock::pdb::SplitRecord>();
+    os << "\"continuation\":" << jsonInt(s.continuation);
+    for (int i = 0; i < 14; ++i)
+      os << ",\"idMap[" << i << "]\":" << jsonStr(s.idMap[i]);
+    break;
+  }
+  case zdock::pdb::RecordType::SPRSDE: {
+    const auto &s = r.as<zdock::pdb::SprsdeRecord>();
+    os << "\"continuation\":" << jsonInt(s.continuation)
+       << ",\"timestamp\":" << jsonStr(s.timestamp)
+       << ",\"id\":" << jsonStr(s.id);
+    for (int i = 0; i < 9; ++i)
+      os << ",\"supersede[" << i << "]\":" << jsonStr(s.supersede[i]);
+    break;
+  }
+  case zdock::pdb::RecordType::SSBOND: {
+    const auto &s = r.as<zdock::pdb::SsbondRecord>();
+    os << "\"seqNum\":" << jsonInt(s.seqNum);
+    for (int i = 0; i < 2; ++i)
+      os << ",\"residues[" << i << "].name\":" << jsonStr(s.residues[i].name)
+         << ",\"residues[" << i << "].chainId\":" << jsonChar(s.residues[i].chainId)
+         << ",\"residues[" << i << "].seqNum\":" << jsonInt(s.residues[i].seqNum)
+         << ",\"residues[" << i << "].insertCode\":" << jsonChar(s.residues[i].insertCode);
+    os << ",\"sym1\":" << jsonInt(s.sym1) << ",\"sym2\":" << jsonInt(s.sym2)
+       << ",\"length\":" << jsonReal(s.length);
+    break;
+  }
+  case zdock::pdb::RecordType::SYMOP: {
+    const auto &s = r.as<zdock::pdb::SymopRecord>();
+    os << "\"rowNum\":" << jsonInt(s.rowNum)
+       << ",\"serialNum\":" << jsonInt(s.serialNum)
+       << ",\"s1\":" << jsonReal(s.s1) << ",\"s2\":" << jsonReal(s.s2)
+       << ",\"s3\":" << jsonReal(s.s3) << ",\"t\":" << jsonReal(s.t);
+    break;
+  }
+  case zdock::pdb::RecordType::TER: {
+    const auto &t = r.as<zdock::pdb::TerRecord>();
+    os << "\"serialNum\":" << jsonInt(t.serialNum)
+       << ",\"residue.name\":" << jsonStr(t.residue.name)
+       << ",\"residue.chainId\":" << jsonChar(t.residue.chainId)
+       << ",\"residue.seqNum\":" << jsonInt(t.residue.seqNum)
+       << ",\"residue.insertCode\":" << jsonChar(t.residue.insertCode);
+    break;
+  }
+  case zdock::pdb::RecordType::TITLE: {
+    const auto &t = r.as<zdock::pdb::TitleRecord>();
+    os << "\"continuation\":" << jsonInt(t.continuation)
+       << ",\"text\":" << jsonStr(t.text);
+    break;
+  }
+  case zdock::pdb::RecordType::TRNSFM: {
+    const auto &t = r.as<zdock::pdb::TrnsfmRecord>();
+    os << "\"resultSerialNum\":" << jsonInt(t.resultSerialNum)
+       << ",\"applySerialNum\":" << jsonInt(t.applySerialNum)
+       << ",\"sourceSerialNum\":" << jsonInt(t.sourceSerialNum);
+    break;
+  }
+  case zdock::pdb::RecordType::TURN: {
+    const auto &t = r.as<zdock::pdb::TurnRecord>();
+    os << "\"seqNum\":" << jsonInt(t.seqNum) << ",\"id\":" << jsonStr(t.id);
+    for (int i = 0; i < 2; ++i)
+      os << ",\"residues[" << i << "].name\":" << jsonStr(t.residues[i].name)
+         << ",\"residues[" << i << "].chainId\":" << jsonChar(t.residues[i].chainId)
+         << ",\"residues[" << i << "].seqNum\":" << jsonInt(t.residues[i].seqNum)
+         << ",\"residues[" << i << "].insertCode\":" << jsonChar(t.residues[i].insertCode);
+    os << ",\"comment\":" << jsonStr(t.comment);
+    break;
+  }
+  case zdock::pdb::RecordType::TVECT: {
+    const auto &t = r.as<zdock::pdb::TvectRecord>();
+    os << "\"serialNum\":" << jsonInt(t.serialNum)
+       << ",\"t1\":" << jsonReal(t.t1) << ",\"t2\":" << jsonReal(t.t2)
+       << ",\"t3\":" << jsonReal(t.t3) << ",\"comment\":" << jsonStr(t.comment);
+    break;
+  }
+  case zdock::pdb::RecordType::USER: {
+    const auto &u = r.as<zdock::pdb::UserRecord>();
+    os << "\"subtype\":" << jsonStr(u.subtype)
+       << ",\"text\":" << jsonStr(u.text);
+    break;
+  }
+  case zdock::pdb::RecordType::USER_PDBRUN:
+    os << "\"version\":"
+       << jsonInt(r.as<zdock::pdb::UserPdbrunRecord>().version);
+    break;
+  case zdock::pdb::RecordType::USER_EYEPOS:
+  case zdock::pdb::RecordType::USER_ATPOS: {
+    const auto &e = r.as<zdock::pdb::UserEyePosRecord>();
+    for (int i = 0; i < 3; ++i)
+      os << (i ? "," : "") << "\"xyz[" << i << "]\":" << jsonReal(e.xyz[i]);
+    break;
+  }
+  case zdock::pdb::RecordType::USER_WINDOW: {
+    const auto &w = r.as<zdock::pdb::UserWindowRecord>();
+    os << "\"left\":" << jsonReal(w.left) << ",\"right\":" << jsonReal(w.right)
+       << ",\"bottom\":" << jsonReal(w.bottom) << ",\"top\":" << jsonReal(w.top)
+       << ",\"hither\":" << jsonReal(w.hither) << ",\"yon\":" << jsonReal(w.yon);
+    break;
+  }
+  case zdock::pdb::RecordType::USER_FOCUS:
+    os << "\"focus\":" << jsonReal(r.as<zdock::pdb::UserFocusRecord>().focus);
+    break;
+  case zdock::pdb::RecordType::USER_VIEWPORT: {
+    const auto &v = r.as<zdock::pdb::UserViewportRecord>();
+    os << "\"xmin\":" << jsonReal(v.xmin) << ",\"xmax\":" << jsonReal(v.xmax)
+       << ",\"ymin\":" << jsonReal(v.ymin) << ",\"ymax\":" << jsonReal(v.ymax);
+    break;
+  }
+  case zdock::pdb::RecordType::USER_BGCOLOR: {
+    const auto &b = r.as<zdock::pdb::UserBgColorRecord>();
+    for (int i = 0; i < 3; ++i)
+      os << (i ? "," : "") << "\"rgb[" << i << "]\":" << jsonReal(b.rgb[i]);
+    break;
+  }
+  case zdock::pdb::RecordType::USER_ANGLE: {
+    const auto &a = r.as<zdock::pdb::UserAngleRecord>();
+    os << "\"which\":" << jsonInt(a.which.value_or(0))
+       << ",\"atom0\":" << jsonInt(a.atom0) << ",\"atom1\":" << jsonInt(a.atom1)
+       << ",\"atom2\":" << jsonInt(a.atom2) << ",\"atom3\":" << jsonInt(a.atom3)
+       << ",\"angle\":" << jsonReal(a.angle);
+    break;
+  }
+  case zdock::pdb::RecordType::USER_DISTANCE: {
+    const auto &d = r.as<zdock::pdb::UserDistanceRecord>();
+    os << "\"which\":" << jsonInt(d.which.value_or(0))
+       << ",\"atom0\":" << jsonInt(d.atom0) << ",\"atom1\":" << jsonInt(d.atom1)
+       << ",\"distance\":" << jsonReal(d.distance);
+    break;
+  }
+  case zdock::pdb::RecordType::USER_FILE: {
+    const auto &f = r.as<zdock::pdb::UserFileRecord>();
+    os << "\"filename\":" << jsonStr(f.filename)
+       << ",\"model\":" << jsonInt(f.model.value_or(0));
+    break;
+  }
+  case zdock::pdb::RecordType::USER_MARKNAME:
+  case zdock::pdb::RecordType::USER_MARK:
+    os << "\"markname\":"
+       << jsonStr(r.as<zdock::pdb::UserMarknameRecord>().markname);
+    break;
+  case zdock::pdb::RecordType::USER_CNAME: {
+    const auto &c = r.as<zdock::pdb::UserCNameRecord>();
+    for (int i = 0; i < 3; ++i)
+      os << (i ? "," : "") << "\"rgb[" << i << "]\":" << jsonReal(c.rgb[i]);
+    os << ",\"name\":" << jsonStr(c.name);
+    break;
+  }
+  case zdock::pdb::RecordType::USER_COLOR:
+  case zdock::pdb::RecordType::USER_GFX_COLOR: {
+    const auto &c = r.as<zdock::pdb::UserColorRecord>();
+    for (int i = 0; i < 3; ++i)
+      os << (i ? "," : "") << "\"rgb[" << i << "]\":" << jsonReal(c.rgb[i]);
+    os << ",\"spec\":" << jsonStr(c.spec);
+    break;
+  }
+  case zdock::pdb::RecordType::USER_RADIUS:
+    os << "\"radius\":"
+       << jsonReal(r.as<zdock::pdb::UserRadiusRecord>().radius);
+    break;
+  case zdock::pdb::RecordType::USER_OBJECT:
+  case zdock::pdb::RecordType::USER_ENDOBJ:
+    os << "\"model\":" << jsonInt(r.as<zdock::pdb::UserObjectRecord>().model);
+    break;
+  case zdock::pdb::RecordType::USER_CHAIN: {
+    const auto &c = r.as<zdock::pdb::UserChainRecord>();
+    os << "\"atom0\":" << jsonInt(c.atom0) << ",\"atom1\":" << jsonInt(c.atom1);
+    break;
+  }
+  case zdock::pdb::RecordType::USER_GFX_BEGIN:
+    os << "\"primitive\":"
+       << jsonInt(static_cast<int>(
+              r.as<zdock::pdb::UserGfxBeginRecord>().primitive));
+    break;
+  case zdock::pdb::RecordType::USER_GFX_NORMAL:
+  case zdock::pdb::RecordType::USER_GFX_VERTEX:
+  case zdock::pdb::RecordType::USER_GFX_TEXTPOS:
+  case zdock::pdb::RecordType::USER_GFX_MOVE:
+  case zdock::pdb::RecordType::USER_GFX_DRAW:
+  case zdock::pdb::RecordType::USER_GFX_MARKER:
+  case zdock::pdb::RecordType::USER_GFX_POINT: {
+    const auto &p = r.as<zdock::pdb::UserGfxPointRecord>();
+    for (int i = 0; i < 3; ++i)
+      os << (i ? "," : "") << "\"xyz[" << i << "]\":" << jsonReal(p.xyz[i]);
+    break;
+  }
+  case zdock::pdb::RecordType::USER_GFX_FONT: {
+    const auto &f = r.as<zdock::pdb::UserGfxFontRecord>();
+    os << "\"size\":" << jsonInt(f.size) << ",\"name\":" << jsonStr(f.name);
+    break;
+  }
+  case zdock::pdb::RecordType::USER_GFX_LABEL: {
+    const auto &l = r.as<zdock::pdb::UserGfxLabelRecord>();
+    if (l.xyz.has_value())
+      for (int i = 0; i < 3; ++i)
+        os << (i ? "," : "") << "\"xyz[" << i << "]\":" << jsonReal((*l.xyz)[i]);
+    os << ",\"text\":" << jsonStr(l.text);
+    break;
+  }
+  default:
+    break;
+  }
+  os << "}";
+  return os.str();
+}
+
+// Emits the modern parser's records for one file as a single JSON line,
+// the snapshot-compare counterpart of the bb0032c dump's --json mode.
+// rejectedCoordinates carries the modern ParseContext's count of
+// coordinate-looking lines that parse as no record at all (the
+// input-quality census, reported separately by the compare mode).
+int dumpJsonFile(const std::string &path) {
+  std::ifstream in(path);
+  if (!in) {
+    fprintf(stderr, "cannot open %s\n", path.c_str());
+    return 2;
+  }
+  std::printf("{\"records\":[");
+  bool first = true;
+  std::string line;
+  std::size_t lineNo = 0;
+  std::size_t rejectedCoordinates = 0;
+  zdock::pdb::ParseContext context;
+  while (readRecordLine(in, line)) {
+    ++lineNo;
+    zdock::pdb::ParseContext lineContext;
+    lineContext.pdbrunVersion = context.pdbrunVersion;
+    const auto parsed = zdock::pdb::Record::parse(line, lineContext);
+    context.pdbrunVersion = lineContext.pdbrunVersion;
+    if (!first)
+      std::printf(",");
+    first = false;
+    if (parsed.has_value()) {
+      std::printf("{\"line\":%zu,\"type\":%d,\"text\":%s,\"fields\":%s}",
+                  lineNo, static_cast<int>(parsed->type()),
+                  jsonStr(parsed->chars()).c_str(),
+                  emitModernFields(*parsed).c_str());
+    } else {
+      // a line that parses as no record carries the junk fallback text
+      // and no fields, exactly as the snapshot's UNKNOWN records do
+      std::printf("{\"line\":%zu,\"type\":%d,\"text\":%s,\"fields\":{}}",
+                  lineNo, static_cast<int>(zdock::pdb::RecordType::UNKNOWN),
+                  jsonStr(zdock::pdb::Record::unknownFrom(line).chars())
+                      .c_str());
+      if (zdock::pdb::Record::looksLikeCoordinate(line))
+        ++rejectedCoordinates;
+    }
+  }
+  std::printf("],\"rejectedCoordinates\":%zu}\n", rejectedCoordinates);
+  return 0;
+}
+
 // Classifies a difference between the current and the bb0032c baseline:
 // the pre-fb720ad ZDATOM 80-column truncation and the pre-ea22558 unbounded
 // v5 USER %s reads are expected; everything else is unexpected.
@@ -765,10 +1347,26 @@ BaselineClass classifyBaseline(const std::string &line,
 
 int main(int argc, char **argv) {
   Options options;
+  // the dump mode takes a single file, before or after the flag
+  bool dumpJson = false;
+  for (int i = 1; i < argc; ++i)
+    if (std::string(argv[i]) == "--dump-json")
+      dumpJson = true;
+  if (dumpJson) {
+    const char *path = nullptr;
+    for (int i = 1; i < argc; ++i)
+      if (std::string(argv[i]) != "--dump-json")
+        path = argv[i];
+    if (!path) {
+      fprintf(stderr, "usage: %s --dump-json <file>\n", argv[0]);
+      return 2;
+    }
+    return dumpJsonFile(path);
+  }
   if (argc < 2) {
     fprintf(stderr,
             "usage: %s <file-or-directory> [--files-from <list>] "
-            "[--baseline <exe>] "
+            "[--baseline <exe>] [--dump-json] "
             "[--max-files N] [--max-lines N] [--all-extensions] [--quiet]\n",
             argv[0]);
     return 2;

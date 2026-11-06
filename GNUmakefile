@@ -74,7 +74,8 @@ DEPS := $(OBJECTS:.o=.d)
 BINS := $(addprefix $(BIN_DIR)/,$(TOOL_NAMES))
 TEST_BIN := $(TEST_DIR)/test
 
-.PHONY: all check-deps test cpp-test python-check python-test compare-parsers doc clean
+.PHONY: all check-deps test cpp-test python-check python-test compare-parsers \
+  zstdio doc clean
 
 all: check-deps $(BINS)
 
@@ -128,6 +129,14 @@ compare-parsers: check-deps $(LIBARCH) | $(BIN_DIR)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXXSTANDARD) $(WARNINGS) \
 	  -o $(BIN_DIR)/compare_parsers tools/compare_parsers.cpp $(LIBARCH) \
 	  $(LDLIBS)
+
+# Minimal zstd stream filter for the parity snapshot tooling (opt-in;
+# requires the system libzstd development files; see
+# tools/parity/README.md). Not part of `all` so the default build keeps
+# no new dependency.
+zstdio: | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $(CXXSTANDARD) $(WARNINGS) \
+	  -o $(BIN_DIR)/zstdio tools/parity/zstdio.cpp -lzstd
 
 python-test: all
 	$(UV) --directory $(PYTHON_DIR) run python -m unittest discover -s tests -v
