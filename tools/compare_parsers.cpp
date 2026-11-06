@@ -143,7 +143,7 @@ void report(const std::string &where, std::size_t lineNo,
 // operator>>-equivalent line reading (production semantics)
 // ---------------------------------------------------------------------------
 
-// Reads one record line the way libpdb::operator>> does: a 4xBufLen
+// Reads one record line the way the retired upstream reader did: a 4x81-byte
 // buffer, one trailing CR stripped, and the stream failed for lines that
 // do not fit. Returns false when the stream failed (production stops
 // reading at that point).

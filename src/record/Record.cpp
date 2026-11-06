@@ -333,7 +333,7 @@ Record::Record(RecordType type)
     : type_(type), payload_(payloadFor(type)) {}
 
 bool readRecordLine(std::istream &in, std::string &line) {
-  // the retired libpdb operator>> read into a 4x81-character buffer:
+  // the retired upstream reader read into a 4x81-character buffer:
   // lines that do not fit fail the stream and stop the caller's loop
   char buf[4 * 81];
   in.getline(buf, sizeof(buf));

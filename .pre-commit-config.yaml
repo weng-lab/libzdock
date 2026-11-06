@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
 default_stages: [pre-commit, manual]
-exclude: ^contrib/|^src/libpdb\+\+/|^include/pdb\+\+\.h$|^doc/man/pdb\+\+\.3$|^test/data/
+exclude: ^contrib/|^test/data/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -44,7 +44,6 @@ repos:
       - id: insert-license
         name: License headers (C/C++)
         files: .*\.(cpp|hpp|h)$
-        exclude: ^src/libpdb\+\+/|^include/pdb\+\+\.h$
         args:
           [
             "--license-filepath",

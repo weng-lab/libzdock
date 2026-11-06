@@ -13,7 +13,7 @@ UV ?= uv
 CATCH_DIR := contrib/Catch2
 CATCH_CPP := $(CATCH_DIR)/extras/catch_amalgamated.cpp
 
-CPPFLAGS += -Icontrib/eigen -Isrc/libpdb++ -Isrc/zdock -Isrc/common \
+CPPFLAGS += -Icontrib/eigen -Isrc/zdock -Isrc/common \
             -Isrc/pdb -Isrc/record -Iinclude
 CXXFLAGS ?= -O3
 CXXSTANDARD ?= -std=c++17
@@ -31,17 +31,6 @@ LIBRARY := zdock
 LIBARCH := $(LIB_DIR)/lib$(LIBRARY).a
 
 LIB_SOURCES := \
-  src/libpdb++/FieldReader.cpp \
-  src/libpdb++/FieldWriter.cpp \
-  src/libpdb++/PdbFormat.cpp \
-  src/libpdb++/RecordClassifier.cpp \
-  src/libpdb++/pdbinput.cpp \
-  src/libpdb++/pdb_read.cpp \
-  src/libpdb++/pdb++.cpp \
-  src/libpdb++/pdb_sscanf.cpp \
-  src/libpdb++/pdb_type.cpp \
-  src/libpdb++/pdb_sprntf.cpp \
-  src/libpdb++/pdb_chars.cpp \
   src/zdock/TransformMultimer.cpp \
   src/zdock/Constraints.cpp \
   src/zdock/TransformLigand.cpp \

@@ -19,6 +19,8 @@
 // field comparison exactly, so a snapshot compare against these records
 // reproduces the live legacy-vs-modern comparison field-for-field.
 
+// built only against the bb0032c worktree (see README.md);
+// the in-tree legacy header is retired
 #include "pdb++.h"
 
 #include <cstdio>

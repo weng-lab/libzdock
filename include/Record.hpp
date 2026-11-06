@@ -15,7 +15,7 @@
 namespace zdock::pdb {
 
 // Record types of the 1992 PDB format and the PDBRUN 5/6 USER extensions.
-// The names mirror the legacy libpdb::PDB::RecordType enumerators
+// The names carry the record spellings the fixed-format
 // one-for-one, in the same order, so the two can be correlated during the
 // Phase 3 migration.
 enum class RecordType : std::uint8_t {
@@ -654,7 +654,7 @@ inline std::ostream &operator<<(std::ostream &s, const Record &record) {
 }
 
 // The pinned input-line semantics, carried over from the retired
-// libpdb operator>>: read one record line through a 4x81-character
+// the retired upstream reader: read one record line through a 4x81-character
 // std::istream::getline buffer, strip exactly one trailing CR, and
 // fail the stream for lines that do not fit (production read loops
 // stop at that point). Returns false when the stream failed.

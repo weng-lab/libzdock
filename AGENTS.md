@@ -39,7 +39,6 @@ Staging, committing, tagging, or pushing MUST use `$git-commit-hygiene`.
 - `Makefile` exists only to direct BSD make users to GNU make.
 - `include/` contains public native headers.
 - `src/` contains native library and command-line implementation.
-- `src/libpdb++/`, `include/pdb++.h`, and `doc/man/pdb++.3` contain upstream-derived code and notices.
 - `test/` contains native tests and shared docking fixtures.
 - `python/` is an independent uv-managed Python project with an installed-package test layout.
 - `.codex/skills/` contains the durable engineering rules for this repository.

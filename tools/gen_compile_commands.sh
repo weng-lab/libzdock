@@ -75,7 +75,7 @@ print(".clangd: pinned %s" % ", ".join(cpp_dirs))
 EOF
 
 if command -v clangd >/dev/null 2>&1; then
-  if clangd --check=src/libpdb++/pdb_chars.cpp 2>&1 |
+  if clangd --check=src/record/RecordText.cpp 2>&1 |
     grep -Eq "completed, [1-9][0-9]* error"; then
     echo "gen_compile_commands.sh: clangd still reports errors" >&2
     exit 1
